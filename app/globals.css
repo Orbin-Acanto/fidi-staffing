@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap");
 @import "tailwindcss";
 
 @theme {
@@ -16,7 +17,6 @@
   --color-gray-700: #3a3a3a;
   --color-gray-600: #4a4a4a;
 
-  --font-primary: "Gilda Display", serif;
   --font-secondary: "Montserrat", sans-serif;
 }
 
@@ -28,7 +28,7 @@ html {
   body {
     background-color: var(--color-background);
     color: var(--color-white);
-    font-family: var(--font-primary);
+    font-family: var(--font-secondary);
     scroll-behavior: smooth;
   }
 
@@ -43,10 +43,6 @@ html {
 }
 
 @layer utilities {
-  .font-primary {
-    font-family: var(--font-primary);
-  }
-
   .font-secondary {
     font-family: var(--font-secondary);
   }

@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
+  const router = useRouter();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -12,13 +14,10 @@ export default function LoginPage() {
     e.preventDefault();
     setIsLoading(true);
 
-    // Add your login logic here
     try {
       console.log("Login attempt:", { username, password });
-      // Simulate API call
       await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // Handle successful login
+      router.push("/admin/dashboard");
     } catch (error) {
       console.error("Login failed:", error);
     } finally {
@@ -95,7 +94,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3 px-4 bg-primary text-dark-black font-secondary font-semibold
+              className="w-full py-3 px-4 bg-primary text-white font-secondary font-semibold
                        rounded-lg transition-all duration-200
                        hover:bg-[#e0c580] hover:shadow-lg hover:shadow-primary/20
                        focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 
@@ -106,7 +105,7 @@ export default function LoginPage() {
               {isLoading ? (
                 <span className="flex items-center justify-center">
                   <svg
-                    className="animate-spin -ml-1 mr-3 h-5 w-5 text-dark-black"
+                    className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"
                     viewBox="0 0 24 24"
