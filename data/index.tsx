@@ -1,4 +1,4 @@
-import { NavSection, Staff } from "@/type";
+import { Event, NavSection, Staff } from "@/type";
 
 export const navigation: NavSection[] = [
   {
@@ -574,4 +574,118 @@ export const availableGroups = [
   "Kitchen Team",
   "Corporate Events",
   "Management",
+];
+
+export const eventsList: Event[] = [
+  {
+    id: "1",
+    eventName: "Johnson Wedding",
+    eventType: "Wedding",
+    eventDate: "2024-11-20",
+    startTime: "18:00",
+    endTime: "23:00",
+    location: {
+      venueName: "Grand Ballroom",
+      city: "New York",
+      state: "NY",
+    },
+    assignedStaff: ["1", "2", "3", "4", "5", "6", "7", "8"],
+    requiredStaff: 8,
+    status: "Upcoming",
+    clientName: "Michael Johnson",
+    description: "Elegant wedding reception for 150 guests",
+    dressCode: "Black tie",
+    specialInstructions: "Vegetarian options required, no nuts",
+  },
+  {
+    id: "2",
+    eventName: "Tech Corp Annual Gala",
+    eventType: "Corporate",
+    eventDate: "2024-11-19",
+    startTime: "19:00",
+    endTime: "00:00",
+    location: {
+      venueName: "Tech Hub Convention Center",
+      city: "San Francisco",
+      state: "CA",
+    },
+    assignedStaff: ["1", "2", "3"],
+    requiredStaff: 5,
+    status: "Upcoming",
+    clientName: "Tech Corp Inc",
+    description: "Annual company celebration",
+    dressCode: "Business formal",
+  },
+  {
+    id: "3",
+    eventName: "Birthday Celebration",
+    eventType: "Party",
+    eventDate: "2024-11-22",
+    startTime: "16:00",
+    endTime: "21:00",
+    location: {
+      venueName: "Riverside Manor",
+      city: "Austin",
+      state: "TX",
+    },
+    assignedStaff: ["1", "2", "3"],
+    requiredStaff: 3,
+    status: "Upcoming",
+    clientName: "Sarah Williams",
+    description: "50th birthday party",
+  },
+  {
+    id: "4",
+    eventName: "Summer Music Festival",
+    eventType: "Festival",
+    eventDate: "2024-11-15",
+    startTime: "12:00",
+    endTime: "22:00",
+    location: {
+      venueName: "Central Park",
+      city: "Los Angeles",
+      state: "CA",
+    },
+    assignedStaff: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"],
+    requiredStaff: 10,
+    status: "Completed",
+    clientName: "City Events LLC",
+    description: "Outdoor music festival with multiple stages",
+  },
+  {
+    id: "5",
+    eventName: "Smith Anniversary",
+    eventType: "Wedding",
+    eventDate: "2024-11-10",
+    startTime: "17:00",
+    endTime: "22:00",
+    location: {
+      venueName: "Garden Terrace",
+      city: "Miami",
+      state: "FL",
+    },
+    assignedStaff: ["1", "2", "3", "4", "5"],
+    requiredStaff: 5,
+    status: "Completed",
+    clientName: "Robert Smith",
+    description: "25th wedding anniversary celebration",
+  },
+];
+
+export const eventTypes = [
+  "Wedding",
+  "Corporate",
+  "Party",
+  "Festival",
+  "Conference",
+  "Other",
+];
+
+export const dressCodes = [
+  "Casual",
+  "Business Casual",
+  "Business Formal",
+  "Black Tie",
+  "White Tie",
+  "Uniform",
 ];

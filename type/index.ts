@@ -53,3 +53,57 @@ export interface StaffFormData {
   confirmPassword: string;
   status: string;
 }
+
+export interface Event {
+  id: string;
+  eventName: string;
+  eventType: string;
+  eventDate: string;
+  startTime: string;
+  endTime: string;
+  location: {
+    venueName: string;
+    city: string;
+    state: string;
+  };
+  assignedStaff: string[];
+  requiredStaff: number;
+  status: "Upcoming" | "In Progress" | "Completed" | "Cancelled";
+  clientName: string;
+  description?: string;
+  dressCode?: string;
+  specialInstructions?: string;
+}
+
+export interface EventFormData {
+  eventName: string;
+  eventType: string;
+  description: string;
+  clientName: string;
+  clientContact: string;
+
+  eventDate: string;
+  startTime: string;
+  endTime: string;
+  setupTime: string;
+  breakdownTime: string;
+
+  venueName: string;
+  street: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  country: string;
+  locationNotes: string;
+
+  staffingRequirements: {
+    [key: string]: number;
+  };
+  assignedGroups: string[];
+  autoAssign: boolean;
+
+  dressCode: string;
+  specialInstructions: string;
+  budget: string;
+  status: string;
+}
