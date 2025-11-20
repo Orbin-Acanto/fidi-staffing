@@ -40,6 +40,7 @@ export default function AddStaffPage() {
     password: "",
     confirmPassword: "",
     status: "Active",
+    wage: 16.5,
   });
 
   const handleInputChange = (
@@ -326,6 +327,21 @@ export default function AddStaffPage() {
                   </option>
                 ))}
               </select>
+            </div>
+            <div>
+              <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
+                Hourly Pay Rate
+              </label>
+              <input
+                type="number"
+                name="wage"
+                value={formData.wage}
+                onChange={handleInputChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-dark-black
+                         focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
+                         transition-all duration-200"
+                placeholder="Enter Employee Hourly Wage Rate"
+              />
             </div>
 
             <div>

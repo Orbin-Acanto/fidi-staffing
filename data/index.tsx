@@ -506,6 +506,7 @@ export const staffList: Staff[] = [
     groups: ["Wedding Team A", "Corporate Events"],
     status: "Active",
     lastActive: "2 hours ago",
+    wage: 22.5,
   },
   {
     id: "2",
@@ -517,6 +518,7 @@ export const staffList: Staff[] = [
     groups: ["Bar Squad"],
     status: "Active",
     lastActive: "5 minutes ago",
+    wage: 29.5,
   },
   {
     id: "3",
@@ -528,6 +530,7 @@ export const staffList: Staff[] = [
     groups: ["Kitchen Team"],
     status: "Active",
     lastActive: "1 day ago",
+    wage: 25.5,
   },
   {
     id: "4",
@@ -539,6 +542,7 @@ export const staffList: Staff[] = [
     groups: ["Wedding Team B"],
     status: "Inactive",
     lastActive: "1 week ago",
+    wage: 19,
   },
   {
     id: "5",
@@ -550,6 +554,7 @@ export const staffList: Staff[] = [
     groups: ["Management", "Corporate Events"],
     status: "Active",
     lastActive: "30 minutes ago",
+    wage: 23,
   },
 ];
 
@@ -688,4 +693,31 @@ export const dressCodes = [
   "Black Tie",
   "White Tie",
   "Uniform",
+];
+
+export const jobHistory = [
+  {
+    id: 1,
+    eventName: "Corporate Gala 2024",
+    date: "2024-11-15",
+    role: "Lead Server",
+    hours: 8,
+    status: "Completed",
+  },
+  {
+    id: 2,
+    eventName: "Wedding Reception",
+    date: "2024-11-10",
+    role: "Server",
+    hours: 6,
+    status: "Completed",
+  },
+  {
+    id: 3,
+    eventName: "Holiday Party",
+    date: "2024-11-05",
+    role: "Bartender",
+    hours: 5,
+    status: "Completed",
+  },
 ];

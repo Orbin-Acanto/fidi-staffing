@@ -21,6 +21,7 @@ export interface Staff {
   status: "Active" | "Inactive";
   profilePicture?: string;
   lastActive: string;
+  wage: number;
 }
 
 export interface StaffFormData {
@@ -38,6 +39,7 @@ export interface StaffFormData {
   startDate: string;
   employmentType: string;
   groups: string[];
+  wage: number;
 
   street: string;
   city: string;
