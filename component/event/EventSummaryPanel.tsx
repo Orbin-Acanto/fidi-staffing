@@ -156,7 +156,7 @@ function SummaryStat({ label, value, badgeColor }: SummaryStatProps) {
         <span
           className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-secondary ${badgeColor}`}
         >
-          {label === "Total" ? "All" : "Live"}
+          {label === "Total" || label === "Completed" ? "All" : "Live"}
         </span>
       </div>
       <p className="mt-2 text-2xl font-primary font-semibold text-gray-900">

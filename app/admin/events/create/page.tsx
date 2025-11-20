@@ -110,7 +110,12 @@ export default function CreateEventPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-end">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-primary font-semibold text-gray-900">
+            Add Event
+          </h1>
+        </div>
         <Link
           href="/admin/events"
           className="flex items-center gap-2 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 font-secondary transition-colors"
