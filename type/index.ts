@@ -109,3 +109,13 @@ export interface EventFormData {
   budget: string;
   status: string;
 }
+
+export type Group = {
+  id: string;
+  name: string;
+  description: string;
+  color: string;
+  memberIds: string[];
+  createdAt: string;
+  archived: boolean;
+};

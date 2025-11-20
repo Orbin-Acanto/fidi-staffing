@@ -721,3 +721,14 @@ export const jobHistory = [
     status: "Completed",
   },
 ];
+
+export const colorOptions = [
+  { name: "Gold", value: "#d2b371" },
+  { name: "Brown", value: "#8B4513" },
+  { name: "Gray", value: "#4A5568" },
+  { name: "Blue", value: "#3B82F6" },
+  { name: "Green", value: "#10B981" },
+  { name: "Purple", value: "#8B5CF6" },
+  { name: "Red", value: "#EF4444" },
+  { name: "Pink", value: "#EC4899" },
+];
