@@ -55,11 +55,11 @@ export default function BulkAssignModal({
           <h3 className="text-sm font-secondary font-semibold text-gray-700 mb-2">
             Selected Groups:
           </h3>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 ">
             {selectedGroupsData.map((group) => (
               <span
                 key={group.id}
-                className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-secondary bg-white border border-gray-200"
+                className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-dark-black text-sm font-secondary bg-white border border-gray-200 "
               >
                 <div
                   className="w-3 h-3 rounded-full"

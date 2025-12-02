@@ -118,9 +118,9 @@ export default function GroupFormModal({
                     className="w-full h-8 rounded"
                     style={{ backgroundColor: color.value }}
                   />
-                  <p className="text-xs font-secondary text-gray-600 mt-2 text-center">
+                  {/* <p className="text-xs font-secondary text-gray-600 mt-2 text-center">
                     {color.name}
-                  </p>
+                  </p> */}
                 </button>
               ))}
             </div>
@@ -158,7 +158,7 @@ export default function GroupFormModal({
               </div>
             </div>
 
-            <div className="border border-gray-200 rounded-lg max-h-64 overflow-y-auto">
+            <div className="border border-gray-200 rounded-lg max-h-84 overflow-y-auto">
               {availableStaff.length === 0 ? (
                 <div className="p-6 text-center">
                   <p className="text-sm text-gray-500 font-secondary">
