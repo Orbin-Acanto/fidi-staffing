@@ -10,6 +10,10 @@ import {
   experienceLevels,
   professions,
 } from "@/data";
+import { AppDatePicker } from "@/component/ui/AppDatePicker";
+import { AppFileUpload } from "@/component/ui/AppFileUpload";
+import { AppSelect } from "@/component/ui/Select";
+import { AppCheckbox } from "@/component/ui/Checkbox";
 
 export default function AddStaffPage() {
   const router = useRouter();
@@ -192,34 +196,30 @@ export default function AddStaffPage() {
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
-                Date of Birth
-              </label>
-              <input
-                type="date"
-                name="dateOfBirth"
-                value={formData.dateOfBirth}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-dark-black
-                         focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
-                         transition-all duration-200"
-              />
-            </div>
+            <AppDatePicker
+              label="Date of Birth"
+              value={
+                formData.dateOfBirth
+                  ? new Date(formData.dateOfBirth)
+                  : undefined
+              }
+              onChange={(date) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  dateOfBirth: date ? date.toISOString().split("T")[0] : "",
+                }))
+              }
+            />
 
-            <div>
-              <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
-                Profile Picture
-              </label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-sm text-dark-black
-                         focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
-                         transition-all duration-200"
-              />
-            </div>
+            <AppFileUpload
+              label="Profile Picture"
+              onChange={(file) => {
+                setFormData((prev) => ({
+                  ...prev,
+                  profilePicture: file,
+                }));
+              }}
+            />
           </div>
         </div>
 
@@ -229,45 +229,43 @@ export default function AddStaffPage() {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
-                Profession/Role <span className="text-red-500">*</span>
-              </label>
-              <select
-                name="profession"
+              <AppSelect
+                label={
+                  <>
+                    Profession/Role <span className="text-red-500">*</span>
+                  </>
+                }
                 value={formData.profession}
-                onChange={handleInputChange}
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-dark-black
-                         focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
-                         transition-all duration-200"
-              >
-                <option value="">Select profession</option>
-                {professions.map((prof) => (
-                  <option key={prof} value={prof}>
-                    {prof}
-                  </option>
-                ))}
-              </select>
+                onValueChange={(value) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    profession: value,
+                  }))
+                }
+                placeholder="Select profession"
+                options={professions.map((prof) => ({
+                  label: prof,
+                  value: prof,
+                }))}
+              />
             </div>
 
             <div>
-              <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
-                Experience Level
-              </label>
-              <select
-                name="experienceLevel"
+              <AppSelect
+                label="Experience Level"
                 value={formData.experienceLevel}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-dark-black
-                         focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
-                         transition-all duration-200"
-              >
-                {experienceLevels.map((level) => (
-                  <option key={level} value={level}>
-                    {level}
-                  </option>
-                ))}
-              </select>
+                onValueChange={(value) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    experienceLevel: value,
+                  }))
+                }
+                placeholder="Select experience level"
+                options={experienceLevels.map((level) => ({
+                  label: level,
+                  value: level,
+                }))}
+              />
             </div>
           </div>
         </div>
@@ -284,50 +282,53 @@ export default function AddStaffPage() {
               <input
                 type="text"
                 name="employeeId"
+                disabled
                 value={formData.employeeId}
                 onChange={handleInputChange}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-dark-black
                          focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
                          transition-all duration-200"
-                placeholder="Auto-generated or enter manually"
+                placeholder="Auto-generated"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
-                Start Date <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="date"
-                name="startDate"
-                value={formData.startDate}
-                onChange={handleInputChange}
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-dark-black
-                         focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
-                         transition-all duration-200"
+              <AppDatePicker
+                label={
+                  <>
+                    Start Date <span className="text-red-500">*</span>
+                  </>
+                }
+                value={
+                  formData.startDate ? new Date(formData.startDate) : undefined
+                }
+                onChange={(date) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    startDate: date ? date.toISOString().split("T")[0] : "",
+                  }))
+                }
               />
             </div>
 
             <div>
-              <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
-                Employment Type
-              </label>
-              <select
-                name="employmentType"
+              <AppSelect
+                label="Employment Type"
                 value={formData.employmentType}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-dark-black
-                         focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
-                         transition-all duration-200"
-              >
-                {employmentTypes.map((type) => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))}
-              </select>
+                onValueChange={(value) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    employmentType: value,
+                  }))
+                }
+                placeholder="Select employment type"
+                options={employmentTypes.map((type) => ({
+                  label: type,
+                  value: type,
+                }))}
+              />
             </div>
+
             <div>
               <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
                 Hourly Pay Rate
@@ -354,12 +355,11 @@ export default function AddStaffPage() {
                     key={group}
                     className="flex items-center gap-2 py-2 cursor-pointer hover:bg-gray-50 px-2 rounded"
                   >
-                    <input
-                      type="checkbox"
+                    <AppCheckbox
                       checked={formData.groups.includes(group)}
-                      onChange={() => handleToggleGroup(group)}
-                      className="w-4 h-4"
+                      onCheckedChange={() => handleToggleGroup(group)}
                     />
+
                     <span className="text-sm font-secondary text-gray-700">
                       {group}
                     </span>
@@ -519,20 +519,20 @@ export default function AddStaffPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
-                Account Status
-              </label>
-              <select
-                name="status"
+              <AppSelect
+                label="Account Status"
                 value={formData.status}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-dark-black
-                         focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
-                         transition-all duration-200"
-              >
-                <option value="Active">Active</option>
-                <option value="Inactive">Inactive</option>
-              </select>
+                onValueChange={(value) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    status: value,
+                  }))
+                }
+                options={[
+                  { label: "Active", value: "Active" },
+                  { label: "Inactive", value: "Inactive" },
+                ]}
+              />
             </div>
 
             <div>

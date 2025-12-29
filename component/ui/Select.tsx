@@ -13,7 +13,7 @@ export function AppSelect({
   options,
   placeholder = "Select…",
 }: {
-  label?: string;
+  label?: React.ReactNode;
   value: string;
   onValueChange: (v: string) => void;
   options: Option[];
@@ -44,12 +44,12 @@ export function AppSelect({
             className="z-50 overflow-hidden rounded-lg border border-gray-200 bg-white text-dark-black shadow-lg"
             position="popper"
           >
-            <Select.Viewport className="p-1">
+            <Select.Viewport>
               {options.map((opt) => (
                 <Select.Item
                   key={opt.value}
                   value={opt.value}
-                  className="relative flex cursor-pointer select-none items-center rounded-md py-2 pl-9 pr-3 text-sm
+                  className="relative flex cursor-pointer select-none items-center py-2 pl-9 pr-3 text-sm
                    text-dark-black outline-none
                    data-highlighted:bg-primary/15 data-highlighted:text-dark-black
                    data-[state=checked]:bg-primary/10"

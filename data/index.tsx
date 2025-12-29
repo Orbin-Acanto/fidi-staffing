@@ -64,7 +64,6 @@ export const navigation: NavSection[] = [
             />
           </svg>
         ),
-        badge: 3,
       },
       {
         name: "Groups",
