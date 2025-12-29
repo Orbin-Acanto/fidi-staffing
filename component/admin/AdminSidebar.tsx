@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
@@ -9,6 +9,18 @@ import { navigation } from "@/data";
 export default function AdminSidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const pathname = usePathname();
+
+  useEffect(() => {
+    const media = window.matchMedia("(min-width: 768px)");
+
+    const sync = () => {
+      setIsCollapsed(!media.matches);
+    };
+
+    sync();
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
+  }, []);
 
   const isActive = (href: string) => {
     return pathname === href || pathname?.startsWith(href + "/");

@@ -5,6 +5,7 @@ import EventGridView from "@/component/event/EventGridView";
 import EventHeader from "@/component/event/EventHeader";
 import EventSummaryPanel from "@/component/event/EventSummaryPanel";
 import EventTableView from "@/component/event/EventTableView";
+import { AppSelect } from "@/component/ui/Select";
 import { eventsList, eventTypes } from "@/data";
 import { Event } from "@/type";
 import { useState } from "react";
@@ -172,42 +173,33 @@ export default function EventListPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
-              Status
-            </label>
-            <select
+            <AppSelect
+              label="Status"
               value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-sm text-dark-black
-                       focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
-                       transition-all duration-200"
-            >
-              <option value="all">All Status</option>
-              <option value="Upcoming">Upcoming</option>
-              <option value="In Progress">In Progress</option>
-              <option value="Completed">Completed</option>
-              <option value="Cancelled">Cancelled</option>
-            </select>
+              onValueChange={(value) => setFilterStatus(value)}
+              options={[
+                { label: "All Status", value: "all" },
+                { label: "Upcoming", value: "Upcoming" },
+                { label: "In Progress", value: "In Progress" },
+                { label: "Completed", value: "Completed" },
+                { label: "Cancelled", value: "Cancelled" },
+              ]}
+            />
           </div>
 
           <div>
-            <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
-              Event Type
-            </label>
-            <select
+            <AppSelect
+              label="Event Type"
               value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-sm text-dark-black
-                       focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
-                       transition-all duration-200"
-            >
-              <option value="all">All Types</option>
-              {eventTypes.map((type) => (
-                <option key={type} value={type}>
-                  {type}
-                </option>
-              ))}
-            </select>
+              onValueChange={(value) => setFilterType(value)}
+              options={[
+                { label: "All Types", value: "all" },
+                ...eventTypes.map((type) => ({
+                  label: type,
+                  value: type,
+                })),
+              ]}
+            />
           </div>
         </div>
       </div>

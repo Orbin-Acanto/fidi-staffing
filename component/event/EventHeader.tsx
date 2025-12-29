@@ -28,7 +28,6 @@ export default function EventHeader() {
             d="M12 4v16m8-8H4"
           />
         </svg>
-        Create Event
       </Link>
     </div>
   );

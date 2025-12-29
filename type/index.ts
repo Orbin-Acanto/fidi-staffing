@@ -77,6 +77,18 @@ export interface Event {
   specialInstructions?: string;
 }
 
+export type SavedLocation = {
+  id: string;
+  label: string;
+  venueName: string;
+  street: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  country: string;
+  locationNotes?: string;
+};
+
 export interface EventFormData {
   eventName: string;
   eventType: string;

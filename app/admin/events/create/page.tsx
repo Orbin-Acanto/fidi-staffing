@@ -4,11 +4,23 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { EventFormData } from "@/type";
-import { availableGroups, dressCodes, eventTypes, professions } from "@/data";
+import {
+  availableGroups,
+  dressCodes,
+  eventTypes,
+  professions,
+  savedLocations,
+} from "@/data";
+import { AppSelect } from "@/component/ui/Select";
+import { AppDatePicker } from "@/component/ui/AppDatePicker";
+import { AppTimePicker } from "@/component/ui/AppTimePicker";
+import { AppCheckbox } from "@/component/ui/Checkbox";
 
 export default function CreateEventPage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedLocationId, setSelectedLocationId] =
+    useState<string>("custom");
 
   const [formData, setFormData] = useState<EventFormData>({
     eventName: "",
@@ -37,12 +49,45 @@ export default function CreateEventPage() {
     status: "Draft",
   });
 
+  const applySavedLocation = (locationId: string) => {
+    setSelectedLocationId(locationId);
+
+    if (locationId === "custom") return;
+
+    const loc = savedLocations.find((l) => l.id === locationId);
+    if (!loc) return;
+
+    setFormData((prev) => ({
+      ...prev,
+      venueName: loc.venueName,
+      street: loc.street,
+      city: loc.city,
+      state: loc.state,
+      zipCode: loc.zipCode,
+      country: loc.country,
+      locationNotes: loc.locationNotes ?? prev.locationNotes,
+    }));
+  };
+
   const handleInputChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
     >
   ) => {
     const { name, value, type } = e.target;
+
+    if (
+      [
+        "venueName",
+        "street",
+        "city",
+        "state",
+        "zipCode",
+        "locationNotes",
+      ].includes(name)
+    ) {
+      setSelectedLocationId("custom");
+    }
 
     if (type === "checkbox") {
       const checked = (e.target as HTMLInputElement).checked;
@@ -162,25 +207,25 @@ export default function CreateEventPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
-                Event Type <span className="text-red-500">*</span>
-              </label>
-              <select
-                name="eventType"
+              <AppSelect
+                label={
+                  <>
+                    Event Type <span className="text-red-500">*</span>
+                  </>
+                }
                 value={formData.eventType}
-                onChange={handleInputChange}
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-dark-black
-                         focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
-                         transition-all duration-200"
-              >
-                <option value="">Select event type</option>
-                {eventTypes.map((type) => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))}
-              </select>
+                onValueChange={(value) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    eventType: value,
+                  }))
+                }
+                placeholder="Select event type"
+                options={eventTypes.map((type) => ({
+                  label: type,
+                  value: type,
+                }))}
+              />
             </div>
 
             <div>
@@ -242,80 +287,79 @@ export default function CreateEventPage() {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div>
-              <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
-                Event Date <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="date"
-                name="eventDate"
+              <AppDatePicker
+                label={
+                  <>
+                    Event Date <span className="text-red-500">*</span>
+                  </>
+                }
                 value={formData.eventDate}
-                onChange={handleInputChange}
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-dark-black
-                         focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
-                         transition-all duration-200"
+                onChange={(ymd) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    eventDate: ymd,
+                  }))
+                }
               />
             </div>
 
             <div>
-              <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
-                Start Time <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="time"
-                name="startTime"
+              <AppTimePicker
+                label={
+                  <>
+                    Start Time <span className="text-red-500">*</span>
+                  </>
+                }
                 value={formData.startTime}
-                onChange={handleInputChange}
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-dark-black
-                         focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
-                         transition-all duration-200"
+                onChange={(time) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    startTime: time,
+                  }))
+                }
               />
             </div>
 
             <div>
-              <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
-                End Time <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="time"
-                name="endTime"
+              <AppTimePicker
+                label={
+                  <>
+                    End Time <span className="text-red-500">*</span>
+                  </>
+                }
                 value={formData.endTime}
-                onChange={handleInputChange}
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-dark-black
-                         focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
-                         transition-all duration-200"
+                onChange={(time) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    endTime: time,
+                  }))
+                }
               />
             </div>
 
             <div>
-              <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
-                Setup Time (Optional)
-              </label>
-              <input
-                type="time"
-                name="setupTime"
+              <AppTimePicker
+                label="Setup Time (Optional)"
                 value={formData.setupTime}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-dark-black
-                         focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
-                         transition-all duration-200"
+                onChange={(time) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    setupTime: time,
+                  }))
+                }
               />
             </div>
 
             <div>
-              <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
-                Breakdown Time (Optional)
-              </label>
-              <input
-                type="time"
-                name="breakdownTime"
+              <AppTimePicker
+                label="Breakdown Time (Optional)"
                 value={formData.breakdownTime}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-dark-black
-                         focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
-                         transition-all duration-200"
+                onChange={(time) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    breakdownTime: time,
+                  }))
+                }
               />
             </div>
           </div>
@@ -326,7 +370,22 @@ export default function CreateEventPage() {
             Location
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="md:col-span-2">
+            <div>
+              <AppSelect
+                label="Use saved location"
+                value={selectedLocationId}
+                onValueChange={applySavedLocation}
+                placeholder="Choose a saved location (optional)"
+                options={[
+                  { label: "Custom / New location", value: "custom" },
+                  ...savedLocations.map((l) => ({
+                    label: l.label,
+                    value: l.id,
+                  })),
+                ]}
+              />
+            </div>
+            <div>
               <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
                 Venue Name
               </label>
@@ -420,6 +479,7 @@ export default function CreateEventPage() {
               <input
                 type="text"
                 name="country"
+                disabled
                 value={formData.country}
                 onChange={handleInputChange}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-dark-black
@@ -449,76 +509,80 @@ export default function CreateEventPage() {
         </div>
 
         <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="text-xl font-primary font-semibold text-gray-900">
-                Staffing Requirements
-              </h2>
-              <p className="text-sm text-gray-600 font-secondary mt-1">
-                Total staff needed:{" "}
-                <span className="font-semibold text-gray-900">
-                  {totalStaffRequired}
-                </span>
-              </p>
-            </div>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                name="autoAssign"
-                checked={formData.autoAssign}
-                onChange={handleInputChange}
-                className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-2 focus:ring-primary"
-              />
-              <span className="text-sm font-secondary text-gray-700">
-                Auto-assign available staff
-              </span>
-            </label>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {professions.map((profession) => (
-              <div key={profession}>
-                <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
-                  {profession}
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={formData.staffingRequirements[profession] || ""}
-                  onChange={(e) =>
-                    handleStaffingChange(profession, e.target.value)
+          <h2 className="text-xl font-primary font-semibold text-gray-900">
+            Staffing Requirements
+          </h2>
+          <div>
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <p className="text-sm text-gray-600 font-secondary mt-1">
+                  Total staff needed:{" "}
+                  <span className="font-semibold text-gray-900">
+                    {totalStaffRequired}
+                  </span>
+                </p>
+              </div>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <AppCheckbox
+                  checked={formData.autoAssign}
+                  onCheckedChange={(checked) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      autoAssign: Boolean(checked),
+                    }))
                   }
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-dark-black
+                />
+
+                <span className="text-sm font-secondary text-gray-700">
+                  Auto-assign available staff
+                </span>
+              </label>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {professions.map((profession) => (
+                <div key={profession}>
+                  <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
+                    {profession}
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={formData.staffingRequirements[profession] || ""}
+                    onChange={(e) =>
+                      handleStaffingChange(profession, e.target.value)
+                    }
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-dark-black
                            placeholder-gray-500
                            focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
                            transition-all duration-200"
-                  placeholder="0"
-                />
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-6">
-            <label className="block text-sm font-secondary font-medium text-gray-700 mb-3">
-              Assign Groups (Optional)
-            </label>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {availableGroups.map((group) => (
-                <label
-                  key={group}
-                  className="flex items-center gap-2 p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
-                >
-                  <input
-                    type="checkbox"
-                    checked={formData.assignedGroups.includes(group)}
-                    onChange={() => handleToggleGroup(group)}
-                    className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-2 focus:ring-primary"
+                    placeholder="0"
                   />
-                  <span className="text-sm font-secondary text-gray-700">
-                    {group}
-                  </span>
-                </label>
+                </div>
               ))}
+            </div>
+
+            <div className="mt-6">
+              <label className="block text-sm font-secondary font-medium text-gray-700 mb-3">
+                Assign Groups (Optional)
+              </label>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {availableGroups.map((group) => (
+                  <label
+                    key={group}
+                    className="flex items-center gap-2 p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
+                  >
+                    <AppCheckbox
+                      checked={formData.assignedGroups.includes(group)}
+                      onCheckedChange={() => handleToggleGroup(group)}
+                    />
+
+                    <span className="text-sm font-secondary text-gray-700">
+                      {group}
+                    </span>
+                  </label>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -529,24 +593,21 @@ export default function CreateEventPage() {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
-                Dress Code
-              </label>
-              <select
-                name="dressCode"
+              <AppSelect
+                label="Dress Code"
                 value={formData.dressCode}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-dark-black
-                         focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
-                         transition-all duration-200"
-              >
-                <option value="">Select dress code</option>
-                {dressCodes.map((code) => (
-                  <option key={code} value={code}>
-                    {code}
-                  </option>
-                ))}
-              </select>
+                onValueChange={(value) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    dressCode: value,
+                  }))
+                }
+                placeholder="Select dress code"
+                options={dressCodes.map((code) => ({
+                  label: code,
+                  value: code,
+                }))}
+              />
             </div>
 
             <div>
@@ -587,59 +648,63 @@ export default function CreateEventPage() {
           </div>
         </div>
 
-        <div className="flex items-center justify-between bg-white rounded-lg border border-gray-200 p-6">
-          <Link
-            href="/admin/events"
-            className="px-6 py-2.5 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 font-secondary font-medium transition-colors"
-          >
-            Cancel
-          </Link>
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={(e) => handleSubmit(e, "Draft")}
-              disabled={isSubmitting}
-              className="px-6 py-2.5 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 font-secondary font-medium transition-colors
-                       disabled:opacity-50 disabled:cursor-not-allowed"
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <Link
+              href="/admin/events"
+              className="w-full sm:w-auto inline-flex justify-center px-6 py-2.5 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 font-secondary font-medium transition-colors"
             >
-              {isSubmitting ? "Saving..." : "Save as Draft"}
-            </button>
-            <button
-              type="button"
-              onClick={(e) => handleSubmit(e, "Published")}
-              disabled={isSubmitting}
-              className="px-6 py-2.5 bg-primary text-dark-black font-secondary font-semibold rounded-lg
-                       hover:bg-[#e0c580] transition-all duration-200
-                       disabled:opacity-50 disabled:cursor-not-allowed
-                       transform hover:scale-105 active:scale-95"
-            >
-              {isSubmitting ? (
-                <span className="flex items-center gap-2">
-                  <svg
-                    className="animate-spin h-5 w-5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    />
-                  </svg>
-                  Publishing...
-                </span>
-              ) : (
-                "Publish Event"
-              )}
-            </button>
+              Cancel
+            </Link>
+
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+              <button
+                type="button"
+                onClick={(e) => handleSubmit(e, "Draft")}
+                disabled={isSubmitting}
+                className="w-full sm:w-auto inline-flex justify-center px-6 py-2.5 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 font-secondary font-medium transition-colors
+                   disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSubmitting ? "Saving..." : "Save as Draft"}
+              </button>
+
+              <button
+                type="button"
+                onClick={(e) => handleSubmit(e, "Published")}
+                disabled={isSubmitting}
+                className="w-full sm:w-auto inline-flex justify-center px-6 py-2.5 bg-primary text-dark-black font-secondary font-semibold rounded-lg
+                   hover:bg-[#e0c580] transition-all duration-200
+                   disabled:opacity-50 disabled:cursor-not-allowed
+                   transform sm:hover:scale-105 active:scale-95"
+              >
+                {isSubmitting ? (
+                  <span className="flex items-center gap-2">
+                    <svg
+                      className="animate-spin h-5 w-5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      />
+                    </svg>
+                    Publishing...
+                  </span>
+                ) : (
+                  "Publish Event"
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </form>

@@ -56,12 +56,6 @@ export default function AddStaffPage() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setFormData((prev) => ({ ...prev, profilePicture: e.target.files![0] }));
-    }
-  };
-
   const handleToggleGroup = (group: string) => {
     setFormData((prev) => ({
       ...prev,
@@ -198,15 +192,11 @@ export default function AddStaffPage() {
 
             <AppDatePicker
               label="Date of Birth"
-              value={
-                formData.dateOfBirth
-                  ? new Date(formData.dateOfBirth)
-                  : undefined
-              }
-              onChange={(date) =>
+              value={formData.dateOfBirth}
+              onChange={(ymd) =>
                 setFormData((prev) => ({
                   ...prev,
-                  dateOfBirth: date ? date.toISOString().split("T")[0] : "",
+                  dateOfBirth: ymd,
                 }))
               }
             />
@@ -299,13 +289,11 @@ export default function AddStaffPage() {
                     Start Date <span className="text-red-500">*</span>
                   </>
                 }
-                value={
-                  formData.startDate ? new Date(formData.startDate) : undefined
-                }
-                onChange={(date) =>
+                value={formData.startDate}
+                onChange={(ymd) =>
                   setFormData((prev) => ({
                     ...prev,
-                    startDate: date ? date.toISOString().split("T")[0] : "",
+                    startDate: ymd,
                   }))
                 }
               />

@@ -1,4 +1,4 @@
-import { Event, NavSection, Staff } from "@/type";
+import { Event, NavSection, SavedLocation, Staff } from "@/type";
 
 export const navigation: NavSection[] = [
   {
@@ -730,4 +730,65 @@ export const colorOptions = [
   { name: "Purple", value: "#8B5CF6" },
   { name: "Red", value: "#EF4444" },
   { name: "Pink", value: "#EC4899" },
+];
+
+export const savedLocations: SavedLocation[] = [
+  {
+    id: "48wall",
+    label: "48 Wall Street — Financial District, NYC",
+    venueName: "48 Wall Street",
+    street: "48 Wall St, Lobby 1",
+    city: "New York",
+    state: "NY",
+    zipCode: "10005",
+    country: "United States",
+    locationNotes: "Security desk at lobby; elevators require check-in.",
+  },
+  {
+    id: "plazahotel",
+    label: "The Plaza Hotel — Midtown Manhattan",
+    venueName: "The Plaza Hotel",
+    street: "768 5th Ave",
+    city: "New York",
+    state: "NY",
+    zipCode: "10019",
+    country: "United States",
+    locationNotes:
+      "Valet parking available; enter through Fifth Avenue entrance.",
+  },
+  {
+    id: "brooklynwinery",
+    label: "Brooklyn Winery — Williamsburg",
+    venueName: "Brooklyn Winery",
+    street: "213 N 8th St",
+    city: "Brooklyn",
+    state: "NY",
+    zipCode: "11211",
+    country: "United States",
+    locationNotes: "Loading access via rear alley; limited street parking.",
+  },
+  {
+    id: "pier60",
+    label: "Pier Sixty — Chelsea Piers",
+    venueName: "Pier Sixty",
+    street: "Chelsea Piers, Pier 60",
+    city: "New York",
+    state: "NY",
+    zipCode: "10011",
+    country: "United States",
+    locationNotes:
+      "Large freight elevator available; check dock schedule in advance.",
+  },
+  {
+    id: "metmuseum",
+    label: "The Metropolitan Museum of Art — Upper East Side",
+    venueName: "The Metropolitan Museum of Art",
+    street: "1000 5th Ave",
+    city: "New York",
+    state: "NY",
+    zipCode: "10028",
+    country: "United States",
+    locationNotes:
+      "After-hours events only; security clearance required for staff.",
+  },
 ];

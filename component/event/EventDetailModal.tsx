@@ -5,6 +5,7 @@ import { getStatusColor, isUnderstaffed } from "@/utils";
 import Link from "next/link";
 import { useState } from "react";
 import { staffList } from "@/data";
+import { AppSelect } from "../ui/Select";
 
 type EventDetailModalProps = {
   event: Event;
@@ -589,19 +590,17 @@ export default function EventDetailModal({
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
-                      Filter by Availability
-                    </label>
-                    <select
+                    <AppSelect
+                      label="Filter by Availability"
                       value={filterAvailability}
-                      onChange={(e) =>
-                        setFilterAvailability(e.target.value as any)
+                      onValueChange={(value) =>
+                        setFilterAvailability(value as any)
                       }
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-sm text-dark-black focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                    >
-                      <option value="all">All Staff</option>
-                      <option value="available">Available Only</option>
-                    </select>
+                      options={[
+                        { label: "All Staff", value: "all" },
+                        { label: "Available Only", value: "available" },
+                      ]}
+                    />
                   </div>
                 </div>
 
@@ -882,7 +881,7 @@ export default function EventDetailModal({
               href={`/admin/events/${event.id}/edit`}
               className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/80 font-secondary font-medium transition-colors"
             >
-              Edit Event
+              Save
             </Link>
           </div>
         </div>
