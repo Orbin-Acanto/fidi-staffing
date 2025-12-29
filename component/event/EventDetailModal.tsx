@@ -820,34 +820,6 @@ export default function EventDetailModal({
                     )}
                   </div>
 
-                  {/* Attach File */}
-                  <div className="mb-4">
-                    <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
-                      Attach File (Optional)
-                    </label>
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary transition-colors cursor-pointer">
-                      <svg
-                        className="w-8 h-8 text-gray-400 mx-auto mb-2"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                        />
-                      </svg>
-                      <p className="text-sm text-gray-600 font-secondary">
-                        Click to upload or drag and drop
-                      </p>
-                      <p className="text-xs text-gray-500 font-secondary mt-1">
-                        PDF, DOC, DOCX, JPG, PNG up to 10MB
-                      </p>
-                    </div>
-                  </div>
-
                   <button
                     onClick={handleSendMessage}
                     disabled={!message.trim() || assignedStaffIds.length === 0}

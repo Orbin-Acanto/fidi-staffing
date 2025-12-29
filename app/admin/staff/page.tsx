@@ -166,14 +166,14 @@ export default function StaffListPage() {
               </div>
             </div>
 
-            <div>
+            <div className="relative">
               <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
                 Status
               </label>
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value as any)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-sm text-dark-black
+                className="w-full appearance-none px-4 py-2 border border-gray-300 rounded-lg font-secondary text-sm text-dark-black
                        focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
                        transition-all duration-200"
               >
@@ -181,16 +181,29 @@ export default function StaffListPage() {
                 <option value="Active">Active</option>
                 <option value="Inactive">Inactive</option>
               </select>
+
+              <svg
+                className="pointer-events-none absolute right-2 top-10 h-4 w-4 text-black"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z"
+                  clipRule="evenodd"
+                />
+              </svg>
             </div>
 
-            <div>
+            <div className="relative">
               <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
                 Profession
               </label>
               <select
                 value={filterProfession}
                 onChange={(e) => setFilterProfession(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-sm text-dark-black
+                className="w-full appearance-none px-4 py-2 border border-gray-300 rounded-lg font-secondary text-sm text-dark-black
                        focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
                        transition-all duration-200"
               >
@@ -201,6 +214,19 @@ export default function StaffListPage() {
                   </option>
                 ))}
               </select>
+
+              <svg
+                className="pointer-events-none absolute right-2 top-10 h-4 w-4 text-black"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z"
+                  clipRule="evenodd"
+                />
+              </svg>
             </div>
           </div>
 
