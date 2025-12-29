@@ -5,6 +5,8 @@ import Link from "next/link";
 import { professions, staffList } from "@/data";
 import { Staff } from "@/type";
 import StaffDetailModal from "@/component/staff/StaffDetailModal";
+import { AppSelect } from "@/component/ui/Select";
+import { AppCheckbox } from "@/component/ui/Checkbox";
 
 export default function StaffListPage() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -69,6 +71,7 @@ export default function StaffListPage() {
   return (
     <>
       <div className="space-y-6">
+        {/* Row 1  */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-primary font-semibold text-gray-900">
@@ -95,10 +98,10 @@ export default function StaffListPage() {
                 d="M12 4v16m8-8H4"
               />
             </svg>
-            Add Staff
           </Link>
         </div>
 
+        {/* Top Stat Card  */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="bg-white rounded-lg border border-gray-200 p-4">
             <p className="text-sm font-secondary text-gray-600 mb-1">
@@ -132,6 +135,7 @@ export default function StaffListPage() {
           </div>
         </div>
 
+        {/* Filter Area  */}
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="md:col-span-2">
@@ -166,68 +170,30 @@ export default function StaffListPage() {
               </div>
             </div>
 
-            <div className="relative">
-              <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
-                Status
-              </label>
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value as any)}
-                className="w-full appearance-none px-4 py-2 border border-gray-300 rounded-lg font-secondary text-sm text-dark-black
-                       focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
-                       transition-all duration-200"
-              >
-                <option value="all">All Status</option>
-                <option value="Active">Active</option>
-                <option value="Inactive">Inactive</option>
-              </select>
+            <AppSelect
+              label="Status"
+              value={filterStatus}
+              onValueChange={(v) => setFilterStatus(v as any)}
+              options={[
+                { label: "All Status", value: "all" },
+                { label: "Active", value: "Active" },
+                { label: "Inactive", value: "Inactive" },
+              ]}
+            />
 
-              <svg
-                className="pointer-events-none absolute right-2 top-10 h-4 w-4 text-black"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-                aria-hidden="true"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </div>
-
-            <div className="relative">
-              <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
-                Profession
-              </label>
-              <select
-                value={filterProfession}
-                onChange={(e) => setFilterProfession(e.target.value)}
-                className="w-full appearance-none px-4 py-2 border border-gray-300 rounded-lg font-secondary text-sm text-dark-black
-                       focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
-                       transition-all duration-200"
-              >
-                <option value="all">All Professions</option>
-                {professions.map((prof) => (
-                  <option key={prof} value={prof}>
-                    {prof}
-                  </option>
-                ))}
-              </select>
-
-              <svg
-                className="pointer-events-none absolute right-2 top-10 h-4 w-4 text-black"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-                aria-hidden="true"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </div>
+            <AppSelect
+              label="Profession"
+              value={filterProfession}
+              onValueChange={(v) => setFilterProfession(v)}
+              placeholder="All Professions"
+              options={[
+                { label: "All Professions", value: "all" },
+                ...professions.map((prof) => ({
+                  label: prof,
+                  value: prof,
+                })),
+              ]}
+            />
           </div>
 
           <div className="pt-4 flex items-center justify-between">
@@ -274,6 +240,7 @@ export default function StaffListPage() {
             </div>
           </div>
         </div>
+
         {/* Table  */}
         <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
           <div className="overflow-x-auto">
@@ -281,14 +248,12 @@ export default function StaffListPage() {
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="px-6 py-3 text-left">
-                    <input
-                      type="checkbox"
+                    <AppCheckbox
                       checked={
                         selectedStaff.length === filteredStaff.length &&
                         filteredStaff.length > 0
                       }
-                      onChange={handleSelectAll}
-                      className="w-4 h-4 rounded cursor-pointer"
+                      onCheckedChange={handleSelectAll}
                     />
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-secondary font-semibold text-gray-600 uppercase tracking-wider">
@@ -348,11 +313,9 @@ export default function StaffListPage() {
                       className="hover:bg-gray-50 transition-colors"
                     >
                       <td className="px-6 py-4">
-                        <input
-                          type="checkbox"
+                        <AppCheckbox
                           checked={selectedStaff.includes(staff.id)}
-                          onChange={() => handleSelectStaff(staff.id)}
-                          className="w-4 h-4 rounded cursor-pointer"
+                          onCheckedChange={() => handleSelectStaff(staff.id)}
                         />
                       </td>
                       <td className="px-6 py-4">
