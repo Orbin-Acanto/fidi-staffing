@@ -17,7 +17,7 @@ export default function LocationHeader({ onAddLocation }: LocationHeaderProps) {
       </div>
       <button
         onClick={onAddLocation}
-        className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white font-secondary font-medium rounded-lg hover:bg-primary/90 transition-colors"
+        className="inline-flex items-center gap-2 px-4 py-2 bg-primary cursor-pointer text-white font-secondary font-medium rounded-lg hover:bg-primary/90 transition-colors"
       >
         <svg
           className="w-5 h-5"
@@ -32,7 +32,6 @@ export default function LocationHeader({ onAddLocation }: LocationHeaderProps) {
             d="M12 4v16m8-8H4"
           />
         </svg>
-        Add Location
       </button>
     </div>
   );
