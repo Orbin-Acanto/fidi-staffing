@@ -89,6 +89,21 @@ export type SavedLocation = {
   contactPerson?: string;
   phoneNumber?: string;
   locationNotes?: string;
+  isFavorite?: boolean;
+  eventsCount?: number;
+  createdAt?: string;
+};
+
+export type LocationFormData = {
+  venueName: string;
+  street: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  country: string;
+  contactPerson: string;
+  phoneNumber: string;
+  locationNotes: string;
 };
 
 export interface EventFormData {

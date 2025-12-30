@@ -742,7 +742,12 @@ export const savedLocations: SavedLocation[] = [
     state: "NY",
     zipCode: "10005",
     country: "United States",
+    contactPerson: "Michael Chen",
+    phoneNumber: "+1 (212) 555-0123",
     locationNotes: "Security desk at lobby; elevators require check-in.",
+    isFavorite: true,
+    eventsCount: 12,
+    createdAt: "2024-01-15",
   },
   {
     id: "plazahotel",
@@ -753,8 +758,13 @@ export const savedLocations: SavedLocation[] = [
     state: "NY",
     zipCode: "10019",
     country: "United States",
+    contactPerson: "Sarah Williams",
+    phoneNumber: "+1 (212) 555-0456",
     locationNotes:
       "Valet parking available; enter through Fifth Avenue entrance.",
+    isFavorite: true,
+    eventsCount: 8,
+    createdAt: "2024-02-20",
   },
   {
     id: "brooklynwinery",
@@ -765,7 +775,12 @@ export const savedLocations: SavedLocation[] = [
     state: "NY",
     zipCode: "11211",
     country: "United States",
+    contactPerson: "James Rodriguez",
+    phoneNumber: "+1 (718) 555-0789",
     locationNotes: "Loading access via rear alley; limited street parking.",
+    isFavorite: false,
+    eventsCount: 5,
+    createdAt: "2024-03-10",
   },
   {
     id: "pier60",
@@ -776,8 +791,13 @@ export const savedLocations: SavedLocation[] = [
     state: "NY",
     zipCode: "10011",
     country: "United States",
+    contactPerson: "Emily Thompson",
+    phoneNumber: "+1 (212) 555-0321",
     locationNotes:
       "Large freight elevator available; check dock schedule in advance.",
+    isFavorite: false,
+    eventsCount: 3,
+    createdAt: "2024-04-05",
   },
   {
     id: "metmuseum",
@@ -788,7 +808,12 @@ export const savedLocations: SavedLocation[] = [
     state: "NY",
     zipCode: "10028",
     country: "United States",
+    contactPerson: "David Park",
+    phoneNumber: "+1 (212) 555-0654",
     locationNotes:
       "After-hours events only; security clearance required for staff.",
+    isFavorite: true,
+    eventsCount: 2,
+    createdAt: "2024-05-12",
   },
 ];
