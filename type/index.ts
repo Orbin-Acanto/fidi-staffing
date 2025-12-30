@@ -86,6 +86,8 @@ export type SavedLocation = {
   state: string;
   zipCode: string;
   country: string;
+  contactPerson?: string;
+  phoneNumber?: string;
   locationNotes?: string;
 };
 

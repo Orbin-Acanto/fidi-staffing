@@ -1,6 +1,7 @@
 import { colorOptions, staffList } from "@/data";
 import { Group } from "@/type";
 import { useState } from "react";
+import { AppCheckbox } from "../ui/Checkbox";
 
 export default function GroupFormModal({
   group,
@@ -118,9 +119,6 @@ export default function GroupFormModal({
                     className="w-full h-8 rounded"
                     style={{ backgroundColor: color.value }}
                   />
-                  {/* <p className="text-xs font-secondary text-gray-600 mt-2 text-center">
-                    {color.name}
-                  </p> */}
                 </button>
               ))}
             </div>
@@ -172,12 +170,11 @@ export default function GroupFormModal({
                       key={staff.id}
                       className="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer transition-colors"
                     >
-                      <input
-                        type="checkbox"
+                      <AppCheckbox
                         checked={selectedStaff.includes(staff.id)}
-                        onChange={() => handleToggleStaff(staff.id)}
-                        className="w-4 h-4 rounded cursor-pointer"
+                        onCheckedChange={() => handleToggleStaff(staff.id)}
                       />
+
                       <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
                         <span className="text-sm font-secondary font-medium text-gray-600">
                           {staff.firstName[0]}

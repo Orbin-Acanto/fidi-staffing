@@ -2,6 +2,7 @@
 
 import BulkAssignModal from "@/component/admin/BulkAssignModal";
 import GroupFormModal from "@/component/admin/GroupModal";
+import { AppCheckbox } from "@/component/ui/Checkbox";
 import { Group } from "@/type";
 import { useState } from "react";
 
@@ -86,15 +87,12 @@ export default function GroupManagementPage() {
   return (
     <>
       <div className="space-y-6">
-        {/* Header */}
+        {/* Top Row  */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-primary font-semibold text-gray-900">
               Group Management
             </h1>
-            <p className="text-sm text-gray-600 font-secondary mt-1">
-              Organize staff into teams for easier assignment
-            </p>
           </div>
           <button
             onClick={() => setShowCreateModal(true)}
@@ -116,7 +114,6 @@ export default function GroupManagementPage() {
                 d="M12 4v16m8-8H4"
               />
             </svg>
-            Create Group
           </button>
         </div>
 
@@ -165,13 +162,15 @@ export default function GroupManagementPage() {
           </div>
         </div>
 
-        {/* Filters and Actions */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="md:col-span-2">
-              <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
+        {/* Filter Area  */}
+        <div className="bg-white rounded-xl border border-gray-200 px-4 py-3">
+          <div className="flex flex-col gap-4 lg:flex-row items-end lg:items-center md:justify-between">
+            {/* LEFT: Search */}
+            <div className="w-full md:flex-1">
+              <label className="block text-sm font-secondary font-medium text-gray-700 mb-1.5">
                 Search Groups
               </label>
+
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <svg
@@ -188,66 +187,70 @@ export default function GroupManagementPage() {
                     />
                   </svg>
                 </div>
+
                 <input
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Search by group name..."
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg font-secondary text-sm text-dark-black
-                         focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
-                         transition-all duration-200"
+                  className="w-full h-10 pl-10 pr-4 rounded-lg border border-gray-300
+                     font-secondary text-sm text-dark-black
+                     focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-transparent
+                     transition"
                 />
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
-                View Options
-              </label>
+            <div className="flex sm:flex-row flex-col items-end gap-4">
+              <div className="hidden md:block h-[22px]" />
               <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="showArchived"
-                  checked={showArchived}
-                  onChange={(e) => setShowArchived(e.target.checked)}
-                  className="w-4 h-4 rounded cursor-pointer"
-                />
-                <label
-                  htmlFor="showArchived"
-                  className="text-sm font-secondary text-gray-700 cursor-pointer"
+                <span className="text-sm font-secondary text-gray-700 whitespace-nowrap">
+                  Show archived
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowArchived(!showArchived)}
+                  className={`relative inline-flex h-5 w-9 items-center rounded-full transition
+                                ${showArchived ? "bg-primary" : "bg-gray-300"}`}
                 >
-                  Show archived groups
-                </label>
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition
+                                ${
+                                  showArchived
+                                    ? "translate-x-4"
+                                    : "translate-x-1"
+                                }`}
+                  />
+                </button>
               </div>
-            </div>
-          </div>
 
-          <div className="pt-4 flex items-center justify-between">
-            <p className="text-sm font-secondary text-gray-600">
-              {selectedGroups.length} group
-              {selectedGroups.length !== 1 ? "s" : ""} selected
-            </p>
-            <div className="flex gap-2">
+              <span className="text-sm font-secondary text-gray-600 whitespace-nowrap">
+                {selectedGroups.length} selected
+              </span>
+
               <button
                 disabled={selectedGroups.length === 0}
                 onClick={() => setShowBulkAssignModal(true)}
-                className={`px-4 py-2 text-sm font-secondary font-medium rounded-lg transition-colors
-              ${
-                selectedGroups.length > 0
-                  ? "bg-primary text-white hover:bg-primary/80 cursor-pointer"
-                  : "bg-gray-200 text-gray-400 cursor-not-allowed"
-              }`}
+                className={`h-10 px-3 rounded-lg text-sm font-secondary font-medium transition w-full sm:w-auto
+
+                ${
+                  selectedGroups.length > 0
+                    ? "bg-primary text-white hover:opacity-90"
+                    : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                }`}
               >
-                Bulk Assign to Event
+                Bulk Assign
               </button>
+
               <button
                 disabled={selectedGroups.length === 0}
-                className={`px-4 py-2 text-sm font-secondary font-medium rounded-lg transition-colors
-              ${
-                selectedGroups.length > 0
-                  ? "bg-gray-100 text-gray-700 hover:bg-gray-200 cursor-pointer"
-                  : "bg-gray-200 text-gray-400 cursor-not-allowed"
-              }`}
+                className={`h-10 px-3 rounded-lg text-sm font-secondary font-medium transition w-full sm:w-auto
+
+                ${
+                  selectedGroups.length > 0
+                    ? "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                }`}
               >
                 Export
               </button>
@@ -291,21 +294,18 @@ export default function GroupManagementPage() {
                     : "border-gray-200"
                 } ${group.archived ? "opacity-60" : ""}`}
               >
-                {/* Group Card Header */}
                 <div
                   className="h-3 rounded-t-lg"
                   style={{ backgroundColor: group.color }}
                 />
 
                 <div className="p-6">
-                  {/* Checkbox and Title */}
                   <div className="flex items-start gap-3 mb-4">
-                    <input
-                      type="checkbox"
+                    <AppCheckbox
                       checked={selectedGroups.includes(group.id)}
-                      onChange={() => handleSelectGroup(group.id)}
-                      className="w-4 h-4 mt-1 rounded cursor-pointer"
+                      onCheckedChange={() => handleSelectGroup(group.id)}
                     />
+
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <h3 className="text-lg font-primary font-semibold text-gray-900">

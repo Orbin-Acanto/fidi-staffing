@@ -196,12 +196,12 @@ export default function StaffListPage() {
             />
           </div>
 
-          <div className="pt-4 flex items-center justify-between">
+          <div className="pt-4 flex items-center justify-between ">
             <p className="text-sm font-secondary text-gray-600">
               {selectedStaff.length} staff member
               {selectedStaff.length !== 1 ? "s" : ""} selected
             </p>
-            <div className="flex gap-2">
+            <div className="flex gap-2 md:flex-row flex-col">
               <button
                 disabled={selectedStaff.length === 0}
                 className={`px-4 py-2 text-sm font-secondary font-medium rounded-lg transition-colors
