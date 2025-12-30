@@ -1,8 +1,11 @@
 import {
   ActivityLog,
+  AdminProfile,
   Event,
   NavSection,
+  ProfileActivityLog,
   SavedLocation,
+  Settings,
   Staff,
   User,
 } from "@/type";
@@ -136,6 +139,25 @@ export const navigation: NavSection[] = [
               strokeLinejoin="round"
               strokeWidth={2}
               d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+            />
+          </svg>
+        ),
+      },
+      {
+        name: "Profile",
+        href: "/admin/profile",
+        icon: (
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
             />
           </svg>
         ),
@@ -1053,4 +1075,254 @@ export const activityLogs: ActivityLog[] = [
     timestamp: "2024-12-30T14:00:00",
     details: "Account deactivated - employee resigned",
   },
+];
+
+export const adminProfile: AdminProfile = {
+  id: "admin_1",
+  name: "John Mitchell",
+  email: "john.mitchell@company.com",
+  phone: "+1 (212) 555-0101",
+  avatar: "",
+  role: "Admin",
+  department: "Operations",
+  joinedAt: "2023-01-15",
+  lastPasswordChange: "2024-11-20",
+  notificationPreferences: {
+    emailNewStaff: true,
+    emailEventReminders: true,
+    emailWeeklyReport: false,
+    smsNotifications: true,
+    smsUrgentAlerts: true,
+    voiceCallNotifications: false,
+    inAppNotifications: true,
+    inAppSound: true,
+  },
+  twoFactorAuth: {
+    enabled: true,
+    method: "authenticator",
+    lastUpdated: "2024-10-15",
+    backupCodesRemaining: 7,
+  },
+};
+
+export const profileActivityLogs: ProfileActivityLog[] = [
+  {
+    id: "plog_1",
+    action: "Logged in",
+    target: "Dashboard",
+    timestamp: "2025-01-02T14:30:00",
+    ipAddress: "192.168.1.100",
+    device: "Chrome on Windows",
+  },
+  {
+    id: "plog_2",
+    action: "Created",
+    target: "Event: Annual Corporate Gala",
+    timestamp: "2025-01-02T14:15:00",
+    ipAddress: "192.168.1.100",
+    device: "Chrome on Windows",
+  },
+  {
+    id: "plog_3",
+    action: "Updated",
+    target: "Staff: David Park",
+    timestamp: "2025-01-02T13:45:00",
+    ipAddress: "192.168.1.100",
+    device: "Chrome on Windows",
+  },
+  {
+    id: "plog_4",
+    action: "Changed password",
+    target: "Account Security",
+    timestamp: "2024-11-20T10:00:00",
+    ipAddress: "192.168.1.105",
+    device: "Safari on MacOS",
+  },
+  {
+    id: "plog_5",
+    action: "Enabled 2FA",
+    target: "Account Security",
+    timestamp: "2024-10-15T09:30:00",
+    ipAddress: "192.168.1.100",
+    device: "Chrome on Windows",
+  },
+  {
+    id: "plog_6",
+    action: "Deleted",
+    target: "Location: Old Warehouse",
+    timestamp: "2025-01-01T10:30:00",
+    ipAddress: "192.168.1.100",
+    device: "Chrome on Windows",
+  },
+  {
+    id: "plog_7",
+    action: "Suspended",
+    target: "User: Jessica Williams",
+    timestamp: "2024-12-28T16:20:00",
+    ipAddress: "192.168.1.100",
+    device: "Chrome on Windows",
+  },
+  {
+    id: "plog_8",
+    action: "Updated",
+    target: "Notification Preferences",
+    timestamp: "2024-12-15T11:00:00",
+    ipAddress: "192.168.1.100",
+    device: "Mobile App on iOS",
+  },
+];
+
+export const settingsData: Settings = {
+  general: {
+    companyName: "EventStaff Pro",
+    logo: "",
+    timeZone: "America/New_York",
+    dateFormat: "MM/DD/YYYY",
+    currency: "USD",
+    overtimeMultiplier: 1.5,
+    taxRate: 8.875,
+    taxId: "12-3456789",
+    complianceNotes:
+      "All staff must complete I-9 verification within 3 days of hire.",
+  },
+  email: {
+    senderName: "EventStaff Pro",
+    senderEmail: "notifications@eventstaffpro.com",
+    templates: [
+      {
+        id: "welcome",
+        name: "Welcome Email",
+        subject: "Welcome to {{company_name}}!",
+        body: `Dear {{staff_name}},
+
+Welcome to {{company_name}}! We're excited to have you join our team.
+
+Your account has been created. Please use the following link to set up your password and complete your profile:
+
+{{setup_link}}
+
+If you have any questions, please don't hesitate to reach out.
+
+Best regards,
+The {{company_name}} Team`,
+        variables: ["staff_name", "company_name", "setup_link"],
+        lastUpdated: "2024-12-15",
+      },
+      {
+        id: "event_assignment",
+        name: "Event Assignment",
+        subject: "New Event Assignment: {{event_name}}",
+        body: `Hi {{staff_name}},
+
+You have been assigned to a new event:
+
+Event: {{event_name}}
+Date: {{event_date}}
+Time: {{event_time}}
+Location: {{event_location}}
+Role: {{staff_role}}
+
+Please confirm your availability by clicking the link below:
+
+{{confirmation_link}}
+
+Best regards,
+The {{company_name}} Team`,
+        variables: [
+          "staff_name",
+          "event_name",
+          "event_date",
+          "event_time",
+          "event_location",
+          "staff_role",
+          "confirmation_link",
+          "company_name",
+        ],
+        lastUpdated: "2024-12-20",
+      },
+      {
+        id: "event_reminder",
+        name: "Event Reminder",
+        subject: "Reminder: {{event_name}} is coming up!",
+        body: `Hi {{staff_name}},
+
+This is a friendly reminder that you have an upcoming event:
+
+Event: {{event_name}}
+Date: {{event_date}}
+Time: {{event_time}}
+Location: {{event_location}}
+
+Please arrive at least 15 minutes before your scheduled start time.
+
+Best regards,
+The {{company_name}} Team`,
+        variables: [
+          "staff_name",
+          "event_name",
+          "event_date",
+          "event_time",
+          "event_location",
+          "company_name",
+        ],
+        lastUpdated: "2024-12-18",
+      },
+      {
+        id: "password_reset",
+        name: "Password Reset",
+        subject: "Password Reset Request",
+        body: `Hi {{staff_name}},
+
+We received a request to reset your password. Click the link below to create a new password:
+
+{{reset_link}}
+
+This link will expire in 24 hours.
+
+If you didn't request this, please ignore this email or contact support if you have concerns.
+
+Best regards,
+The {{company_name}} Team`,
+        variables: ["staff_name", "reset_link", "company_name"],
+        lastUpdated: "2024-11-10",
+      },
+    ],
+  },
+  system: {
+    autoBackup: true,
+    backupFrequency: "weekly",
+    lastBackup: "2025-01-01T03:00:00",
+    retentionDays: 30,
+  },
+};
+
+export const timeZones = [
+  { value: "America/New_York", label: "Eastern Time (ET)" },
+  { value: "America/Chicago", label: "Central Time (CT)" },
+  { value: "America/Denver", label: "Mountain Time (MT)" },
+  { value: "America/Los_Angeles", label: "Pacific Time (PT)" },
+  { value: "America/Anchorage", label: "Alaska Time (AKT)" },
+  { value: "Pacific/Honolulu", label: "Hawaii Time (HT)" },
+  { value: "Europe/London", label: "Greenwich Mean Time (GMT)" },
+  { value: "Europe/Paris", label: "Central European Time (CET)" },
+  { value: "Asia/Dubai", label: "Gulf Standard Time (GST)" },
+  { value: "Asia/Tokyo", label: "Japan Standard Time (JST)" },
+];
+
+export const dateFormats = [
+  { value: "MM/DD/YYYY", label: "MM/DD/YYYY (12/31/2024)" },
+  { value: "DD/MM/YYYY", label: "DD/MM/YYYY (31/12/2024)" },
+  { value: "YYYY-MM-DD", label: "YYYY-MM-DD (2024-12-31)" },
+  { value: "MMM DD, YYYY", label: "MMM DD, YYYY (Dec 31, 2024)" },
+  { value: "DD MMM YYYY", label: "DD MMM YYYY (31 Dec 2024)" },
+];
+
+export const currencies = [
+  { value: "USD", label: "USD ($) - US Dollar" },
+  { value: "EUR", label: "EUR (€) - Euro" },
+  { value: "GBP", label: "GBP (£) - British Pound" },
+  { value: "CAD", label: "CAD ($) - Canadian Dollar" },
+  { value: "AUD", label: "AUD ($) - Australian Dollar" },
+  { value: "AED", label: "AED (د.إ) - UAE Dirham" },
+  { value: "JPY", label: "JPY (¥) - Japanese Yen" },
 ];

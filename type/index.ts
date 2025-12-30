@@ -212,3 +212,84 @@ export const defaultPermissionsByRole: Record<UserRole, UserPermissions> = {
     canAccessSettings: false,
   },
 };
+
+export type NotificationPreferences = {
+  emailNewStaff: boolean;
+  emailEventReminders: boolean;
+  emailWeeklyReport: boolean;
+  smsNotifications: boolean;
+  smsUrgentAlerts: boolean;
+  voiceCallNotifications: boolean;
+  inAppNotifications: boolean;
+  inAppSound: boolean;
+};
+
+export type TwoFactorAuth = {
+  enabled: boolean;
+  method: "authenticator" | "sms" | "email" | null;
+  lastUpdated?: string;
+  backupCodesRemaining?: number;
+};
+
+export type AdminProfile = {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  avatar?: string;
+  role: "Admin";
+  department?: string;
+  joinedAt: string;
+  lastPasswordChange?: string;
+  notificationPreferences: NotificationPreferences;
+  twoFactorAuth: TwoFactorAuth;
+};
+
+export type ProfileActivityLog = {
+  id: string;
+  action: string;
+  target: string;
+  timestamp: string;
+  ipAddress?: string;
+  device?: string;
+};
+
+export type GeneralSettings = {
+  companyName: string;
+  logo?: string;
+  timeZone: string;
+  dateFormat: string;
+  currency: string;
+  overtimeMultiplier: number;
+  taxRate: number;
+  taxId?: string;
+  complianceNotes?: string;
+};
+
+export type EmailTemplate = {
+  id: string;
+  name: string;
+  subject: string;
+  body: string;
+  variables: string[];
+  lastUpdated?: string;
+};
+
+export type EmailSettings = {
+  senderName: string;
+  senderEmail: string;
+  templates: EmailTemplate[];
+};
+
+export type SystemPreferences = {
+  autoBackup: boolean;
+  backupFrequency: "daily" | "weekly" | "monthly";
+  lastBackup?: string;
+  retentionDays: number;
+};
+
+export type Settings = {
+  general: GeneralSettings;
+  email: EmailSettings;
+  system: SystemPreferences;
+};
