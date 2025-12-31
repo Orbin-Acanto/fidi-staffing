@@ -8,6 +8,8 @@ import {
   SavedLocation,
   Settings,
   Staff,
+  StaffNote,
+  StaffReview,
   User,
 } from "@/type";
 
@@ -1525,3 +1527,111 @@ export const reportData: ReportSummary = {
     },
   ],
 };
+
+export const staffReviews: StaffReview[] = [
+  {
+    id: "review_1",
+    eventId: "evt_1",
+    eventName: "Annual Corporate Gala",
+    eventDate: "2024-12-15",
+    rating: 5,
+    punctuality: "on-time",
+    performance: "excellent",
+    reviewedBy: "John Mitchell",
+    reviewedAt: "2024-12-16",
+    notes:
+      "Outstanding performance. Went above and beyond to help with last-minute setup changes.",
+  },
+  {
+    id: "review_2",
+    eventId: "evt_2",
+    eventName: "Tech Conference 2024",
+    eventDate: "2024-12-10",
+    rating: 4,
+    punctuality: "on-time",
+    performance: "good",
+    reviewedBy: "Sarah Chen",
+    reviewedAt: "2024-12-11",
+    notes: "Good work overall. Handled registration desk efficiently.",
+  },
+  {
+    id: "review_3",
+    eventId: "evt_3",
+    eventName: "Wedding Reception - Smith",
+    eventDate: "2024-12-05",
+    rating: 5,
+    punctuality: "on-time",
+    performance: "excellent",
+    reviewedBy: "Emily Thompson",
+    reviewedAt: "2024-12-06",
+  },
+  {
+    id: "review_4",
+    eventId: "evt_4",
+    eventName: "Product Launch Party",
+    eventDate: "2024-11-28",
+    rating: 3,
+    punctuality: "late",
+    performance: "average",
+    reviewedBy: "Michael Rodriguez",
+    reviewedAt: "2024-11-29",
+    notes: "Arrived 15 minutes late. Performance was acceptable once on-site.",
+  },
+  {
+    id: "review_5",
+    eventId: "evt_5",
+    eventName: "Holiday Charity Dinner",
+    eventDate: "2024-11-20",
+    rating: 4,
+    punctuality: "on-time",
+    performance: "good",
+    reviewedBy: "John Mitchell",
+    reviewedAt: "2024-11-21",
+  },
+  {
+    id: "review_6",
+    eventId: "evt_6",
+    eventName: "Networking Mixer",
+    eventDate: "2024-11-15",
+    rating: 0,
+    punctuality: "no-show",
+    performance: "poor",
+    reviewedBy: "Sarah Chen",
+    reviewedAt: "2024-11-16",
+    notes: "Did not show up. No prior notice given. First incident.",
+  },
+];
+
+export const staffNotes: StaffNote[] = [
+  {
+    id: "note_1",
+    content:
+      "Excellent communication skills. Recommended for client-facing roles.",
+    createdBy: "John Mitchell",
+    createdAt: "2024-12-16",
+    type: "praise",
+  },
+  {
+    id: "note_2",
+    content: "Has food handler certification. Expires March 2025.",
+    createdBy: "Sarah Chen",
+    createdAt: "2024-11-01",
+    type: "general",
+  },
+  {
+    id: "note_3",
+    content:
+      "No-show on Nov 15. Verbal warning issued. Staff acknowledged and apologized.",
+    createdBy: "Sarah Chen",
+    createdAt: "2024-11-16",
+    type: "warning",
+  },
+  {
+    id: "note_4",
+    content:
+      "Prefers weekend shifts. Available for overtime during holiday season.",
+    createdBy: "Emily Thompson",
+    createdAt: "2024-10-20",
+    type: "general",
+  },
+];

@@ -362,3 +362,41 @@ export type ReportSummary = {
   eventTypeBreakdown: EventTypeBreakdown[];
   topPerformers: TopPerformer[];
 };
+
+export type StaffReview = {
+  id: string;
+  eventId: string;
+  eventName: string;
+  eventDate: string;
+  rating: number;
+  punctuality: "on-time" | "late" | "no-show";
+  performance: "excellent" | "good" | "average" | "poor";
+  reviewedBy: string;
+  reviewedAt: string;
+  notes?: string;
+};
+
+export type StaffAttendance = {
+  totalShifts: number;
+  attendedShifts: number;
+  lateArrivals: number;
+  noShows: number;
+  attendanceRate: number;
+  punctualityRate: number;
+};
+
+export type StaffNote = {
+  id: string;
+  content: string;
+  createdBy: string;
+  createdAt: string;
+  type: "general" | "warning" | "praise" | "incident";
+};
+
+export type StaffPerformance = {
+  averageRating: number;
+  totalReviews: number;
+  attendance: StaffAttendance;
+  reviews: StaffReview[];
+  notes: StaffNote[];
+};
