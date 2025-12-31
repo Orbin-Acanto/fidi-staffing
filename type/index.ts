@@ -39,7 +39,6 @@ export interface StaffFormData {
   startDate: string;
   employmentType: string;
   groups: string[];
-  wage: number;
 
   street: string;
   city: string;
@@ -54,6 +53,10 @@ export interface StaffFormData {
   password: string;
   confirmPassword: string;
   status: string;
+
+  payType: "hourly" | "fixed";
+  wage?: number;
+  fixedRate?: number;
 }
 
 export interface Event {
@@ -530,4 +533,257 @@ export type DailyOverview = {
   noShows: number;
   pendingApprovals: number;
   overtimeAlerts: number;
+};
+
+export type PayType = "hourly" | "fixed";
+
+export type PayrollPeriod = "daily" | "weekly" | "bi-weekly" | "monthly";
+
+export type PayrollStatus =
+  | "draft"
+  | "pending"
+  | "approved"
+  | "processing"
+  | "paid"
+  | "rejected";
+
+export type DeductionType =
+  | "late-attendance"
+  | "no-show"
+  | "advance-repayment"
+  | "equipment-damage"
+  | "other";
+
+export type BonusType =
+  | "performance"
+  | "overtime"
+  | "holiday"
+  | "referral"
+  | "other";
+
+export type StaffPayInfo = {
+  staffId: string;
+  staffName: string;
+  staffPhone: string;
+  staffEmail: string;
+  staffAvatar?: string;
+  payType: PayType;
+  hourlyRate?: number;
+  fixedRate?: number;
+  overtimeMultiplier: number; // e.g., 1.5x
+  taxWithholdingRate: number; // percentage
+};
+
+export type PayrollDeduction = {
+  id: string;
+  type: DeductionType;
+  description: string;
+  amount: number;
+  eventId?: string;
+  eventName?: string;
+  date: string;
+};
+
+export type PayrollBonus = {
+  id: string;
+  type: BonusType;
+  description: string;
+  amount: number;
+  eventId?: string;
+  eventName?: string;
+  date: string;
+};
+
+export type PayrollEntry = {
+  id: string;
+  staffId: string;
+  staffName: string;
+  staffPhone: string;
+  staffAvatar?: string;
+  payType: PayType;
+
+  // Period info
+  periodType: PayrollPeriod;
+  periodStart: string;
+  periodEnd: string;
+
+  // Work details
+  events: {
+    eventId: string;
+    eventName: string;
+    eventDate: string;
+    hoursWorked: number;
+    overtimeHours: number;
+    isFixedRate: boolean;
+  }[];
+
+  // Calculations
+  totalHours: number;
+  regularHours: number;
+  overtimeHours: number;
+
+  // Pay calculations
+  hourlyRate: number;
+  fixedRate: number;
+  regularPay: number;
+  overtimePay: number;
+  grossPay: number;
+
+  // Adjustments
+  deductions: PayrollDeduction[];
+  bonuses: PayrollBonus[];
+  totalDeductions: number;
+  totalBonuses: number;
+
+  // Tax
+  taxWithholding: number;
+
+  // Final
+  netPay: number;
+
+  // Status
+  status: PayrollStatus;
+  createdAt: string;
+  approvedBy?: string;
+  approvedAt?: string;
+  paidAt?: string;
+  notes?: string;
+};
+
+export type PaymentHistory = {
+  id: string;
+  staffId: string;
+  staffName: string;
+  periodType: PayrollPeriod;
+  periodStart: string;
+  periodEnd: string;
+  grossPay: number;
+  netPay: number;
+  status: PayrollStatus;
+  paidAt?: string;
+  payrollEntryId: string;
+};
+
+export type EventCostBreakdown = {
+  eventId: string;
+  eventName: string;
+  eventDate: string;
+  totalStaff: number;
+  totalHours: number;
+  regularCost: number;
+  overtimeCost: number;
+  totalCost: number;
+  costPerHour: number;
+};
+
+export type OvertimeCostBreakdown = {
+  eventId: string;
+  eventName: string;
+  eventDate: string;
+  staffCount: number;
+  overtimeHours: number;
+  overtimeCost: number;
+  staffDetails: {
+    staffId: string;
+    staffName: string;
+    hours: number;
+    cost: number;
+  }[];
+};
+
+export type CostForecast = {
+  periodStart: string;
+  periodEnd: string;
+  events: {
+    eventId: string;
+    eventName: string;
+    eventDate: string;
+    estimatedStaff: number;
+    estimatedHours: number;
+    estimatedCost: number;
+    estimatedOvertimeCost: number;
+  }[];
+  totalEstimatedCost: number;
+  totalEstimatedOvertimeCost: number;
+};
+
+export type PayrollSummary = {
+  period: string;
+  totalGrossPay: number;
+  totalNetPay: number;
+  totalDeductions: number;
+  totalBonuses: number;
+  totalTaxWithholding: number;
+  totalOvertimePay: number;
+  staffCount: number;
+  eventsCount: number;
+  totalHours: number;
+  averageHourlyRate: number;
+};
+
+export type CostMetrics = {
+  daily: { date: string; cost: number; overtime: number }[];
+  weekly: { week: string; cost: number; overtime: number }[];
+  monthly: { month: string; cost: number; overtime: number }[];
+  yearly: { year: string; cost: number; overtime: number }[];
+};
+
+export type StaffPayslip = {
+  staffId: string;
+  staffName: string;
+  staffPhone: string;
+  staffEmail: string;
+  staffAvatar?: string;
+
+  periodType: PayrollPeriod;
+  periodStart: string;
+  periodEnd: string;
+
+  payType: PayType;
+  hourlyRate: number;
+  fixedRate: number;
+
+  earnings: {
+    description: string;
+    hours?: number;
+    rate?: number;
+    amount: number;
+  }[];
+
+  deductions: {
+    description: string;
+    amount: number;
+  }[];
+
+  bonuses: {
+    description: string;
+    amount: number;
+  }[];
+
+  grossEarnings: number;
+  totalDeductions: number;
+  totalBonuses: number;
+  taxWithholding: number;
+  netPay: number;
+
+  ytdGross: number;
+  ytdNet: number;
+  ytdTax: number;
+
+  payslipNumber: string;
+  generatedAt: string;
+  status: PayrollStatus;
+};
+
+export type PayrollSettings = {
+  defaultOvertimeMultiplier: number;
+  overtimeThresholdDaily: number;
+  overtimeThresholdWeekly: number;
+  defaultTaxRate: number;
+  payPeriod: PayrollPeriod;
+  payDayOfWeek?: number;
+  payDayOfMonth?: number;
+  autoApproveThreshold?: number;
+  requireApprovalForOvertime: boolean;
+  requireApprovalForBonuses: boolean;
 };

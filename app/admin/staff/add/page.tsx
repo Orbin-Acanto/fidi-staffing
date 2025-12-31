@@ -15,6 +15,8 @@ import { AppFileUpload } from "@/component/ui/AppFileUpload";
 import { AppSelect } from "@/component/ui/Select";
 import { AppCheckbox } from "@/component/ui/Checkbox";
 
+type PayType = "hourly" | "fixed";
+
 export default function AddStaffPage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -45,7 +47,12 @@ export default function AddStaffPage() {
     confirmPassword: "",
     status: "Active",
     wage: 16.5,
+    payType: "hourly",
+    fixedRate: 0,
   });
+
+  const isPayType = (value: string): value is PayType =>
+    value === "hourly" || value === "fixed";
 
   const handleInputChange = (
     e: React.ChangeEvent<
@@ -318,20 +325,62 @@ export default function AddStaffPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
-                Hourly Pay Rate
-              </label>
-              <input
-                type="number"
-                name="wage"
-                value={formData.wage}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-dark-black
-                         focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
-                         transition-all duration-200"
-                placeholder="Enter Employee Hourly Wage Rate"
+              <AppSelect
+                label="Pay Type"
+                value={formData.payType}
+                onValueChange={(value) => {
+                  if (!isPayType(value)) return;
+
+                  setFormData((prev) => ({
+                    ...prev,
+                    payType: value,
+                    hourlyRate: value === "hourly" ? prev.wage : 0,
+                    fixedRate: value === "fixed" ? prev.fixedRate : 0,
+                  }));
+                }}
+                placeholder="Select pay type"
+                options={[
+                  { label: "Hourly", value: "hourly" },
+                  { label: "Fixed Salary", value: "fixed" },
+                ]}
               />
             </div>
+
+            {formData.payType === "hourly" && (
+              <div>
+                <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
+                  Hourly Pay Rate
+                </label>
+                <input
+                  type="number"
+                  name="hourlyRate"
+                  value={formData.wage}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-dark-black
+               focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
+               transition-all duration-200"
+                  placeholder="Enter employee hourly wage rate"
+                />
+              </div>
+            )}
+
+            {formData.payType === "fixed" && (
+              <div>
+                <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
+                  Fixed Salary
+                </label>
+                <input
+                  type="number"
+                  name="fixedRate"
+                  value={formData.fixedRate}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-dark-black
+               focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
+               transition-all duration-200"
+                  placeholder="Enter fixed salary amount"
+                />
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
