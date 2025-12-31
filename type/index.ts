@@ -293,3 +293,72 @@ export type Settings = {
   email: EmailSettings;
   system: SystemPreferences;
 };
+
+export type DateRange = {
+  startDate: string;
+  endDate: string;
+};
+
+export type StaffUtilization = {
+  staffId: string;
+  staffName: string;
+  avatar?: string;
+  totalHours: number;
+  eventsWorked: number;
+  utilizationRate: number;
+  overtimeHours: number;
+  rating: number;
+};
+
+export type EventStatistics = {
+  totalEvents: number;
+  completedEvents: number;
+  upcomingEvents: number;
+  cancelledEvents: number;
+  averageStaffPerEvent: number;
+  totalRevenue: number;
+};
+
+export type AttendanceRecord = {
+  staffId: string;
+  staffName: string;
+  avatar?: string;
+  scheduledShifts: number;
+  attendedShifts: number;
+  lateArrivals: number;
+  noShows: number;
+  attendanceRate: number;
+};
+
+export type MonthlyTrend = {
+  month: string;
+  events: number;
+  staffHours: number;
+  revenue: number;
+};
+
+export type EventTypeBreakdown = {
+  type: string;
+  count: number;
+  percentage: number;
+  color: string;
+};
+
+export type TopPerformer = {
+  staffId: string;
+  staffName: string;
+  avatar?: string;
+  eventsWorked: number;
+  hoursWorked: number;
+  rating: number;
+  onTimeRate: number;
+};
+
+export type ReportSummary = {
+  staffUtilization: StaffUtilization[];
+  eventStatistics: EventStatistics;
+  attendanceRecords: AttendanceRecord[];
+  monthlyTrends: MonthlyTrend[];
+  eventTypeBreakdown: EventTypeBreakdown[];
+  topPerformers: TopPerformer[];
+};

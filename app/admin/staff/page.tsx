@@ -77,6 +77,9 @@ export default function StaffListPage() {
             <h1 className="text-3xl font-primary font-semibold text-gray-900">
               Staff Management
             </h1>
+            <p className="text-sm font-secondary text-gray-600 mt-1">
+              Manage your team, track availability, and assign staff to events.
+            </p>
           </div>
           <Link
             href="/admin/staff/add"

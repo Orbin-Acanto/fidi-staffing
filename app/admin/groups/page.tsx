@@ -93,6 +93,9 @@ export default function GroupManagementPage() {
             <h1 className="text-3xl font-primary font-semibold text-gray-900">
               Group Management
             </h1>
+            <p className="text-sm font-secondary text-gray-600 mt-1">
+              Organize staff into teams for faster event assignments.
+            </p>
           </div>
           <button
             onClick={() => setShowCreateModal(true)}

@@ -7,6 +7,9 @@ export default function EventHeader() {
         <h1 className="text-3xl font-primary font-bold text-gray-900">
           Event Management
         </h1>
+        <p className="text-sm font-secondary text-gray-600 mt-1">
+          Create, schedule, and manage all your events and staff assignments.
+        </p>
       </div>
       <Link
         href="/admin/events/create"

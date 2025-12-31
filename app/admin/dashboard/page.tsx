@@ -12,6 +12,10 @@ export default function AdminDashboard() {
         <h1 className="text-3xl font-primary font-bold text-gray-900">
           Overview
         </h1>
+        <p className="text-sm font-secondary text-gray-600 mt-1">
+          Track upcoming events, manage staff assignments, and stay on top of
+          operations.
+        </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
