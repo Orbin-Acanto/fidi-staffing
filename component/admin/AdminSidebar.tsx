@@ -30,11 +30,13 @@ export default function AdminSidebar() {
     <>
       <aside
         className={`${
-          isCollapsed ? "w-15" : "w-54"
+          isCollapsed ? "w-15" : "w-54 "
         } bg-white border-r border-gray-200 transition-all duration-300 flex flex-col`}
       >
         <div
-          className="h-16 flex items-center justify-between px-4 border-b border-gray-200"
+          className={`${
+            isCollapsed ? "px-2" : "px-4"
+          } h-15 flex items-center justify-between border-b border-gray-200`}
           onClick={() => setIsCollapsed(!isCollapsed)}
         >
           {!isCollapsed ? (
@@ -47,8 +49,8 @@ export default function AdminSidebar() {
             <Image
               src="/logo.png"
               alt="Logo"
-              width={40}
-              height={40}
+              width={50}
+              height={50}
               className="object-contain mx-auto"
             />
           )}
