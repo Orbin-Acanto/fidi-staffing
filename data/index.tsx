@@ -18,6 +18,7 @@ import {
   PayrollSummary,
   ProfileActivityLog,
   ReportSummary,
+  Role,
   SavedLocation,
   Settings,
   Staff,
@@ -90,6 +91,25 @@ export const navigation: NavSection[] = [
               strokeLinejoin="round"
               strokeWidth={2}
               d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+            />
+          </svg>
+        ),
+      },
+      {
+        name: "Roles",
+        href: "/admin/roles",
+        icon: (
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z"
             />
           </svg>
         ),
@@ -2779,3 +2799,123 @@ export const costMetrics: CostMetrics = {
     { year: "2024", cost: 268000, overtime: 35800 },
   ],
 };
+
+export const roles: Role[] = [
+  {
+    id: "role_1",
+    name: "Server",
+    description: "Food and beverage service at events",
+    payType: "hourly",
+    defaultRate: 22,
+    overtimeMultiplier: 1.5,
+    color: "#3B82F6",
+    status: "active",
+    staffCount: 24,
+    createdAt: "2024-01-15T10:00:00",
+    updatedAt: "2024-12-01T14:30:00",
+  },
+  {
+    id: "role_2",
+    name: "Bartender",
+    description: "Bar service and drink preparation",
+    payType: "hourly",
+    defaultRate: 28,
+    overtimeMultiplier: 1.5,
+    color: "#8B5CF6",
+    status: "active",
+    staffCount: 12,
+    createdAt: "2024-01-15T10:00:00",
+    updatedAt: "2024-11-20T09:15:00",
+  },
+  {
+    id: "role_3",
+    name: "Event Captain",
+    description: "Lead staff and coordinate event operations",
+    payType: "fixed",
+    defaultRate: 250,
+    overtimeMultiplier: 1.5,
+    color: "#F59E0B",
+    status: "active",
+    staffCount: 6,
+    createdAt: "2024-02-01T10:00:00",
+    updatedAt: "2024-12-10T16:45:00",
+  },
+  {
+    id: "role_4",
+    name: "Busser",
+    description: "Table clearing and setup assistance",
+    payType: "hourly",
+    defaultRate: 18,
+    overtimeMultiplier: 1.5,
+    color: "#10B981",
+    status: "active",
+    staffCount: 18,
+    createdAt: "2024-01-20T10:00:00",
+    updatedAt: "2024-11-15T11:20:00",
+  },
+  {
+    id: "role_5",
+    name: "Coat Check",
+    description: "Guest coat and belongings management",
+    payType: "fixed",
+    defaultRate: 150,
+    overtimeMultiplier: 1.5,
+    color: "#EC4899",
+    status: "active",
+    staffCount: 4,
+    createdAt: "2024-03-10T10:00:00",
+    updatedAt: "2024-10-25T13:00:00",
+  },
+  {
+    id: "role_6",
+    name: "Valet",
+    description: "Vehicle parking and retrieval",
+    payType: "hourly",
+    defaultRate: 20,
+    overtimeMultiplier: 1.5,
+    color: "#6366F1",
+    status: "active",
+    staffCount: 8,
+    createdAt: "2024-04-05T10:00:00",
+    updatedAt: "2024-12-05T10:30:00",
+  },
+  {
+    id: "role_7",
+    name: "Kitchen Staff",
+    description: "Food preparation and kitchen support",
+    payType: "hourly",
+    defaultRate: 24,
+    overtimeMultiplier: 1.5,
+    color: "#EF4444",
+    status: "active",
+    staffCount: 10,
+    createdAt: "2024-02-15T10:00:00",
+    updatedAt: "2024-11-28T15:10:00",
+  },
+  {
+    id: "role_8",
+    name: "Setup Crew",
+    description: "Event setup and breakdown",
+    payType: "hourly",
+    defaultRate: 20,
+    overtimeMultiplier: 1.5,
+    color: "#14B8A6",
+    status: "inactive",
+    staffCount: 0,
+    createdAt: "2024-05-01T10:00:00",
+    updatedAt: "2024-09-15T08:45:00",
+  },
+];
+
+export const roleColors = [
+  "#3B82F6",
+  "#8B5CF6",
+  "#F59E0B",
+  "#10B981",
+  "#EC4899",
+  "#6366F1",
+  "#EF4444",
+  "#14B8A6",
+  "#F97316",
+  "#84CC16",
+];

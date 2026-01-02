@@ -57,6 +57,8 @@ export interface StaffFormData {
   payType: "hourly" | "fixed";
   wage?: number;
   fixedRate?: number;
+
+  uniformSize?: string;
 }
 
 export interface Event {
@@ -786,4 +788,31 @@ export type PayrollSettings = {
   autoApproveThreshold?: number;
   requireApprovalForOvertime: boolean;
   requireApprovalForBonuses: boolean;
+};
+
+export type RoleStatus = "active" | "inactive";
+
+export type Role = {
+  id: string;
+  name: string;
+  description?: string;
+  payType: PayType;
+  defaultRate: number;
+  overtimeMultiplier: number;
+  color: string;
+  icon?: string;
+  status: RoleStatus;
+  staffCount: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type RoleFormData = {
+  name: string;
+  description: string;
+  payType: PayType;
+  defaultRate: number;
+  overtimeMultiplier: number;
+  color: string;
+  status: RoleStatus;
 };

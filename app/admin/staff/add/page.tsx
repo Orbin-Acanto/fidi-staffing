@@ -20,7 +20,8 @@ type PayType = "hourly" | "fixed";
 export default function AddStaffPage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [currentSkill, setCurrentSkill] = useState("");
+
+  const uniformSizes = ["XS", "S", "M", "L", "XL", "2XL", "3XL"];
 
   const [formData, setFormData] = useState<StaffFormData>({
     firstName: "",
@@ -49,6 +50,7 @@ export default function AddStaffPage() {
     wage: 16.5,
     payType: "hourly",
     fixedRate: 0,
+    uniformSize: "",
   });
 
   const isPayType = (value: string): value is PayType =>
@@ -320,6 +322,24 @@ export default function AddStaffPage() {
                 options={employmentTypes.map((type) => ({
                   label: type,
                   value: type,
+                }))}
+              />
+            </div>
+
+            <div>
+              <AppSelect
+                label="Uniform Size"
+                value={formData.uniformSize || ""}
+                onValueChange={(value) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    uniformSize: value,
+                  }))
+                }
+                placeholder="Select uniform size"
+                options={uniformSizes.map((size) => ({
+                  label: size,
+                  value: size,
                 }))}
               />
             </div>
