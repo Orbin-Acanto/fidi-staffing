@@ -1,6 +1,6 @@
 "use client";
 
-import { PayrollEntry, PayrollPeriod } from "@/types/payroll";
+import { PayrollEntry } from "@/type";
 import { useState } from "react";
 
 interface PayrollListTabProps {
@@ -18,7 +18,9 @@ export default function PayrollListTab({
   onViewPayslip,
   onExport,
 }: PayrollListTabProps) {
-  const [filter, setFilter] = useState<"all" | "draft" | "pending" | "approved" | "paid">("all");
+  const [filter, setFilter] = useState<
+    "all" | "draft" | "pending" | "approved" | "paid"
+  >("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedEntries, setSelectedEntries] = useState<string[]>([]);
   const [showRejectModal, setShowRejectModal] = useState(false);
@@ -27,7 +29,9 @@ export default function PayrollListTab({
 
   const filteredEntries = entries.filter((entry) => {
     const matchesFilter = filter === "all" || entry.status === filter;
-    const matchesSearch = entry.staffName.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = entry.staffName
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase());
     return matchesFilter && matchesSearch;
   });
 
@@ -98,19 +102,33 @@ export default function PayrollListTab({
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-white rounded-lg border border-gray-200 p-4">
           <p className="text-sm font-secondary text-gray-500">Total Entries</p>
-          <p className="text-2xl font-primary font-bold text-gray-900">{entries.length}</p>
+          <p className="text-2xl font-primary font-bold text-gray-900">
+            {entries.length}
+          </p>
         </div>
         <div className="bg-white rounded-lg border border-yellow-200 p-4">
-          <p className="text-sm font-secondary text-gray-500">Pending Approval</p>
-          <p className="text-2xl font-primary font-bold text-yellow-600">{pendingCount}</p>
+          <p className="text-sm font-secondary text-gray-500">
+            Pending Approval
+          </p>
+          <p className="text-2xl font-primary font-bold text-yellow-600">
+            {pendingCount}
+          </p>
         </div>
         <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <p className="text-sm font-secondary text-gray-500">Total Gross (Filtered)</p>
-          <p className="text-2xl font-primary font-bold text-gray-900">{formatCurrency(totalGross)}</p>
+          <p className="text-sm font-secondary text-gray-500">
+            Total Gross (Filtered)
+          </p>
+          <p className="text-2xl font-primary font-bold text-gray-900">
+            {formatCurrency(totalGross)}
+          </p>
         </div>
         <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <p className="text-sm font-secondary text-gray-500">Total Net (Filtered)</p>
-          <p className="text-2xl font-primary font-bold text-green-600">{formatCurrency(totalNet)}</p>
+          <p className="text-sm font-secondary text-gray-500">
+            Total Net (Filtered)
+          </p>
+          <p className="text-2xl font-primary font-bold text-green-600">
+            {formatCurrency(totalNet)}
+          </p>
         </div>
       </div>
 
@@ -120,15 +138,25 @@ export default function PayrollListTab({
           {/* Search */}
           <div className="flex-1">
             <div className="relative">
-              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              <svg
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
               </svg>
               <input
                 type="text"
                 placeholder="Search by staff name..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg font-secondary text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg font-secondary text-sm focus:outline-none focus:ring-2 focus:ring-primary text-black"
               />
             </div>
           </div>
@@ -161,8 +189,18 @@ export default function PayrollListTab({
             onClick={() => onExport(filteredEntries)}
             className="inline-flex items-center gap-2 px-4 py-2 text-sm font-secondary font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+              />
             </svg>
             Export
           </button>
@@ -201,30 +239,63 @@ export default function PayrollListTab({
                 <th className="px-4 py-3 text-left">
                   <input
                     type="checkbox"
-                    checked={selectedEntries.length === filteredEntries.length && filteredEntries.length > 0}
+                    checked={
+                      selectedEntries.length === filteredEntries.length &&
+                      filteredEntries.length > 0
+                    }
                     onChange={handleSelectAll}
                     className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
                   />
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-secondary font-semibold text-gray-600 uppercase">Staff</th>
-                <th className="px-4 py-3 text-left text-xs font-secondary font-semibold text-gray-600 uppercase">Period</th>
-                <th className="px-4 py-3 text-center text-xs font-secondary font-semibold text-gray-600 uppercase">Hours</th>
-                <th className="px-4 py-3 text-center text-xs font-secondary font-semibold text-gray-600 uppercase">OT Hours</th>
-                <th className="px-4 py-3 text-right text-xs font-secondary font-semibold text-gray-600 uppercase">Gross</th>
-                <th className="px-4 py-3 text-right text-xs font-secondary font-semibold text-gray-600 uppercase">Deductions</th>
-                <th className="px-4 py-3 text-right text-xs font-secondary font-semibold text-gray-600 uppercase">Net Pay</th>
-                <th className="px-4 py-3 text-center text-xs font-secondary font-semibold text-gray-600 uppercase">Status</th>
-                <th className="px-4 py-3 text-right text-xs font-secondary font-semibold text-gray-600 uppercase">Actions</th>
+                <th className="px-4 py-3 text-left text-xs font-secondary font-semibold text-gray-600 uppercase">
+                  Staff
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-secondary font-semibold text-gray-600 uppercase">
+                  Period
+                </th>
+                <th className="px-4 py-3 text-center text-xs font-secondary font-semibold text-gray-600 uppercase">
+                  Hours
+                </th>
+                <th className="px-4 py-3 text-center text-xs font-secondary font-semibold text-gray-600 uppercase">
+                  OT Hours
+                </th>
+                <th className="px-4 py-3 text-right text-xs font-secondary font-semibold text-gray-600 uppercase">
+                  Gross
+                </th>
+                <th className="px-4 py-3 text-right text-xs font-secondary font-semibold text-gray-600 uppercase">
+                  Deductions
+                </th>
+                <th className="px-4 py-3 text-right text-xs font-secondary font-semibold text-gray-600 uppercase">
+                  Net Pay
+                </th>
+                <th className="px-4 py-3 text-center text-xs font-secondary font-semibold text-gray-600 uppercase">
+                  Status
+                </th>
+                <th className="px-4 py-3 text-right text-xs font-secondary font-semibold text-gray-600 uppercase">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {filteredEntries.length === 0 ? (
                 <tr>
                   <td colSpan={10} className="px-4 py-8 text-center">
-                    <svg className="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    <svg
+                      className="w-12 h-12 text-gray-300 mx-auto mb-3"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                      />
                     </svg>
-                    <p className="text-gray-500 font-secondary">No payroll entries found</p>
+                    <p className="text-gray-500 font-secondary">
+                      No payroll entries found
+                    </p>
                   </td>
                 </tr>
               ) : (
@@ -241,42 +312,82 @@ export default function PayrollListTab({
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <img
-                          src={entry.staffAvatar || `https://avatar.iran.liara.run/public?username=${encodeURIComponent(entry.staffName)}`}
+                          src={
+                            entry.staffAvatar ||
+                            `https://avatar.iran.liara.run/public?username=${encodeURIComponent(
+                              entry.staffName
+                            )}`
+                          }
                           alt={entry.staffName}
                           className="w-8 h-8 rounded-full"
                         />
                         <div>
-                          <p className="font-secondary font-medium text-gray-900">{entry.staffName}</p>
-                          <p className="text-xs text-gray-500">{entry.staffPhone}</p>
+                          <p className="font-secondary font-medium text-gray-900">
+                            {entry.staffName}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {entry.staffPhone}
+                          </p>
                         </div>
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <p className="text-sm text-gray-900 font-secondary">{entry.periodStart}</p>
-                      <p className="text-xs text-gray-500">to {entry.periodEnd}</p>
+                      <p className="text-sm text-gray-900 font-secondary">
+                        {entry.periodStart}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        to {entry.periodEnd}
+                      </p>
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <span className="text-sm font-secondary text-gray-900">{entry.regularHours}h</span>
+                      <span className="text-sm font-secondary text-gray-900">
+                        {entry.regularHours}h
+                      </span>
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <span className={`text-sm font-secondary ${entry.overtimeHours > 0 ? "text-orange-600 font-medium" : "text-gray-400"}`}>
-                        {entry.overtimeHours > 0 ? `+${entry.overtimeHours}h` : "—"}
+                      <span
+                        className={`text-sm font-secondary ${
+                          entry.overtimeHours > 0
+                            ? "text-orange-600 font-medium"
+                            : "text-gray-400"
+                        }`}
+                      >
+                        {entry.overtimeHours > 0
+                          ? `+${entry.overtimeHours}h`
+                          : "—"}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <span className="text-sm font-secondary font-medium text-gray-900">{formatCurrency(entry.grossPay)}</span>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <span className={`text-sm font-secondary ${entry.totalDeductions > 0 ? "text-red-600" : "text-gray-400"}`}>
-                        {entry.totalDeductions > 0 ? `-${formatCurrency(entry.totalDeductions)}` : "—"}
+                      <span className="text-sm font-secondary font-medium text-gray-900">
+                        {formatCurrency(entry.grossPay)}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <span className="text-sm font-secondary font-bold text-green-600">{formatCurrency(entry.netPay)}</span>
+                      <span
+                        className={`text-sm font-secondary ${
+                          entry.totalDeductions > 0
+                            ? "text-red-600"
+                            : "text-gray-400"
+                        }`}
+                      >
+                        {entry.totalDeductions > 0
+                          ? `-${formatCurrency(entry.totalDeductions)}`
+                          : "—"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <span className="text-sm font-secondary font-bold text-green-600">
+                        {formatCurrency(entry.netPay)}
+                      </span>
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-secondary font-medium ${getStatusBadge(entry.status)}`}>
-                        {entry.status.charAt(0).toUpperCase() + entry.status.slice(1)}
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-secondary font-medium ${getStatusBadge(
+                          entry.status
+                        )}`}
+                      >
+                        {entry.status.charAt(0).toUpperCase() +
+                          entry.status.slice(1)}
                       </span>
                     </td>
                     <td className="px-4 py-3">
@@ -286,9 +397,24 @@ export default function PayrollListTab({
                           className="p-1.5 text-gray-500 hover:text-primary hover:bg-gray-100 rounded transition-colors"
                           title="View Payslip"
                         >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                            />
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                            />
                           </svg>
                         </button>
                         {entry.status === "pending" && (
@@ -298,8 +424,18 @@ export default function PayrollListTab({
                               className="p-1.5 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
                               title="Approve"
                             >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              <svg
+                                className="w-4 h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                                />
                               </svg>
                             </button>
                             <button
@@ -310,8 +446,18 @@ export default function PayrollListTab({
                               className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
                               title="Reject"
                             >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              <svg
+                                className="w-4 h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+                                />
                               </svg>
                             </button>
                           </>
@@ -331,7 +477,9 @@ export default function PayrollListTab({
         <div className="fixed inset-0 bg-gray-700/70 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
             <div className="p-6 border-b border-gray-200">
-              <h3 className="text-lg font-primary font-semibold text-gray-900">Reject Payroll</h3>
+              <h3 className="text-lg font-primary font-semibold text-gray-900">
+                Reject Payroll
+              </h3>
               <p className="text-sm text-gray-600 font-secondary mt-1">
                 Rejecting payroll for {selectedEntry.staffName}
               </p>
@@ -345,7 +493,7 @@ export default function PayrollListTab({
                 onChange={(e) => setRejectReason(e.target.value)}
                 placeholder="Please provide a reason..."
                 rows={4}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg font-secondary text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg font-secondary text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none text-black"
               />
             </div>
             <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50">

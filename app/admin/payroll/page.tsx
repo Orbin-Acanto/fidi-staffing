@@ -76,7 +76,6 @@ export default function PayrollPage() {
     periodStart: string,
     periodEnd: string
   ) => {
-    // Find matching entry or create a mock one
     const entry = payrollEntries.find(
       (e) => e.staffId === staffId && e.periodStart === periodStart
     );
@@ -89,7 +88,6 @@ export default function PayrollPage() {
   };
 
   const handleExportPayroll = (entries: PayrollEntry[]) => {
-    // In real app, would generate CSV/Excel
     const csvContent = entries
       .map(
         (e) =>
@@ -118,7 +116,6 @@ export default function PayrollPage() {
         onGeneratePayroll={handleGeneratePayroll}
       />
 
-      {/* Tab Content */}
       {activeTab === "overview" && (
         <PayrollOverviewTab
           summary={payrollSummary}

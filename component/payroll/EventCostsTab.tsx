@@ -1,6 +1,6 @@
 "use client";
 
-import { EventCostBreakdown } from "@/types/payroll";
+import { EventCostBreakdown } from "@/type";
 import { useState } from "react";
 
 interface EventCostsTabProps {
@@ -15,7 +15,8 @@ export default function EventCostsTab({ events }: EventCostsTabProps) {
     let comparison = 0;
     switch (sortBy) {
       case "date":
-        comparison = new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime();
+        comparison =
+          new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime();
         break;
       case "cost":
         comparison = a.totalCost - b.totalCost;
@@ -54,26 +55,38 @@ export default function EventCostsTab({ events }: EventCostsTabProps) {
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <p className="text-sm font-secondary text-gray-500">Total Event Costs</p>
-          <p className="text-2xl font-primary font-bold text-gray-900">{formatCurrency(totalCost)}</p>
+          <p className="text-sm font-secondary text-gray-500">
+            Total Event Costs
+          </p>
+          <p className="text-2xl font-primary font-bold text-gray-900">
+            {formatCurrency(totalCost)}
+          </p>
         </div>
         <div className="bg-white rounded-lg border border-orange-200 p-4">
           <p className="text-sm font-secondary text-gray-500">Overtime Costs</p>
-          <p className="text-2xl font-primary font-bold text-orange-600">{formatCurrency(totalOvertimeCost)}</p>
+          <p className="text-2xl font-primary font-bold text-orange-600">
+            {formatCurrency(totalOvertimeCost)}
+          </p>
         </div>
         <div className="bg-white rounded-lg border border-gray-200 p-4">
           <p className="text-sm font-secondary text-gray-500">Total Hours</p>
-          <p className="text-2xl font-primary font-bold text-gray-900">{totalHours}h</p>
+          <p className="text-2xl font-primary font-bold text-gray-900">
+            {totalHours}h
+          </p>
         </div>
         <div className="bg-white rounded-lg border border-gray-200 p-4">
           <p className="text-sm font-secondary text-gray-500">Staff Deployed</p>
-          <p className="text-2xl font-primary font-bold text-gray-900">{totalStaff}</p>
+          <p className="text-2xl font-primary font-bold text-gray-900">
+            {totalStaff}
+          </p>
         </div>
       </div>
 
       {/* Cost Breakdown Chart */}
       <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 className="font-primary font-semibold text-gray-900 mb-4">Cost by Event</h3>
+        <h3 className="font-primary font-semibold text-gray-900 mb-4">
+          Cost by Event
+        </h3>
         <div className="space-y-4">
           {sortedEvents.map((event) => {
             const maxCost = Math.max(...events.map((e) => e.totalCost));
@@ -84,13 +97,22 @@ export default function EventCostsTab({ events }: EventCostsTabProps) {
               <div key={event.eventId} className="space-y-2">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-secondary font-medium text-gray-900">{event.eventName}</p>
-                    <p className="text-xs text-gray-500">{event.eventDate} • {event.totalStaff} staff • {event.totalHours}h</p>
+                    <p className="font-secondary font-medium text-gray-900">
+                      {event.eventName}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {event.eventDate} • {event.totalStaff} staff •{" "}
+                      {event.totalHours}h
+                    </p>
                   </div>
                   <div className="text-right">
-                    <p className="font-secondary font-semibold text-gray-900">{formatCurrency(event.totalCost)}</p>
+                    <p className="font-secondary font-semibold text-gray-900">
+                      {formatCurrency(event.totalCost)}
+                    </p>
                     {event.overtimeCost > 0 && (
-                      <p className="text-xs text-orange-600">incl. {formatCurrency(event.overtimeCost)} OT</p>
+                      <p className="text-xs text-orange-600">
+                        incl. {formatCurrency(event.overtimeCost)} OT
+                      </p>
                     )}
                   </div>
                 </div>
@@ -113,11 +135,15 @@ export default function EventCostsTab({ events }: EventCostsTabProps) {
         <div className="flex items-center justify-center gap-6 mt-6 pt-4 border-t border-gray-100">
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 bg-primary rounded"></div>
-            <span className="text-xs text-gray-500 font-secondary">Regular Cost</span>
+            <span className="text-xs text-gray-500 font-secondary">
+              Regular Cost
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 bg-orange-500 rounded"></div>
-            <span className="text-xs text-gray-500 font-secondary">Overtime Cost</span>
+            <span className="text-xs text-gray-500 font-secondary">
+              Overtime Cost
+            </span>
           </div>
         </div>
       </div>
@@ -125,7 +151,9 @@ export default function EventCostsTab({ events }: EventCostsTabProps) {
       {/* Event Cost Table */}
       <div className="bg-white rounded-lg border border-gray-200">
         <div className="p-4 border-b border-gray-200">
-          <h3 className="font-primary font-semibold text-gray-900">Event Cost Details</h3>
+          <h3 className="font-primary font-semibold text-gray-900">
+            Event Cost Details
+          </h3>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -137,7 +165,9 @@ export default function EventCostsTab({ events }: EventCostsTabProps) {
                 >
                   Event
                   {sortBy === "date" && (
-                    <span className="ml-1">{sortOrder === "asc" ? "↑" : "↓"}</span>
+                    <span className="ml-1">
+                      {sortOrder === "asc" ? "↑" : "↓"}
+                    </span>
                   )}
                 </th>
                 <th
@@ -146,53 +176,99 @@ export default function EventCostsTab({ events }: EventCostsTabProps) {
                 >
                   Staff
                   {sortBy === "staff" && (
-                    <span className="ml-1">{sortOrder === "asc" ? "↑" : "↓"}</span>
+                    <span className="ml-1">
+                      {sortOrder === "asc" ? "↑" : "↓"}
+                    </span>
                   )}
                 </th>
-                <th className="px-4 py-3 text-center text-xs font-secondary font-semibold text-gray-600 uppercase">Hours</th>
-                <th className="px-4 py-3 text-right text-xs font-secondary font-semibold text-gray-600 uppercase">Regular Cost</th>
-                <th className="px-4 py-3 text-right text-xs font-secondary font-semibold text-gray-600 uppercase">OT Cost</th>
+                <th className="px-4 py-3 text-center text-xs font-secondary font-semibold text-gray-600 uppercase">
+                  Hours
+                </th>
+                <th className="px-4 py-3 text-right text-xs font-secondary font-semibold text-gray-600 uppercase">
+                  Regular Cost
+                </th>
+                <th className="px-4 py-3 text-right text-xs font-secondary font-semibold text-gray-600 uppercase">
+                  OT Cost
+                </th>
                 <th
                   className="px-4 py-3 text-right text-xs font-secondary font-semibold text-gray-600 uppercase cursor-pointer hover:bg-gray-100"
                   onClick={() => handleSort("cost")}
                 >
                   Total Cost
                   {sortBy === "cost" && (
-                    <span className="ml-1">{sortOrder === "asc" ? "↑" : "↓"}</span>
+                    <span className="ml-1">
+                      {sortOrder === "asc" ? "↑" : "↓"}
+                    </span>
                   )}
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-secondary font-semibold text-gray-600 uppercase">Cost/Hour</th>
+                <th className="px-4 py-3 text-right text-xs font-secondary font-semibold text-gray-600 uppercase">
+                  Cost/Hour
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {sortedEvents.map((event) => (
                 <tr key={event.eventId} className="hover:bg-gray-50">
                   <td className="px-4 py-3">
-                    <p className="font-secondary font-medium text-gray-900">{event.eventName}</p>
+                    <p className="font-secondary font-medium text-gray-900">
+                      {event.eventName}
+                    </p>
                     <p className="text-xs text-gray-500">{event.eventDate}</p>
                   </td>
-                  <td className="px-4 py-3 text-center text-sm font-secondary text-gray-900">{event.totalStaff}</td>
-                  <td className="px-4 py-3 text-center text-sm font-secondary text-gray-900">{event.totalHours}h</td>
-                  <td className="px-4 py-3 text-right text-sm font-secondary text-gray-900">{formatCurrency(event.regularCost)}</td>
+                  <td className="px-4 py-3 text-center text-sm font-secondary text-gray-900">
+                    {event.totalStaff}
+                  </td>
+                  <td className="px-4 py-3 text-center text-sm font-secondary text-gray-900">
+                    {event.totalHours}h
+                  </td>
+                  <td className="px-4 py-3 text-right text-sm font-secondary text-gray-900">
+                    {formatCurrency(event.regularCost)}
+                  </td>
                   <td className="px-4 py-3 text-right">
-                    <span className={`text-sm font-secondary ${event.overtimeCost > 0 ? "text-orange-600 font-medium" : "text-gray-400"}`}>
-                      {event.overtimeCost > 0 ? formatCurrency(event.overtimeCost) : "—"}
+                    <span
+                      className={`text-sm font-secondary ${
+                        event.overtimeCost > 0
+                          ? "text-orange-600 font-medium"
+                          : "text-gray-400"
+                      }`}
+                    >
+                      {event.overtimeCost > 0
+                        ? formatCurrency(event.overtimeCost)
+                        : "—"}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-right text-sm font-secondary font-bold text-gray-900">{formatCurrency(event.totalCost)}</td>
-                  <td className="px-4 py-3 text-right text-sm font-secondary text-gray-600">${event.costPerHour.toFixed(2)}/h</td>
+                  <td className="px-4 py-3 text-right text-sm font-secondary font-bold text-gray-900">
+                    {formatCurrency(event.totalCost)}
+                  </td>
+                  <td className="px-4 py-3 text-right text-sm font-secondary text-gray-600">
+                    ${event.costPerHour.toFixed(2)}/h
+                  </td>
                 </tr>
               ))}
             </tbody>
             <tfoot className="bg-gray-50 border-t border-gray-200">
               <tr>
-                <td className="px-4 py-3 font-secondary font-semibold text-gray-900">Totals</td>
-                <td className="px-4 py-3 text-center font-secondary font-semibold text-gray-900">{totalStaff}</td>
-                <td className="px-4 py-3 text-center font-secondary font-semibold text-gray-900">{totalHours}h</td>
-                <td className="px-4 py-3 text-right font-secondary font-semibold text-gray-900">{formatCurrency(totalCost - totalOvertimeCost)}</td>
-                <td className="px-4 py-3 text-right font-secondary font-semibold text-orange-600">{formatCurrency(totalOvertimeCost)}</td>
-                <td className="px-4 py-3 text-right font-secondary font-bold text-gray-900">{formatCurrency(totalCost)}</td>
-                <td className="px-4 py-3 text-right font-secondary text-gray-600">${(totalCost / totalHours).toFixed(2)}/h</td>
+                <td className="px-4 py-3 font-secondary font-semibold text-gray-900">
+                  Totals
+                </td>
+                <td className="px-4 py-3 text-center font-secondary font-semibold text-gray-900">
+                  {totalStaff}
+                </td>
+                <td className="px-4 py-3 text-center font-secondary font-semibold text-gray-900">
+                  {totalHours}h
+                </td>
+                <td className="px-4 py-3 text-right font-secondary font-semibold text-gray-900">
+                  {formatCurrency(totalCost - totalOvertimeCost)}
+                </td>
+                <td className="px-4 py-3 text-right font-secondary font-semibold text-orange-600">
+                  {formatCurrency(totalOvertimeCost)}
+                </td>
+                <td className="px-4 py-3 text-right font-secondary font-bold text-gray-900">
+                  {formatCurrency(totalCost)}
+                </td>
+                <td className="px-4 py-3 text-right font-secondary text-gray-600">
+                  ${(totalCost / totalHours).toFixed(2)}/h
+                </td>
               </tr>
             </tfoot>
           </table>
