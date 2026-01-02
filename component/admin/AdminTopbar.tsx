@@ -3,10 +3,20 @@
 import { useState } from "react";
 import Image from "next/image";
 import { notifications } from "@/data";
+import { AppSelect } from "../ui/Select";
 
 export default function AdminTopbar() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+
+  const companies = [
+    { id: "c1", name: "Fidi Hospitality" },
+    { id: "c2", name: "Tardis Catering" },
+    { id: "c3", name: "MME Worldwide" },
+    { id: "c4", name: "MME Creative Partners" },
+  ];
+
+  const [selectedCompany, setSelectedCompany] = useState(companies[0].id);
 
   const unreadCount = notifications.filter((n) => n.unread).length;
 
@@ -40,6 +50,18 @@ export default function AdminTopbar() {
       </div>
 
       <div className="flex items-center gap-4 ml-4">
+        <div>
+          <AppSelect
+            value={selectedCompany}
+            onValueChange={(value) => setSelectedCompany(value)}
+            placeholder="Select a company"
+            options={companies.map((company) => ({
+              label: company.name,
+              value: company.id,
+            }))}
+          />
+        </div>
+
         <div className="relative">
           <button
             onClick={() => setShowNotifications(!showNotifications)}

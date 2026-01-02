@@ -123,6 +123,7 @@ export interface EventFormData {
   endTime: string;
   setupTime: string;
   breakdownTime: string;
+  clockCode: string;
 
   venueName: string;
   street: string;

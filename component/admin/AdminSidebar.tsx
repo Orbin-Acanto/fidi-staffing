@@ -41,8 +41,8 @@ export default function AdminSidebar() {
         >
           {!isCollapsed ? (
             <div className="flex items-center gap-3">
-              <span className="font-primary text-2xl italic font-semibold text-dark-black">
-                FiDi Staffing
+              <span className="font-primary text-2xl  font-bold text-dark-black">
+                Event Planner
               </span>
             </div>
           ) : (

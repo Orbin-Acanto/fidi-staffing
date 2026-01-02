@@ -8,13 +8,15 @@ import {
   availableGroups,
   dressCodes,
   eventTypes,
-  professions,
+  roles,
   savedLocations,
 } from "@/data";
 import { AppSelect } from "@/component/ui/Select";
 import { AppDatePicker } from "@/component/ui/AppDatePicker";
 import { AppTimePicker } from "@/component/ui/AppTimePicker";
-import { AppCheckbox } from "@/component/ui/Checkbox";
+import EventStaffingSection, {
+  EventRoleRequirement,
+} from "@/component/event/Eventstaffingsection";
 
 export default function CreateEventPage() {
   const router = useRouter();
@@ -33,6 +35,7 @@ export default function CreateEventPage() {
     endTime: "",
     setupTime: "",
     breakdownTime: "",
+    clockCode: "",
     venueName: "",
     street: "",
     city: "",
@@ -48,6 +51,10 @@ export default function CreateEventPage() {
     budget: "",
     status: "Draft",
   });
+
+  const [staffingRequirements, setStaffingRequirements] = useState<
+    EventRoleRequirement[]
+  >([]);
 
   const applySavedLocation = (locationId: string) => {
     setSelectedLocationId(locationId);
@@ -97,17 +104,6 @@ export default function CreateEventPage() {
     }
   };
 
-  const handleStaffingChange = (profession: string, value: string) => {
-    const numValue = parseInt(value) || 0;
-    setFormData((prev) => ({
-      ...prev,
-      staffingRequirements: {
-        ...prev.staffingRequirements,
-        [profession]: numValue,
-      },
-    }));
-  };
-
   const handleToggleGroup = (group: string) => {
     setFormData((prev) => ({
       ...prev,
@@ -132,7 +128,6 @@ export default function CreateEventPage() {
 
       console.log("Submitting event:", dataToSubmit);
 
-      // Simulate API call
       await new Promise((resolve) => setTimeout(resolve, 1500));
 
       alert(
@@ -148,10 +143,6 @@ export default function CreateEventPage() {
       setIsSubmitting(false);
     }
   };
-
-  const totalStaffRequired = Object.values(
-    formData.staffingRequirements
-  ).reduce((sum, count) => sum + count, 0);
 
   return (
     <div className="space-y-6">
@@ -362,6 +353,25 @@ export default function CreateEventPage() {
                 }
               />
             </div>
+            <div>
+              <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
+                Clock Code
+              </label>
+              <input
+                type="text"
+                name="clockCode"
+                value={formData.clockCode || ""}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    clockCode: e.target.value,
+                  }))
+                }
+                placeholder="Enter clock code"
+                className="w-full px-4 py-2 text-sm border border-gray-300 rounded-lg font-secondary text-black
+               focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              />
+            </div>
           </div>
         </div>
 
@@ -508,7 +518,7 @@ export default function CreateEventPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
+        {/* <div className="bg-white rounded-lg border border-gray-200 p-6">
           <h2 className="text-xl font-primary font-semibold text-gray-900">
             Staffing Requirements
           </h2>
@@ -585,7 +595,22 @@ export default function CreateEventPage() {
               </div>
             </div>
           </div>
-        </div>
+        </div> */}
+
+        <EventStaffingSection
+          roles={roles}
+          requirements={staffingRequirements}
+          onRequirementsChange={setStaffingRequirements}
+          eventStartTime={formData.startTime}
+          eventEndTime={formData.endTime}
+          autoAssign={formData.autoAssign}
+          onAutoAssignChange={(value) =>
+            setFormData((prev) => ({ ...prev, autoAssign: value }))
+          }
+          assignedGroups={formData.assignedGroups}
+          availableGroups={availableGroups}
+          onToggleGroup={handleToggleGroup}
+        />
 
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <h2 className="text-xl font-primary font-semibold text-gray-900 mb-6">
