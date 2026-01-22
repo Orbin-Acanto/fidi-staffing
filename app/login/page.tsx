@@ -3,23 +3,56 @@
 import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { toast } from "react-toastify";
+import { apiFetch } from "@/lib/apiFetch";
+import { toastError, toastSuccess } from "@/lib/toast";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  function validateForm(): string | null {
+    const e = email.trim().toLowerCase();
+
+    if (!e) return "Email is required.";
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e))
+      return "Please enter a valid email address.";
+    if (!password) return "Password is required.";
+    if (password.length < 8)
+      return "Password must be at least 8 characters long.";
+    return null;
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const error = validateForm();
+    if (error) {
+      toast.error(error, { toastId: error });
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      console.log("Login attempt:", { username, password });
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await apiFetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: email.trim().toLowerCase(),
+          password,
+        }),
+      });
+
+      toastSuccess("Signed in successfully!");
       router.push("/admin/dashboard");
-    } catch (error) {
-      console.error("Login failed:", error);
+    } catch (err) {
+      toastError(
+        err,
+        "Login failed. Please check your email and password and try again.",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -38,6 +71,7 @@ export default function LoginPage() {
             priority
           />
         </div>
+
         <div className="bg-white rounded-lg shadow-2xl p-8 border border-gray-300">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-primary text-dark-black mb-2">
@@ -51,22 +85,24 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label
-                htmlFor="username"
+                htmlFor="email"
                 className="block text-sm font-secondary font-medium text-gray-700 mb-2"
               >
-                Username
+                Email
               </label>
               <input
-                id="username"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                id="email"
+                type="email"
+                inputMode="email"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 required
                 className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg 
                          text-dark-black font-secondary placeholder-gray-400
-                         focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
+                         focus:outline-none focus:ring-0 focus:border-primary/90
                          transition-all duration-200"
-                placeholder="Enter your username"
+                placeholder="Enter your email"
               />
             </div>
 
@@ -80,12 +116,13 @@ export default function LoginPage() {
               <input
                 id="password"
                 type="password"
+                autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg 
                          text-dark-black font-secondary placeholder-gray-400
-                         focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
+                         focus:outline-none focus:ring-0 focus:border-primary/90
                          transition-all duration-200"
                 placeholder="Enter your password"
               />

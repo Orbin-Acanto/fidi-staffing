@@ -817,3 +817,29 @@ export type RoleFormData = {
   color: string;
   status: RoleStatus;
 };
+
+export type UUID = string;
+
+export type UserMe = {
+  id: UUID;
+  email: string;
+
+  first_name: string;
+  last_name: string;
+  full_name: string;
+
+  phone: string | null;
+  avatar: string | null;
+
+  is_saas_admin: boolean;
+  is_staff: boolean;
+  is_active: boolean;
+
+  current_tenant: UUID | null;
+  current_company: UUID | null;
+
+  tenant_role: string | null;
+
+  created_at: string;
+  updated_at: string;
+};

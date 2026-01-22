@@ -4,10 +4,15 @@ import { useState } from "react";
 import Image from "next/image";
 import { notifications } from "@/data";
 import { AppSelect } from "../ui/Select";
+import { useRouter } from "next/navigation";
+import { apiFetch } from "@/lib/apiFetch";
+import { toastError, toastSuccess } from "@/lib/toast";
 
 export default function AdminTopbar() {
+  const router = useRouter();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const companies = [
     { id: "c1", name: "Fidi Hospitality" },
@@ -19,6 +24,26 @@ export default function AdminTopbar() {
   const [selectedCompany, setSelectedCompany] = useState(companies[0].id);
 
   const unreadCount = notifications.filter((n) => n.unread).length;
+
+  const handleLogout = async () => {
+    if (isLoading) return;
+    setIsLoading(true);
+
+    try {
+      await apiFetch("/api/auth/logout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      toastSuccess("Logged out successfully!");
+      router.push("/login");
+      router.refresh();
+    } catch (err) {
+      toastError(err, "Logout failed. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6">
@@ -234,7 +259,11 @@ export default function AdminTopbar() {
                   </button>
                 </div>
                 <div className="p-2 border-t border-gray-200">
-                  <button className="w-full px-4 py-2 text-left text-sm font-secondary text-red-600 hover:bg-red-50 rounded transition-colors flex items-center gap-2 cursor-pointer">
+                  <button
+                    onClick={handleLogout}
+                    disabled={isLoading}
+                    className="w-full px-4 py-2 text-left text-sm font-secondary text-red-600 hover:bg-red-50 rounded transition-colors flex items-center gap-2 cursor-pointer"
+                  >
                     <svg
                       className="w-4 h-4"
                       fill="none"
