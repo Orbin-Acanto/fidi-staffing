@@ -820,6 +820,8 @@ export type RoleFormData = {
 
 export type UUID = string;
 
+export type TenantRole = "owner" | "admin" | "moderator";
+
 export type UserMe = {
   id: UUID;
   email: string;
@@ -838,7 +840,7 @@ export type UserMe = {
   current_tenant: UUID | null;
   current_company: UUID | null;
 
-  tenant_role: string | null;
+  tenant_role: TenantRole | null;
 
   created_at: string;
   updated_at: string;

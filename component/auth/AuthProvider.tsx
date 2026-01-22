@@ -1,16 +1,15 @@
 "use client";
 
+import { UserMe } from "@/type";
 import React, { createContext, useContext, useMemo } from "react";
 
-type Me = any;
-
-const AuthContext = createContext<{ me: Me | null }>({ me: null });
+const AuthContext = createContext<{ me: UserMe | null }>({ me: null });
 
 export function AuthProvider({
   me,
   children,
 }: {
-  me: Me | null;
+  me: UserMe | null;
   children: React.ReactNode;
 }) {
   const value = useMemo(() => ({ me }), [me]);

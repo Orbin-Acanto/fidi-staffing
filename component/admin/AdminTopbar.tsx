@@ -8,8 +8,12 @@ import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/apiFetch";
 import { toastError, toastSuccess } from "@/lib/toast";
 
+import { useMe } from "@/component/auth/AuthProvider";
+
 export default function AdminTopbar() {
   const router = useRouter();
+  const me = useMe();
+
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -24,6 +28,14 @@ export default function AdminTopbar() {
   const [selectedCompany, setSelectedCompany] = useState(companies[0].id);
 
   const unreadCount = notifications.filter((n) => n.unread).length;
+
+  const firstName = me?.first_name ?? "";
+  const lastName = me?.last_name ?? "";
+  const fullName = `${firstName} ${lastName}`.trim() || "User";
+
+  const email = me?.email ?? "—";
+
+  const role = me?.tenant_role ?? "Admin";
 
   const handleLogout = async () => {
     if (isLoading) return;
@@ -173,10 +185,13 @@ export default function AdminTopbar() {
           >
             <div className="text-right hidden sm:block">
               <p className="text-sm font-secondary font-medium text-gray-900">
-                Admin User
+                {fullName}
               </p>
-              <p className="text-xs text-gray-500">Administrator</p>
+              <p className="text-xs text-gray-500">
+                {typeof role === "string" ? role.replace(/_/g, " ") : "—"}
+              </p>
             </div>
+
             <div className="relative">
               <Image
                 src="/logo.png"
@@ -198,10 +213,11 @@ export default function AdminTopbar() {
               <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200 z-20">
                 <div className="p-3 border-b border-gray-200">
                   <p className="text-sm font-secondary font-medium text-gray-900">
-                    Admin User
+                    {fullName}
                   </p>
-                  <p className="text-xs text-gray-500">admin@example.com</p>
+                  <p className="text-xs text-gray-500">{email}</p>
                 </div>
+
                 <div className="py-2">
                   <button className="w-full px-4 py-2 text-left text-sm font-secondary text-gray-700 hover:bg-gray-100 transition-colors flex items-center gap-2 cursor-pointer">
                     <svg
@@ -219,6 +235,7 @@ export default function AdminTopbar() {
                     </svg>
                     Profile
                   </button>
+
                   <button className="w-full px-4 py-2 text-left text-sm font-secondary text-gray-700 hover:bg-gray-100 transition-colors flex items-center gap-2 cursor-pointer">
                     <svg
                       className="w-4 h-4"
@@ -241,6 +258,7 @@ export default function AdminTopbar() {
                     </svg>
                     Settings
                   </button>
+
                   <button className="w-full px-4 py-2 text-left text-sm font-secondary text-gray-700 hover:bg-gray-100 transition-colors flex items-center gap-2 cursor-pointer">
                     <svg
                       className="w-4 h-4"
@@ -258,11 +276,12 @@ export default function AdminTopbar() {
                     Help & Support
                   </button>
                 </div>
+
                 <div className="p-2 border-t border-gray-200">
                   <button
                     onClick={handleLogout}
                     disabled={isLoading}
-                    className="w-full px-4 py-2 text-left text-sm font-secondary text-red-600 hover:bg-red-50 rounded transition-colors flex items-center gap-2 cursor-pointer"
+                    className="w-full px-4 py-2 text-left text-sm font-secondary text-red-600 hover:bg-red-50 rounded transition-colors flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <svg
                       className="w-4 h-4"
@@ -277,7 +296,7 @@ export default function AdminTopbar() {
                         d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
                       />
                     </svg>
-                    Sign Out
+                    {isLoading ? "Signing Out..." : "Sign Out"}
                   </button>
                 </div>
               </div>
