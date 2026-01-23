@@ -1,13 +1,28 @@
 "use client";
+
 import { User, UserRole, UserStatus, defaultPermissionsByRole } from "@/type";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { AppSelect } from "../ui/Select";
+import { apiFetch } from "@/lib/apiFetch";
+import { toastError, toastSuccess } from "@/lib/toast";
 
 interface AddEditUserModalProps {
   user?: User | null;
   onClose: () => void;
   onSave: (data: Partial<User>) => void;
 }
+
+type InviteResponse = {
+  message?: string;
+  invitation?: {
+    id: string;
+    email: string;
+    role: string;
+    token: string;
+    invitation_link: string;
+    expires_at: string;
+  };
+};
 
 export default function AddEditUserModal({
   user,
@@ -23,9 +38,19 @@ export default function AddEditUserModal({
     role: "Manager" as UserRole,
     status: "Active" as UserStatus,
     department: "",
+    message: "",
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [invitationLink, setInvitationLink] = useState<string>("");
+
+  const statusOptions: { label: string; value: UserStatus }[] = [
+    { label: "Active", value: "Active" },
+    { label: "Suspended", value: "Suspended" },
+    { label: "Deactivated", value: "Deactivated" },
+  ];
 
   useEffect(() => {
     if (user) {
@@ -36,12 +61,16 @@ export default function AddEditUserModal({
         role: user.role || "Manager",
         status: user.status || "Active",
         department: user.department || "",
+        message: "",
       });
+      setInvitationLink("");
+    } else {
+      setInvitationLink("");
     }
   }, [user]);
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -54,15 +83,20 @@ export default function AddEditUserModal({
     }
   };
 
+  const apiRole = useMemo(() => {
+    return formData.role === "Admin" ? "admin" : "moderator";
+  }, [formData.role]);
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.name.trim()) {
+    if (!formData.name.trim() && !isEditing) {
       newErrors.name = "Name is required";
     }
+
     if (!formData.email.trim()) {
       newErrors.email = "Email is required";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
       newErrors.email = "Invalid email format";
     }
 
@@ -70,9 +104,57 @@ export default function AddEditUserModal({
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  async function inviteUser() {
+    setIsSubmitting(true);
+    setInvitationLink("");
+
+    try {
+      const res = (await apiFetch("/api/auth/invite-user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: formData.email.trim(),
+          role: apiRole,
+          message: formData.message?.trim() || "",
+        }),
+      })) as InviteResponse;
+
+      const link = res?.invitation?.invitation_link;
+
+      toastSuccess("Invitation sent successfully!");
+
+      if (link) {
+        setInvitationLink(link);
+        try {
+          await navigator.clipboard.writeText(link);
+          toastSuccess("Invitation link copied!");
+        } catch {}
+      }
+
+      onSave({
+        id: `invite_${Date.now()}`,
+        name: formData.name.trim() || "Invited User",
+        email: formData.email.trim(),
+        phone: formData.phone.trim(),
+        role: formData.role,
+        status: "Active",
+        department: formData.department.trim(),
+        permissions: defaultPermissionsByRole[formData.role],
+        createdAt: new Date().toISOString().split("T")[0],
+      });
+    } catch (err) {
+      toastError(err, "Failed to send invitation. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (validateForm()) {
+
+    if (!validateForm()) return;
+
+    if (isEditing) {
       onSave({
         ...formData,
         id: user?.id || `user_${Date.now()}`,
@@ -80,6 +162,19 @@ export default function AddEditUserModal({
           user?.permissions || defaultPermissionsByRole[formData.role],
         createdAt: user?.createdAt || new Date().toISOString().split("T")[0],
       });
+      return;
+    }
+
+    await inviteUser();
+  };
+
+  const copyLink = async () => {
+    if (!invitationLink) return;
+    try {
+      await navigator.clipboard.writeText(invitationLink);
+      toastSuccess("Invitation link copied!");
+    } catch (err) {
+      toastError(err, "Could not copy link. Please copy manually.");
     }
   };
 
@@ -116,7 +211,7 @@ export default function AddEditUserModal({
                 <p className="text-sm font-secondary text-gray-500">
                   {isEditing
                     ? "Update the user details"
-                    : "Enter the user information below"}
+                    : "Invite a user to join your tenant"}
                 </p>
               </div>
             </div>
@@ -142,25 +237,47 @@ export default function AddEditUserModal({
 
           <form onSubmit={handleSubmit}>
             <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
-                  Full Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  placeholder="e.g., John Smith"
-                  className={`w-full px-4 py-2 border rounded-lg font-secondary text-sm text-gray-900
-                           placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
-                           transition-all duration-200 ${
-                             errors.name ? "border-red-500" : "border-gray-300"
-                           }`}
-                />
-                {errors.name && (
-                  <p className="mt-1 text-sm text-red-500">{errors.name}</p>
-                )}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
+                    Full Name{" "}
+                    {!isEditing && <span className="text-red-500">*</span>}
+                  </label>
+                  <input
+                    type="text"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    placeholder="e.g., John Smith"
+                    className={`w-full px-4 py-2 border rounded-lg font-secondary text-sm text-gray-900
+                              placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
+                              transition-all duration-200 ${
+                                errors.name
+                                  ? "border-red-500"
+                                  : "border-gray-300"
+                              }`}
+                  />
+                  {errors.name && (
+                    <p className="mt-1 text-sm text-red-500">{errors.name}</p>
+                  )}
+                </div>
+
+                <div>
+                  <AppSelect
+                    label="Role"
+                    value={formData.role}
+                    onValueChange={(value) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        role: value as UserRole,
+                      }))
+                    }
+                    options={[
+                      { label: "Manager", value: "Manager" },
+                      { label: "Admin", value: "Admin" },
+                    ]}
+                  />
+                </div>
               </div>
 
               <div>
@@ -183,105 +300,94 @@ export default function AddEditUserModal({
                   <p className="mt-1 text-sm text-red-500">{errors.email}</p>
                 )}
               </div>
-
-              <div>
-                <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
-                  Phone Number
-                </label>
-                <input
-                  type="tel"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  placeholder="e.g., +1 (212) 555-0123"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-sm text-gray-900
-                           placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
-                           transition-all duration-200"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <AppSelect
-                    label="Role"
-                    value={formData.role}
-                    onValueChange={(value) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        role: value as UserRole,
-                      }))
-                    }
-                    options={[
-                      { label: "Manager", value: "Manager" },
-                      { label: "Admin", value: "Admin" },
-                    ]}
-                  />
-                </div>
-
+              {isEditing && (
                 <div>
                   <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
-                    Department
+                    Phone Number
+                  </label>
+                  <input
+                    type="tel"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    placeholder="e.g., +1 (212) 555-0123"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-sm text-gray-900
+                           placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
+                           transition-all duration-200"
+                  />
+                </div>
+              )}
+
+              {isEditing && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
+                      Department
+                    </label>
+                    <input
+                      type="text"
+                      name="department"
+                      value={formData.department}
+                      onChange={handleChange}
+                      placeholder="e.g., Operations"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-sm text-gray-900
+                   placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
+                   transition-all duration-200"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
+                      Status
+                    </label>
+                    <AppSelect
+                      value={formData.status}
+                      onValueChange={(value) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          status: value as UserStatus,
+                        }))
+                      }
+                      placeholder="Select status"
+                      options={statusOptions}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {!isEditing && (
+                <div>
+                  <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
+                    Invitation Message (optional)
                   </label>
                   <input
                     type="text"
-                    name="department"
-                    value={formData.department}
+                    name="message"
+                    value={formData.message}
                     onChange={handleChange}
-                    placeholder="e.g., Operations"
+                    placeholder="e.g., Welcome to the team!"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-sm text-gray-900
                              placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
                              transition-all duration-200"
                   />
                 </div>
-              </div>
-
-              {isEditing && (
-                <div>
-                  <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
-                    Status
-                  </label>
-                  <select
-                    name="status"
-                    value={formData.status}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-sm text-gray-900
-                             focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
-                             transition-all duration-200"
-                  >
-                    <option value="Active">Active</option>
-                    <option value="Suspended">Suspended</option>
-                    <option value="Deactivated">Deactivated</option>
-                  </select>
-                </div>
               )}
 
-              {!isEditing && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <div className="flex items-start gap-3">
-                    <svg
-                      className="w-5 h-5 text-blue-600 mt-0.5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                    <div>
-                      <p className="font-secondary font-medium text-blue-800">
-                        Default Permissions
-                      </p>
-                      <p className="text-sm text-blue-700">
-                        The user will receive default permissions based on their
-                        role. You can customize permissions after creating the
-                        user.
-                      </p>
-                    </div>
-                  </div>
+              {!isEditing && invitationLink && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <p className="font-secondary font-medium text-green-800">
+                    Invitation link generated
+                  </p>
+                  <p className="text-sm text-green-700 break-all mt-1">
+                    {invitationLink}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={copyLink}
+                    className="mt-3 inline-flex items-center gap-2 px-3 py-2 text-sm font-secondary font-medium rounded-lg bg-white border border-green-300 text-green-800 hover:bg-green-100 transition-colors"
+                  >
+                    Copy link
+                  </button>
                 </div>
               )}
             </div>
@@ -294,9 +400,11 @@ export default function AddEditUserModal({
               >
                 Cancel
               </button>
+
               <button
                 type="submit"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white font-secondary font-medium rounded-lg hover:bg-primary/90 transition-colors"
+                disabled={isSubmitting}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white font-secondary font-medium rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <svg
                   className="w-4 h-4"
@@ -311,7 +419,13 @@ export default function AddEditUserModal({
                     d="M5 13l4 4L19 7"
                   />
                 </svg>
-                {isEditing ? "Save Changes" : "Add User"}
+                {isSubmitting
+                  ? isEditing
+                    ? "Saving..."
+                    : "Sending..."
+                  : isEditing
+                    ? "Save Changes"
+                    : "Send Invitation"}
               </button>
             </div>
           </form>

@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { adminProfile as initialProfile, profileActivityLogs } from "@/data";
 import { AdminProfile, NotificationPreferences } from "@/type";
@@ -10,75 +10,90 @@ import TwoFactorAuthCard from "@/component/profile/TwoFactorAuthCard";
 import NotificationPreferencesCard from "@/component/profile/NotificationPreferencesCard";
 import ProfileActivityLogCard from "@/component/profile/ProfileActivityLogCard";
 import UploadPhotoModal from "@/component/profile/UploadPhotoModal";
+import { userMeToAdminProfile } from "@/lib/mappers/adminProfile";
+import { useMe } from "@/hooks/useMe";
 
 export default function ProfilePage() {
-  const [profile, setProfile] = useState<AdminProfile>(initialProfile);
+  const { data: me, isLoading } = useMe();
+  const mappedProfile = useMemo(() => {
+    return me ? userMeToAdminProfile(me) : null;
+  }, [me]);
+
+  const [profile, setProfile] = useState<AdminProfile | null>(null);
   const [showPhotoModal, setShowPhotoModal] = useState(false);
 
+  useEffect(() => {
+    if (mappedProfile) setProfile(mappedProfile);
+  }, [mappedProfile]);
+
+  if (isLoading || !profile) {
+    return null;
+  }
+
   const handleUpdateProfile = (data: Partial<AdminProfile>) => {
-    setProfile((prev) => ({ ...prev, ...data }));
-    console.log("Profile updated:", data);
+    setProfile((prev) => (prev ? { ...prev, ...data } : prev));
   };
 
   const handleUpdatePhoto = (photoUrl: string) => {
-    setProfile((prev) => ({ ...prev, avatar: photoUrl }));
+    setProfile((prev) => (prev ? { ...prev, avatar: photoUrl } : prev));
     setShowPhotoModal(false);
-    console.log("Photo updated");
   };
 
   const handleChangePassword = (
     currentPassword: string,
-    newPassword: string
+    newPassword: string,
   ) => {
-    console.log("Password change requested");
-    setProfile((prev) => ({
-      ...prev,
-      lastPasswordChange: new Date().toISOString(),
-    }));
+    setProfile((prev) =>
+      prev ? { ...prev, lastPasswordChange: new Date().toISOString() } : prev,
+    );
   };
 
   const handleUpdateNotifications = (preferences: NotificationPreferences) => {
-    setProfile((prev) => ({
-      ...prev,
-      notificationPreferences: preferences,
-    }));
-    console.log("Notification preferences updated:", preferences);
+    setProfile((prev) =>
+      prev ? { ...prev, notificationPreferences: preferences } : prev,
+    );
   };
 
   const handleEnable2FA = (method: "authenticator" | "sms" | "email") => {
-    setProfile((prev) => ({
-      ...prev,
-      twoFactorAuth: {
-        enabled: true,
-        method,
-        lastUpdated: new Date().toISOString(),
-        backupCodesRemaining: 10,
-      },
-    }));
-    console.log("2FA enabled with method:", method);
+    setProfile((prev) =>
+      prev
+        ? {
+            ...prev,
+            twoFactorAuth: {
+              enabled: true,
+              method,
+              lastUpdated: new Date().toISOString(),
+              backupCodesRemaining: 10,
+            },
+          }
+        : prev,
+    );
   };
 
   const handleDisable2FA = () => {
-    setProfile((prev) => ({
-      ...prev,
-      twoFactorAuth: {
-        enabled: false,
-        method: null,
-      },
-    }));
-    console.log("2FA disabled");
+    setProfile((prev) =>
+      prev
+        ? {
+            ...prev,
+            twoFactorAuth: { enabled: false, method: null },
+          }
+        : prev,
+    );
   };
 
   const handleRegenerateBackupCodes = () => {
-    setProfile((prev) => ({
-      ...prev,
-      twoFactorAuth: {
-        ...prev.twoFactorAuth,
-        backupCodesRemaining: 10,
-        lastUpdated: new Date().toISOString(),
-      },
-    }));
-    console.log("Backup codes regenerated");
+    setProfile((prev) =>
+      prev
+        ? {
+            ...prev,
+            twoFactorAuth: {
+              ...prev.twoFactorAuth,
+              backupCodesRemaining: 10,
+              lastUpdated: new Date().toISOString(),
+            },
+          }
+        : prev,
+    );
   };
 
   return (
@@ -106,7 +121,7 @@ export default function ProfilePage() {
             onChangePassword={handleChangePassword}
           />
 
-          <TwoFactorAuthCard
+          {/* <TwoFactorAuthCard
             twoFactorAuth={profile.twoFactorAuth}
             onEnable={handleEnable2FA}
             onDisable={handleDisable2FA}
@@ -116,7 +131,7 @@ export default function ProfilePage() {
           <NotificationPreferencesCard
             preferences={profile.notificationPreferences}
             onUpdate={handleUpdateNotifications}
-          />
+          /> */}
         </div>
 
         <div className="lg:col-span-1">
@@ -126,7 +141,7 @@ export default function ProfilePage() {
 
       {showPhotoModal && (
         <UploadPhotoModal
-          currentPhoto={profile.avatar}
+          currentPhoto={profile.avatar ?? "/male.png"}
           userName={profile.name}
           onClose={() => setShowPhotoModal(false)}
           onSave={handleUpdatePhoto}

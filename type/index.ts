@@ -237,14 +237,22 @@ export type TwoFactorAuth = {
   backupCodesRemaining?: number;
 };
 
+export type AdminProfileRole =
+  | "owner"
+  | "admin"
+  | "moderator"
+  | "SaaS Admin"
+  | "Staff"
+  | "User";
+
 export type AdminProfile = {
   id: string;
   name: string;
   email: string;
   phone: string;
-  avatar?: string;
-  role: "Admin";
-  department?: string;
+  avatar?: string | null;
+  role: AdminProfileRole;
+  department?: string | null;
   joinedAt: string;
   lastPasswordChange?: string;
   notificationPreferences: NotificationPreferences;

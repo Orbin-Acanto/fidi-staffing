@@ -15,12 +15,7 @@ export default function ProfileHeader({
       <div className="flex flex-col sm:flex-row sm:items-center gap-6">
         <div className="relative">
           <img
-            src={
-              profile.avatar ||
-              `https://avatar.iran.liara.run/public?username=${encodeURIComponent(
-                profile.name
-              )}`
-            }
+            src={profile.avatar || "/male.png"}
             alt={profile.name}
             className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg"
           />

@@ -99,12 +99,7 @@ export default function UserTableView({
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-3">
                     <img
-                      src={
-                        user.avatar ||
-                        `https://avatar.iran.liara.run/public?username=${encodeURIComponent(
-                          user.name
-                        )}`
-                      }
+                      src={user.avatar || "/male.png"}
                       alt={user.name}
                       className="w-10 h-10 rounded-full object-cover"
                     />
@@ -119,7 +114,7 @@ export default function UserTableView({
                 <td className="px-6 py-4">
                   <span
                     className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-secondary font-medium ${getRoleBadgeColor(
-                      user.role
+                      user.role,
                     )}`}
                   >
                     {user.role}
@@ -133,7 +128,7 @@ export default function UserTableView({
                 <td className="px-6 py-4">
                   <span
                     className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-secondary font-medium ${getStatusBadgeColor(
-                      user.status
+                      user.status,
                     )}`}
                   >
                     {user.status}
