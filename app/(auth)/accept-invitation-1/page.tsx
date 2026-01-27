@@ -58,6 +58,7 @@ export default function AcceptInvitationPage() {
         "Invitation token is missing or invalid. Please use the link from your invitation email.",
         { toastId: "missing-token" },
       );
+      router.push("/login");
     }
   }, [token]);
 

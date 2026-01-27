@@ -29,6 +29,14 @@ function ResetPasswordForm() {
       newErrors.password = "Password is required";
     } else if (password.length < 8) {
       newErrors.password = "Password must be at least 8 characters";
+    } else if (!/(?=.*[a-z])/.test(password)) {
+      newErrors.password =
+        "Password must contain at least one lowercase letter";
+    } else if (!/(?=.*[A-Z])/.test(password)) {
+      newErrors.password =
+        "Password must contain at least one uppercase letter";
+    } else if (!/(?=.*\d)/.test(password)) {
+      newErrors.password = "Password must contain at least one number";
     }
 
     if (!confirmPassword) {
@@ -56,6 +64,7 @@ function ResetPasswordForm() {
         body: JSON.stringify({
           token,
           password,
+          password_confirm: confirmPassword,
         }),
       });
 

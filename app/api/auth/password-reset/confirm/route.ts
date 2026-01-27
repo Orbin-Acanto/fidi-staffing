@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: "Invalid JSON." }, { status: 400 });
   }
 
-  const required = ["token", "password"];
+  const required = ["token", "password", "password_confirm"];
   for (const k of required) {
     if (!body?.[k] || String(body[k]).trim().length === 0) {
       return NextResponse.json(
@@ -49,6 +49,7 @@ export async function POST(req: NextRequest) {
 
   const token = String(body.token).trim();
   const password = String(body.password);
+  const password_confirm = String(body.password_confirm);
 
   if (password.length < 8) {
     return NextResponse.json(
@@ -65,7 +66,7 @@ export async function POST(req: NextRequest) {
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token, password }),
+      body: JSON.stringify({ token, password, password_confirm }),
       cache: "no-store",
     },
   );
