@@ -42,7 +42,7 @@ export function userMeToAdminProfile(me: UserMe): AdminProfile {
     phone: me.phone ?? "",
     avatar: me.avatar ?? null,
     role,
-    department: null,
+    company: me.current_company?.name ?? me.current_tenant?.name ?? "",
     joinedAt: me.created_at,
 
     notificationPreferences: defaultNotificationPreferences,

@@ -82,15 +82,6 @@ export default function AcceptInvitationPage() {
     }
   }, [token]);
 
-  const canSubmit =
-    !!token &&
-    form.first_name.trim() &&
-    form.last_name.trim() &&
-    form.phone.trim() &&
-    form.tenant_name.trim() &&
-    form.password.length >= 8 &&
-    !passwordMismatch;
-
   const onChange =
     (key: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement>) => {
       setForm((prev) => ({ ...prev, [key]: e.target.value }));

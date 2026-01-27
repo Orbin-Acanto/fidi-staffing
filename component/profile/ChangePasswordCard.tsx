@@ -1,16 +1,17 @@
 "use client";
 import { useState } from "react";
+import { apiFetch } from "@/lib/apiFetch";
+import { toastError, toastSuccess } from "@/lib/toast";
 
 interface ChangePasswordCardProps {
   lastPasswordChange?: string;
-  onChangePassword: (currentPassword: string, newPassword: string) => void;
 }
 
 export default function ChangePasswordCard({
   lastPasswordChange,
-  onChangePassword,
 }: ChangePasswordCardProps) {
   const [isChanging, setIsChanging] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPasswords, setShowPasswords] = useState({
     current: false,
     new: false,
@@ -41,12 +42,27 @@ export default function ChangePasswordCard({
     if (!formData.currentPassword) {
       newErrors.currentPassword = "Current password is required";
     }
+
     if (!formData.newPassword) {
       newErrors.newPassword = "New password is required";
     } else if (formData.newPassword.length < 8) {
       newErrors.newPassword = "Password must be at least 8 characters";
+    } else if (formData.newPassword === formData.currentPassword) {
+      newErrors.newPassword =
+        "New password must be different from current password";
+    } else if (!/(?=.*[a-z])/.test(formData.newPassword)) {
+      newErrors.newPassword =
+        "Password must contain at least one lowercase letter";
+    } else if (!/(?=.*[A-Z])/.test(formData.newPassword)) {
+      newErrors.newPassword =
+        "Password must contain at least one uppercase letter";
+    } else if (!/(?=.*\d)/.test(formData.newPassword)) {
+      newErrors.newPassword = "Password must contain at least one number";
     }
-    if (formData.newPassword !== formData.confirmPassword) {
+
+    if (!formData.confirmPassword) {
+      newErrors.confirmPassword = "Please confirm your new password";
+    } else if (formData.newPassword !== formData.confirmPassword) {
       newErrors.confirmPassword = "Passwords do not match";
     }
 
@@ -54,15 +70,40 @@ export default function ChangePasswordCard({
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = () => {
-    if (validateForm()) {
-      onChangePassword(formData.currentPassword, formData.newPassword);
+  const handleSubmit = async () => {
+    if (!validateForm()) return;
+
+    setIsSubmitting(true);
+
+    try {
+      await apiFetch("/api/auth/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          old_password: formData.currentPassword,
+          new_password: formData.newPassword,
+          new_password_confirm: formData.confirmPassword,
+        }),
+      });
+
+      toastSuccess("Password changed successfully!");
+
       setFormData({
         currentPassword: "",
         newPassword: "",
         confirmPassword: "",
       });
       setIsChanging(false);
+    } catch (err: any) {
+      if (err.data?.errors?.old_password) {
+        setErrors({ currentPassword: err.data.errors.old_password[0] });
+      } else if (err.data?.errors?.new_password) {
+        setErrors({ newPassword: err.data.errors.new_password[0] });
+      } else {
+        toastError(err, "Failed to change password. Please try again.");
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -71,6 +112,25 @@ export default function ChangePasswordCard({
     setErrors({});
     setIsChanging(false);
   };
+
+  const getPasswordStrength = (password: string) => {
+    if (!password) return { strength: 0, label: "", color: "" };
+
+    let strength = 0;
+    if (password.length >= 8) strength++;
+    if (/(?=.*[a-z])/.test(password)) strength++;
+    if (/(?=.*[A-Z])/.test(password)) strength++;
+    if (/(?=.*\d)/.test(password)) strength++;
+    if (/(?=.*[@$!%*?&])/.test(password)) strength++;
+
+    if (strength <= 2) return { strength, label: "Weak", color: "bg-red-500" };
+    if (strength <= 3)
+      return { strength, label: "Fair", color: "bg-yellow-500" };
+    if (strength <= 4) return { strength, label: "Good", color: "bg-blue-500" };
+    return { strength, label: "Strong", color: "bg-green-500" };
+  };
+
+  const passwordStrength = getPasswordStrength(formData.newPassword);
 
   return (
     <div className="bg-white rounded-lg border border-gray-200">
@@ -98,7 +158,7 @@ export default function ChangePasswordCard({
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-secondary font-medium text-gray-700 mb-1">
-                Current Password
+                Current Password <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <input
@@ -106,8 +166,10 @@ export default function ChangePasswordCard({
                   name="currentPassword"
                   value={formData.currentPassword}
                   onChange={handleChange}
+                  disabled={isSubmitting}
                   className={`w-full px-3 py-2 pr-10 border rounded-lg font-secondary text-sm text-gray-900
                            focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
+                           disabled:bg-gray-50 disabled:cursor-not-allowed
                            ${
                              errors.currentPassword
                                ? "border-red-500"
@@ -117,7 +179,8 @@ export default function ChangePasswordCard({
                 <button
                   type="button"
                   onClick={() => toggleShowPassword("current")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  disabled={isSubmitting}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 disabled:opacity-50"
                 >
                   {showPasswords.current ? (
                     <svg
@@ -165,7 +228,7 @@ export default function ChangePasswordCard({
 
             <div>
               <label className="block text-sm font-secondary font-medium text-gray-700 mb-1">
-                New Password
+                New Password <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <input
@@ -173,8 +236,10 @@ export default function ChangePasswordCard({
                   name="newPassword"
                   value={formData.newPassword}
                   onChange={handleChange}
+                  disabled={isSubmitting}
                   className={`w-full px-3 py-2 pr-10 border rounded-lg font-secondary text-sm text-gray-900
                            focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
+                           disabled:bg-gray-50 disabled:cursor-not-allowed
                            ${
                              errors.newPassword
                                ? "border-red-500"
@@ -184,7 +249,8 @@ export default function ChangePasswordCard({
                 <button
                   type="button"
                   onClick={() => toggleShowPassword("new")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  disabled={isSubmitting}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 disabled:opacity-50"
                 >
                   {showPasswords.new ? (
                     <svg
@@ -228,11 +294,33 @@ export default function ChangePasswordCard({
                   {errors.newPassword}
                 </p>
               )}
+
+              {formData.newPassword && !errors.newPassword && (
+                <div className="mt-2">
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full ${passwordStrength.color} transition-all duration-300`}
+                        style={{
+                          width: `${(passwordStrength.strength / 5) * 100}%`,
+                        }}
+                      />
+                    </div>
+                    <span className="text-xs font-secondary text-gray-600">
+                      {passwordStrength.label}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Password must be at least 8 characters with uppercase,
+                    lowercase, and numbers
+                  </p>
+                </div>
+              )}
             </div>
 
             <div>
               <label className="block text-sm font-secondary font-medium text-gray-700 mb-1">
-                Confirm New Password
+                Confirm New Password <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <input
@@ -240,8 +328,10 @@ export default function ChangePasswordCard({
                   name="confirmPassword"
                   value={formData.confirmPassword}
                   onChange={handleChange}
+                  disabled={isSubmitting}
                   className={`w-full px-3 py-2 pr-10 border rounded-lg font-secondary text-sm text-gray-900
                            focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
+                           disabled:bg-gray-50 disabled:cursor-not-allowed
                            ${
                              errors.confirmPassword
                                ? "border-red-500"
@@ -251,7 +341,8 @@ export default function ChangePasswordCard({
                 <button
                   type="button"
                   onClick={() => toggleShowPassword("confirm")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  disabled={isSubmitting}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 disabled:opacity-50"
                 >
                   {showPasswords.confirm ? (
                     <svg
@@ -295,20 +386,67 @@ export default function ChangePasswordCard({
                   {errors.confirmPassword}
                 </p>
               )}
+              {formData.confirmPassword &&
+                formData.newPassword === formData.confirmPassword &&
+                !errors.confirmPassword && (
+                  <p className="mt-1 text-xs text-green-600 flex items-center gap-1">
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                    Passwords match
+                  </p>
+                )}
             </div>
 
             <div className="flex items-center justify-end gap-2 pt-2">
               <button
                 onClick={handleCancel}
-                className="px-3 py-1.5 text-sm font-secondary font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                disabled={isSubmitting}
+                className="px-3 py-1.5 text-sm font-secondary font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSubmit}
-                className="px-3 py-1.5 text-sm font-secondary font-medium text-white bg-primary hover:bg-primary/90 rounded-lg transition-colors"
+                disabled={isSubmitting}
+                className="px-3 py-1.5 text-sm font-secondary font-medium text-white bg-primary hover:bg-primary/90 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
-                Update Password
+                {isSubmitting ? (
+                  <>
+                    <svg
+                      className="animate-spin h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      />
+                    </svg>
+                    Updating...
+                  </>
+                ) : (
+                  "Update Password"
+                )}
               </button>
             </div>
           </div>

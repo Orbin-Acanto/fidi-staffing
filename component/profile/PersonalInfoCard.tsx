@@ -16,7 +16,7 @@ export default function PersonalInfoCard({
     name: profile.name,
     email: profile.email,
     phone: profile.phone,
-    department: profile.department || "",
+    company: profile.company || "",
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -34,7 +34,7 @@ export default function PersonalInfoCard({
       name: profile.name,
       email: profile.email,
       phone: profile.phone,
-      department: profile.department || "",
+      company: profile.company || "",
     });
     setIsEditing(false);
   };
@@ -125,14 +125,15 @@ export default function PersonalInfoCard({
             </div>
             <div>
               <label className="block text-sm font-secondary font-medium text-gray-700 mb-1">
-                Department
+                Company
               </label>
               <input
                 type="text"
-                name="department"
-                value={formData.department}
+                name="company"
+                value={formData.company}
+                disabled
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg font-secondary text-sm text-gray-900
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg font-secondary text-sm text-gray-900 
                          focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
               />
             </div>
@@ -179,10 +180,10 @@ export default function PersonalInfoCard({
             </div>
             <div className="flex items-center justify-between py-2">
               <span className="text-sm font-secondary text-gray-500">
-                Department
+                Company
               </span>
               <span className="text-sm font-secondary font-medium text-gray-900">
-                {profile.department || "—"}
+                {profile.company || "—"}
               </span>
             </div>
           </div>

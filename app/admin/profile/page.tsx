@@ -1,13 +1,11 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 
-import { adminProfile as initialProfile, profileActivityLogs } from "@/data";
-import { AdminProfile, NotificationPreferences } from "@/type";
+import { profileActivityLogs } from "@/data";
+import { AdminProfile } from "@/type";
 import ProfileHeader from "@/component/profile/ProfileHeader";
 import PersonalInfoCard from "@/component/profile/PersonalInfoCard";
 import ChangePasswordCard from "@/component/profile/ChangePasswordCard";
-import TwoFactorAuthCard from "@/component/profile/TwoFactorAuthCard";
-import NotificationPreferencesCard from "@/component/profile/NotificationPreferencesCard";
 import ProfileActivityLogCard from "@/component/profile/ProfileActivityLogCard";
 import UploadPhotoModal from "@/component/profile/UploadPhotoModal";
 import { userMeToAdminProfile } from "@/lib/mappers/adminProfile";
@@ -16,6 +14,7 @@ import { useMe } from "@/hooks/useMe";
 export default function ProfilePage() {
   const { data: me, isLoading } = useMe();
   const mappedProfile = useMemo(() => {
+    console.log("Mapping profile from me:", me);
     return me ? userMeToAdminProfile(me) : null;
   }, [me]);
 
@@ -39,62 +38,53 @@ export default function ProfilePage() {
     setShowPhotoModal(false);
   };
 
-  const handleChangePassword = (
-    currentPassword: string,
-    newPassword: string,
-  ) => {
-    setProfile((prev) =>
-      prev ? { ...prev, lastPasswordChange: new Date().toISOString() } : prev,
-    );
-  };
+  // const handleUpdateNotifications = (preferences: NotificationPreferences) => {
+  //   setProfile((prev) =>
+  //     prev ? { ...prev, notificationPreferences: preferences } : prev,
+  //   );
+  // };
 
-  const handleUpdateNotifications = (preferences: NotificationPreferences) => {
-    setProfile((prev) =>
-      prev ? { ...prev, notificationPreferences: preferences } : prev,
-    );
-  };
+  // const handleEnable2FA = (method: "authenticator" | "sms" | "email") => {
+  //   setProfile((prev) =>
+  //     prev
+  //       ? {
+  //           ...prev,
+  //           twoFactorAuth: {
+  //             enabled: true,
+  //             method,
+  //             lastUpdated: new Date().toISOString(),
+  //             backupCodesRemaining: 10,
+  //           },
+  //         }
+  //       : prev,
+  //   );
+  // };
 
-  const handleEnable2FA = (method: "authenticator" | "sms" | "email") => {
-    setProfile((prev) =>
-      prev
-        ? {
-            ...prev,
-            twoFactorAuth: {
-              enabled: true,
-              method,
-              lastUpdated: new Date().toISOString(),
-              backupCodesRemaining: 10,
-            },
-          }
-        : prev,
-    );
-  };
+  // const handleDisable2FA = () => {
+  //   setProfile((prev) =>
+  //     prev
+  //       ? {
+  //           ...prev,
+  //           twoFactorAuth: { enabled: false, method: null },
+  //         }
+  //       : prev,
+  //   );
+  // };
 
-  const handleDisable2FA = () => {
-    setProfile((prev) =>
-      prev
-        ? {
-            ...prev,
-            twoFactorAuth: { enabled: false, method: null },
-          }
-        : prev,
-    );
-  };
-
-  const handleRegenerateBackupCodes = () => {
-    setProfile((prev) =>
-      prev
-        ? {
-            ...prev,
-            twoFactorAuth: {
-              ...prev.twoFactorAuth,
-              backupCodesRemaining: 10,
-              lastUpdated: new Date().toISOString(),
-            },
-          }
-        : prev,
-    );
-  };
+  // const handleRegenerateBackupCodes = () => {
+  //   setProfile((prev) =>
+  //     prev
+  //       ? {
+  //           ...prev,
+  //           twoFactorAuth: {
+  //             ...prev.twoFactorAuth,
+  //             backupCodesRemaining: 10,
+  //             lastUpdated: new Date().toISOString(),
+  //           },
+  //         }
+  //       : prev,
+  //   );
+  // };
 
   return (
     <div className="space-y-6">
@@ -116,10 +106,7 @@ export default function ProfilePage() {
         <div className="lg:col-span-2 space-y-6">
           <PersonalInfoCard profile={profile} onSave={handleUpdateProfile} />
 
-          <ChangePasswordCard
-            lastPasswordChange={profile.lastPasswordChange}
-            onChangePassword={handleChangePassword}
-          />
+          <ChangePasswordCard lastPasswordChange={profile.lastPasswordChange} />
 
           {/* <TwoFactorAuthCard
             twoFactorAuth={profile.twoFactorAuth}

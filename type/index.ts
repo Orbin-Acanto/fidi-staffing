@@ -221,7 +221,7 @@ export type AdminProfile = {
   phone: string;
   avatar?: string | null;
   role: AdminProfileRole;
-  department?: string | null;
+  company?: string | null;
   joinedAt: string;
   lastPasswordChange?: string;
   notificationPreferences: NotificationPreferences;
@@ -814,11 +814,16 @@ export type UserMe = {
   is_staff: boolean;
   is_active: boolean;
 
-  current_tenant: UUID | null;
-  current_company: UUID | null;
+  current_tenant: EntityRef | null;
+  current_company: EntityRef | null;
 
   tenant_role: TenantRole | null;
 
   created_at: string;
   updated_at: string;
+};
+
+type EntityRef = {
+  id: string;
+  name: string;
 };
