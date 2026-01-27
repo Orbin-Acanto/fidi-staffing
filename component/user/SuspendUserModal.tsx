@@ -61,13 +61,13 @@ export default function SuspendUserModal({
             </div>
 
             <h3 className="text-lg font-primary font-bold text-gray-900 text-center mb-2">
-              {isActive ? "Suspend User Account" : "Activate User Account"}
+              {isActive ? "Deactivate User Account" : "Activate User Account"}
             </h3>
 
             <p className="text-sm font-secondary text-gray-600 text-center mb-4">
               {isActive ? (
                 <>
-                  Are you sure you want to suspend{" "}
+                  Are you sure you want to deactivate{" "}
                   <span className="font-semibold text-gray-900">
                     {user.name}
                   </span>
@@ -87,12 +87,7 @@ export default function SuspendUserModal({
             <div className="bg-gray-50 rounded-lg p-4 mb-6">
               <div className="flex items-center gap-3">
                 <img
-                  src={
-                    user.avatar ||
-                    `https://avatar.iran.liara.run/public?username=${encodeURIComponent(
-                      user.name
-                    )}`
-                  }
+                  src={user.avatar || "/male.png"}
                   alt={user.name}
                   className="w-10 h-10 rounded-full object-cover"
                 />
@@ -107,46 +102,25 @@ export default function SuspendUserModal({
 
             <div className="flex flex-col gap-2">
               {isActive ? (
-                <>
-                  <button
-                    onClick={() => onConfirm("suspend")}
-                    className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-yellow-500 text-white font-secondary font-medium rounded-lg hover:bg-yellow-600 transition-colors"
+                <button
+                  onClick={() => onConfirm("deactivate")}
+                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white font-secondary font-medium rounded-lg hover:bg-red-700 transition-colors"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
                   >
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                    Suspend Account
-                  </button>
-                  <button
-                    onClick={() => onConfirm("deactivate")}
-                    className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white font-secondary font-medium rounded-lg hover:bg-red-700 transition-colors"
-                  >
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
-                      />
-                    </svg>
-                    Deactivate Account
-                  </button>
-                </>
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
+                    />
+                  </svg>
+                  Deactivate Account
+                </button>
               ) : (
                 <button
                   onClick={() => onConfirm("activate")}

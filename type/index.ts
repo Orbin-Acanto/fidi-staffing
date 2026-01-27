@@ -159,15 +159,6 @@ export type UserRole = "Admin" | "Manager" | "Staff";
 
 export type UserStatus = "Active" | "Suspended" | "Deactivated";
 
-export type UserPermissions = {
-  canCreateEditDeleteEvents: boolean;
-  canCreateEditDeleteStaff: boolean;
-  canViewReports: boolean;
-  canManageLocations: boolean;
-  canManageGroups: boolean;
-  canAccessSettings: boolean;
-};
-
 export type User = {
   id: string;
   name: string;
@@ -176,10 +167,15 @@ export type User = {
   avatar?: string;
   role: UserRole;
   status: UserStatus;
-  permissions: UserPermissions;
   createdAt: string;
   lastActive?: string;
-  department?: string;
+  company?: string;
+  companyId?: string;
+};
+
+type UsersResponse = {
+  count: number;
+  users: User[];
 };
 
 export type ActivityLog = {
@@ -190,33 +186,6 @@ export type ActivityLog = {
   target: string;
   timestamp: string;
   details?: string;
-};
-
-export const defaultPermissionsByRole: Record<UserRole, UserPermissions> = {
-  Admin: {
-    canCreateEditDeleteEvents: true,
-    canCreateEditDeleteStaff: true,
-    canViewReports: true,
-    canManageLocations: true,
-    canManageGroups: true,
-    canAccessSettings: true,
-  },
-  Manager: {
-    canCreateEditDeleteEvents: true,
-    canCreateEditDeleteStaff: true,
-    canViewReports: true,
-    canManageLocations: true,
-    canManageGroups: true,
-    canAccessSettings: false,
-  },
-  Staff: {
-    canCreateEditDeleteEvents: false,
-    canCreateEditDeleteStaff: false,
-    canViewReports: false,
-    canManageLocations: false,
-    canManageGroups: false,
-    canAccessSettings: false,
-  },
 };
 
 export type NotificationPreferences = {

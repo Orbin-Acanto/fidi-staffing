@@ -1,13 +1,20 @@
 "use client";
 
-import { User, UserRole, UserStatus, defaultPermissionsByRole } from "@/type";
+import { User, UserRole, UserStatus } from "@/type";
 import { useState, useEffect, useMemo } from "react";
 import { AppSelect } from "../ui/Select";
 import { apiFetch } from "@/lib/apiFetch";
 import { toastError, toastSuccess } from "@/lib/toast";
 
+type Company = {
+  id: string;
+  name: string;
+  is_active: boolean;
+};
+
 interface AddEditUserModalProps {
   user?: User | null;
+  companies: Company[];
   onClose: () => void;
   onSave: (data: Partial<User>) => void;
 }
@@ -26,6 +33,7 @@ type InviteResponse = {
 
 export default function AddEditUserModal({
   user,
+  companies,
   onClose,
   onSave,
 }: AddEditUserModalProps) {
@@ -37,18 +45,16 @@ export default function AddEditUserModal({
     phone: "",
     role: "Manager" as UserRole,
     status: "Active" as UserStatus,
-    department: "",
     message: "",
+    companyId: "",
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-
   const [invitationLink, setInvitationLink] = useState<string>("");
 
   const statusOptions: { label: string; value: UserStatus }[] = [
     { label: "Active", value: "Active" },
-    { label: "Suspended", value: "Suspended" },
     { label: "Deactivated", value: "Deactivated" },
   ];
 
@@ -60,8 +66,8 @@ export default function AddEditUserModal({
         phone: user.phone || "",
         role: user.role || "Manager",
         status: user.status || "Active",
-        department: user.department || "",
         message: "",
+        companyId: user.companyId || "",
       });
       setInvitationLink("");
     } else {
@@ -131,6 +137,10 @@ export default function AddEditUserModal({
         } catch {}
       }
 
+      const selectedCompany = companies.find(
+        (c) => c.id === formData.companyId,
+      );
+
       onSave({
         id: `invite_${Date.now()}`,
         name: formData.name.trim() || "Invited User",
@@ -138,8 +148,8 @@ export default function AddEditUserModal({
         phone: formData.phone.trim(),
         role: formData.role,
         status: "Active",
-        department: formData.department.trim(),
-        permissions: defaultPermissionsByRole[formData.role],
+        company: selectedCompany?.name,
+        companyId: formData.companyId,
         createdAt: new Date().toISOString().split("T")[0],
       });
     } catch (err) {
@@ -155,11 +165,14 @@ export default function AddEditUserModal({
     if (!validateForm()) return;
 
     if (isEditing) {
+      const selectedCompany = companies.find(
+        (c) => c.id === formData.companyId,
+      );
+
       onSave({
         ...formData,
         id: user?.id || `user_${Date.now()}`,
-        permissions:
-          user?.permissions || defaultPermissionsByRole[formData.role],
+        company: selectedCompany?.name,
         createdAt: user?.createdAt || new Date().toISOString().split("T")[0],
       });
       return;
@@ -300,6 +313,7 @@ export default function AddEditUserModal({
                   <p className="mt-1 text-sm text-red-500">{errors.email}</p>
                 )}
               </div>
+
               {isEditing && (
                 <div>
                   <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
@@ -321,26 +335,23 @@ export default function AddEditUserModal({
               {isEditing && (
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
-                      Department
-                    </label>
-                    <input
-                      type="text"
-                      name="department"
-                      value={formData.department}
-                      onChange={handleChange}
-                      placeholder="e.g., Operations"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-sm text-gray-900
-                   placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
-                   transition-all duration-200"
+                    <AppSelect
+                      label="Company"
+                      value={formData.companyId}
+                      onValueChange={(value) =>
+                        setFormData((prev) => ({ ...prev, companyId: value }))
+                      }
+                      placeholder="Select company"
+                      options={companies.map((company) => ({
+                        label: company.name,
+                        value: company.id,
+                      }))}
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
-                      Status
-                    </label>
                     <AppSelect
+                      label="Status"
                       value={formData.status}
                       onValueChange={(value) =>
                         setFormData((prev) => ({

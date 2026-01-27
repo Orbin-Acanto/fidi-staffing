@@ -1,28 +1,63 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AppSelect } from "@/component/ui/Select";
-import { users as initialUsers, activityLogs } from "@/data";
-import { User, UserPermissions, UserRole } from "@/type";
+import { activityLogs } from "@/data";
+import { User, UserRole } from "@/type";
 import UserHeader from "@/component/user/UserHeader";
 import UserSummaryPanel from "@/component/user/UserSummaryPanel";
 import UserTableView from "@/component/user/UserTableView";
 import ActivityLogPanel from "@/component/user/ActivityLogPanel";
 import UserDetailModal from "@/component/user/UserDetailModal";
 import AddEditUserModal from "@/component/user/AddEditUserModal";
-import PermissionsModal from "@/component/user/PermissionsModal";
 import SuspendUserModal from "@/component/user/SuspendUserModal";
 import ResetPasswordModal from "@/component/user/ResetPasswordModal";
+import { apiFetch } from "@/lib/apiFetch";
+import { toastError } from "@/lib/toast";
+
+type UsersResponse = {
+  count: number;
+  users: Array<{
+    id: string;
+    email: string;
+    full_name: string;
+    phone: string | null;
+    avatar: string | null;
+    is_active: boolean;
+    current_company: {
+      id: string;
+      name: string;
+    } | null;
+    current_tenant: {
+      id: string;
+      name: string;
+    } | null;
+    tenant_membership: {
+      role: string;
+    } | null;
+    tenant_role: string | null;
+    created_at: string;
+    updated_at: string;
+  }>;
+};
+
+type Company = {
+  id: string;
+  name: string;
+  is_active: boolean;
+};
 
 export default function UserManagementPage() {
   const currentUserRole: UserRole = "Admin";
   const [searchTerm, setSearchTerm] = useState("");
   const [filterRole, setFilterRole] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
-  const [users, setUsers] = useState<User[]>(initialUsers);
+  const [filterCompany, setFilterCompany] = useState<string>("all");
+  const [users, setUsers] = useState<User[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showAddEditModal, setShowAddEditModal] = useState(false);
-  const [showPermissionsModal, setShowPermissionsModal] = useState(false);
   const [showSuspendModal, setShowSuspendModal] = useState(false);
   const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -32,61 +67,104 @@ export default function UserManagementPage() {
   const managerCount = users.filter((u) => u.role === "Manager").length;
   const staffCount = users.filter((u) => u.role === "Staff").length;
   const activeUsers = users.filter((u) => u.status === "Active").length;
-  const suspendedUsers = users.filter((u) => u.status === "Suspended").length;
+  const deactivatedUsers = users.filter(
+    (u) => u.status === "Deactivated",
+  ).length;
+
+  const fetchCompanies = async () => {
+    try {
+      const response = await apiFetch<Company[]>("/api/companies/list-company");
+      setCompanies(response);
+    } catch (err) {
+      toastError(err, "Failed to load companies");
+    }
+  };
+
+  const fetchUsers = async () => {
+    setIsLoading(true);
+    try {
+      const response = await apiFetch<UsersResponse>(
+        "/api/users/list-admin-mod",
+      );
+
+      const transformedUsers: User[] = response.users.map((user) => ({
+        id: user.id,
+        name: user.full_name,
+        email: user.email,
+        phone: user.phone || undefined,
+        avatar: user.avatar || undefined,
+        role: mapBackendRoleToFrontend(
+          user.tenant_membership?.role || user.tenant_role,
+        ),
+        status: user.is_active ? "Active" : "Deactivated",
+        company: user.current_company?.name || user.current_tenant?.name,
+        companyId: user.current_company?.id || user.current_tenant?.id,
+        createdAt: new Date(user.created_at).toISOString().split("T")[0],
+        lastActive: new Date(user.updated_at).toISOString().split("T")[0],
+      }));
+
+      setUsers(transformedUsers);
+    } catch (err) {
+      toastError(err, "Failed to load users");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  function mapBackendRoleToFrontend(backendRole: string | null): UserRole {
+    const roleMap: Record<string, UserRole> = {
+      owner: "Admin",
+      admin: "Admin",
+      moderator: "Manager",
+      member: "Staff",
+    };
+    return roleMap[backendRole?.toLowerCase() || ""] || "Staff";
+  }
 
   const filteredUsers = users.filter((user) => {
     const matchesSearch =
       user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (user.department?.toLowerCase().includes(searchTerm.toLowerCase()) ??
-        false);
+      (user.company?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false);
 
     const matchesRole = filterRole === "all" || user.role === filterRole;
     const matchesStatus =
       filterStatus === "all" || user.status === filterStatus;
+    const matchesCompany =
+      filterCompany === "all" || user.companyId === filterCompany;
 
-    return matchesSearch && matchesRole && matchesStatus;
+    return matchesSearch && matchesRole && matchesStatus && matchesCompany;
   });
+
+  useEffect(() => {
+    fetchUsers();
+    fetchCompanies();
+  }, []);
 
   const handleSaveUser = (data: Partial<User>) => {
     if (selectedUser) {
       setUsers((prev) =>
-        prev.map((u) => (u.id === selectedUser.id ? { ...u, ...data } : u))
+        prev.map((u) => (u.id === selectedUser.id ? { ...u, ...data } : u)),
       );
     } else {
       setUsers((prev) => [...prev, data as User]);
     }
     setShowAddEditModal(false);
     setSelectedUser(null);
-  };
-
-  const handleSavePermissions = (
-    userId: string,
-    permissions: UserPermissions
-  ) => {
-    setUsers((prev) =>
-      prev.map((u) => (u.id === userId ? { ...u, permissions } : u))
-    );
-    setShowPermissionsModal(false);
-    setSelectedUser(null);
+    fetchUsers();
   };
 
   const handleSuspendAction = (
-    action: "suspend" | "activate" | "deactivate"
+    action: "suspend" | "activate" | "deactivate",
   ) => {
     if (!selectedUser) return;
 
-    const newStatus =
-      action === "suspend"
-        ? "Suspended"
-        : action === "deactivate"
-        ? "Deactivated"
-        : "Active";
+    const newStatus = action === "deactivate" ? "Deactivated" : "Active";
 
     setUsers((prev) =>
       prev.map((u) =>
-        u.id === selectedUser.id ? { ...u, status: newStatus } : u
-      )
+        u.id === selectedUser.id ? { ...u, status: newStatus } : u,
+      ),
     );
     setShowSuspendModal(false);
     setSelectedUser(null);
@@ -97,6 +175,17 @@ export default function UserManagementPage() {
     setShowResetPasswordModal(false);
     setSelectedUser(null);
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading users...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -113,7 +202,7 @@ export default function UserManagementPage() {
         managerCount={managerCount}
         staffCount={staffCount}
         activeUsers={activeUsers}
-        suspendedUsers={suspendedUsers}
+        suspendedUsers={deactivatedUsers}
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -123,7 +212,7 @@ export default function UserManagementPage() {
               All Users
             </h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
                 <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
                   Search Users
@@ -173,13 +262,27 @@ export default function UserManagementPage() {
 
               <div>
                 <AppSelect
+                  label="Company"
+                  value={filterCompany}
+                  onValueChange={(value) => setFilterCompany(value)}
+                  options={[
+                    { label: "All Companies", value: "all" },
+                    ...companies.map((company) => ({
+                      label: company.name,
+                      value: company.id,
+                    })),
+                  ]}
+                />
+              </div>
+
+              <div>
+                <AppSelect
                   label="Status"
                   value={filterStatus}
                   onValueChange={(value) => setFilterStatus(value)}
                   options={[
                     { label: "All Status", value: "all" },
                     { label: "Active", value: "Active" },
-                    { label: "Suspended", value: "Suspended" },
                     { label: "Deactivated", value: "Deactivated" },
                   ]}
                 />
@@ -193,10 +296,6 @@ export default function UserManagementPage() {
             onOpenDetail={(user) => {
               setSelectedUser(user);
               setShowDetailModal(true);
-            }}
-            onOpenPermissions={(user) => {
-              setSelectedUser(user);
-              setShowPermissionsModal(true);
             }}
             onSuspend={(user) => {
               setSelectedUser(user);
@@ -231,23 +330,12 @@ export default function UserManagementPage() {
       {showAddEditModal && (
         <AddEditUserModal
           user={selectedUser}
+          companies={companies}
           onClose={() => {
             setShowAddEditModal(false);
             setSelectedUser(null);
           }}
           onSave={handleSaveUser}
-        />
-      )}
-
-      {showPermissionsModal && selectedUser && (
-        <PermissionsModal
-          user={selectedUser}
-          currentUserRole={currentUserRole}
-          onClose={() => {
-            setShowPermissionsModal(false);
-            setSelectedUser(null);
-          }}
-          onSave={handleSavePermissions}
         />
       )}
 

@@ -37,7 +37,7 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      await apiFetch("/api/auth/login", {
+      const response = await apiFetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -46,9 +46,11 @@ export default function LoginPage() {
         }),
       });
 
+      await new Promise((resolve) => setTimeout(resolve, 200));
       toastSuccess("Signed in successfully!");
       router.push("/admin/dashboard");
     } catch (err) {
+      console.error("❌ Login error:", err);
       toastError(
         err,
         "Login failed. Please check your email and password and try again.",

@@ -29,22 +29,11 @@ export default function UserDetailModal({
     switch (status) {
       case "Active":
         return "bg-green-100 text-green-700";
-      case "Suspended":
-        return "bg-yellow-100 text-yellow-700";
       case "Deactivated":
         return "bg-red-100 text-red-700";
       default:
         return "bg-gray-100 text-gray-700";
     }
-  };
-
-  const permissionLabels = {
-    canCreateEditDeleteEvents: "Create/Edit/Delete Events",
-    canCreateEditDeleteStaff: "Create/Edit/Delete Staff",
-    canViewReports: "View Reports",
-    canManageLocations: "Manage Locations",
-    canManageGroups: "Manage Groups",
-    canAccessSettings: "Access Settings",
   };
 
   return (
@@ -59,12 +48,7 @@ export default function UserDetailModal({
           <div className="flex items-start justify-between p-6 border-b border-gray-200">
             <div className="flex items-center gap-4">
               <img
-                src={
-                  user.avatar ||
-                  `https://avatar.iran.liara.run/public?username=${encodeURIComponent(
-                    user.name
-                  )}`
-                }
+                src={user.avatar || "/male.png"}
                 alt={user.name}
                 className="w-16 h-16 rounded-full object-cover"
               />
@@ -78,14 +62,14 @@ export default function UserDetailModal({
                 <div className="flex items-center gap-2 mt-2">
                   <span
                     className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-secondary font-medium ${getRoleBadgeColor(
-                      user.role
+                      user.role,
                     )}`}
                   >
                     {user.role}
                   </span>
                   <span
                     className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-secondary font-medium ${getStatusBadgeColor(
-                      user.status
+                      user.status,
                     )}`}
                   >
                     {user.status}
@@ -171,7 +155,7 @@ export default function UserDetailModal({
                       </span>
                     </div>
                   )}
-                  {user.department && (
+                  {user.company && (
                     <div className="flex items-center gap-3">
                       <svg
                         className="w-4 h-4 text-gray-400"
@@ -187,7 +171,7 @@ export default function UserDetailModal({
                         />
                       </svg>
                       <span className="font-secondary text-gray-900">
-                        {user.department}
+                        {user.company}
                       </span>
                     </div>
                   )}
@@ -233,74 +217,6 @@ export default function UserDetailModal({
                 </div>
               </div>
             </div>
-
-            {user.role !== "Staff" && (
-              <div className="space-y-4">
-                <h3 className="font-primary font-semibold text-gray-900 flex items-center gap-2">
-                  <svg
-                    className="w-5 h-5 text-gray-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-                    />
-                  </svg>
-                  Permissions
-                </h3>
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {Object.entries(user.permissions).map(([key, value]) => (
-                      <div
-                        key={key}
-                        className="flex items-center justify-between p-2 bg-white rounded-lg"
-                      >
-                        <span className="font-secondary text-sm text-gray-700">
-                          {
-                            permissionLabels[
-                              key as keyof typeof permissionLabels
-                            ]
-                          }
-                        </span>
-                        {value ? (
-                          <svg
-                            className="w-5 h-5 text-green-500"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                        ) : (
-                          <svg
-                            className="w-5 h-5 text-red-500"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M6 18L18 6M6 6l12 12"
-                            />
-                          </svg>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
 
           <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50 rounded-b-xl">

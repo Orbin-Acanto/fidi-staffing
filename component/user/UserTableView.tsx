@@ -5,7 +5,6 @@ interface UserTableViewProps {
   filteredUsers: User[];
   currentUserRole: "Admin" | "Manager" | "Staff";
   onOpenDetail: (user: User) => void;
-  onOpenPermissions: (user: User) => void;
   onSuspend: (user: User) => void;
   onResetPassword: (user: User) => void;
 }
@@ -14,7 +13,6 @@ export default function UserTableView({
   filteredUsers,
   currentUserRole,
   onOpenDetail,
-  onOpenPermissions,
   onSuspend,
   onResetPassword,
 }: UserTableViewProps) {
@@ -35,8 +33,6 @@ export default function UserTableView({
     switch (status) {
       case "Active":
         return "bg-green-100 text-green-700";
-      case "Suspended":
-        return "bg-yellow-100 text-yellow-700";
       case "Deactivated":
         return "bg-red-100 text-red-700";
       default:
@@ -80,7 +76,7 @@ export default function UserTableView({
                 Role
               </th>
               <th className="px-6 py-3 text-left text-xs font-secondary font-semibold text-gray-600 uppercase tracking-wider">
-                Department
+                Company
               </th>
               <th className="px-6 py-3 text-left text-xs font-secondary font-semibold text-gray-600 uppercase tracking-wider">
                 Status
@@ -122,7 +118,7 @@ export default function UserTableView({
                 </td>
                 <td className="px-6 py-4">
                   <span className="font-secondary text-sm text-gray-600">
-                    {user.department || "—"}
+                    {user.company || "—"}
                   </span>
                 </td>
                 <td className="px-6 py-4">
@@ -166,27 +162,6 @@ export default function UserTableView({
                         />
                       </svg>
                     </button>
-                    {user.role !== "Staff" && (
-                      <button
-                        onClick={() => onOpenPermissions(user)}
-                        className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                        title="Manage Permissions"
-                      >
-                        <svg
-                          className="w-5 h-5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                          />
-                        </svg>
-                      </button>
-                    )}
                     {canManageUser(user) && (
                       <>
                         <button
@@ -217,7 +192,7 @@ export default function UserTableView({
                           }`}
                           title={
                             user.status === "Active"
-                              ? "Suspend User"
+                              ? "Deactivate User"
                               : "Activate User"
                           }
                         >
