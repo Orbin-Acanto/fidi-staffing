@@ -13,6 +13,7 @@ import SuspendUserModal from "@/component/user/SuspendUserModal";
 import ResetPasswordModal from "@/component/user/ResetPasswordModal";
 import { apiFetch } from "@/lib/apiFetch";
 import { toastError } from "@/lib/toast";
+import { useMe } from "@/hooks/useMe";
 
 type UsersResponse = {
   count: number;
@@ -47,21 +48,19 @@ type Company = {
 };
 
 export default function UserManagementPage() {
-  const currentUserRole: UserRole = "Admin";
+  const { data: me, isLoading } = useMe();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterRole, setFilterRole] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterCompany, setFilterCompany] = useState<string>("all");
   const [users, setUsers] = useState<User[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
 
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showAddEditModal, setShowAddEditModal] = useState(false);
   const [showSuspendModal, setShowSuspendModal] = useState(false);
   const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [isLoadingCompanies, setIsLoadingCompanies] = useState(true);
 
   const totalUsers = users.length;
   const adminCount = users.filter((u) => u.role === "Admin").length;
@@ -72,20 +71,20 @@ export default function UserManagementPage() {
     (u) => u.status === "Deactivated",
   ).length;
 
+  const currentUserRole: UserRole = mapBackendRoleToFrontend(
+    me?.tenant_role || null,
+  );
+
   const fetchCompanies = async () => {
-    setIsLoadingCompanies(true);
     try {
       const data = await apiFetch<Company[]>("/api/companies/list-company");
       setCompanies(data);
     } catch (err) {
       toastError(err, "Failed to load companies");
-    } finally {
-      setIsLoadingCompanies(false);
     }
   };
 
   const fetchUsers = async () => {
-    setIsLoading(true);
     try {
       const response = await apiFetch<UsersResponse>(
         "/api/users/list-admin-mod",
@@ -104,23 +103,21 @@ export default function UserManagementPage() {
         company: user.current_company?.name || user.current_tenant?.name,
         companyId: user.current_company?.id || user.current_tenant?.id,
         createdAt: new Date(user.created_at).toISOString().split("T")[0],
-        lastActive: new Date(user.updated_at).toISOString().split("T")[0],
+        lastUpdated: new Date(user.updated_at).toISOString().split("T")[0],
       }));
 
       setUsers(transformedUsers);
     } catch (err) {
       toastError(err, "Failed to load users");
-    } finally {
-      setIsLoading(false);
     }
   };
 
   function mapBackendRoleToFrontend(backendRole: string | null): UserRole {
     const roleMap: Record<string, UserRole> = {
-      owner: "Admin",
+      owner: "Owner",
       admin: "Admin",
-      moderator: "Manager",
-      member: "Staff",
+      manager: "Manager",
+      staff: "Staff",
     };
     return roleMap[backendRole?.toLowerCase() || ""] || "Staff";
   }
@@ -156,28 +153,6 @@ export default function UserManagementPage() {
     setShowAddEditModal(false);
     setSelectedUser(null);
     fetchUsers();
-  };
-
-  const handleSuspendAction = (
-    action: "suspend" | "activate" | "deactivate",
-  ) => {
-    if (!selectedUser) return;
-
-    const newStatus = action === "deactivate" ? "Deactivated" : "Active";
-
-    setUsers((prev) =>
-      prev.map((u) =>
-        u.id === selectedUser.id ? { ...u, status: newStatus } : u,
-      ),
-    );
-    setShowSuspendModal(false);
-    setSelectedUser(null);
-  };
-
-  const handleResetPassword = () => {
-    console.log("Password reset for:", selectedUser?.email);
-    setShowResetPasswordModal(false);
-    setSelectedUser(null);
   };
 
   if (isLoading) {
@@ -320,6 +295,7 @@ export default function UserManagementPage() {
       {showDetailModal && selectedUser && (
         <UserDetailModal
           user={selectedUser}
+          currentUserRole={currentUserRole}
           onClose={() => {
             setShowDetailModal(false);
             setSelectedUser(null);
@@ -346,11 +322,12 @@ export default function UserManagementPage() {
       {showSuspendModal && selectedUser && (
         <SuspendUserModal
           user={selectedUser}
-          onCancel={() => {
-            setShowSuspendModal(false);
-            setSelectedUser(null);
+          onCancel={() => setShowSuspendModal(false)}
+          onUpdated={(patch) => {
+            setUsers((prev) =>
+              prev.map((u) => (u.id === patch.id ? { ...u, ...patch } : u)),
+            );
           }}
-          onConfirm={handleSuspendAction}
         />
       )}
 
@@ -361,7 +338,10 @@ export default function UserManagementPage() {
             setShowResetPasswordModal(false);
             setSelectedUser(null);
           }}
-          onConfirm={handleResetPassword}
+          onConfirm={() => {
+            setShowResetPasswordModal(false);
+            setSelectedUser(null);
+          }}
         />
       )}
     </div>

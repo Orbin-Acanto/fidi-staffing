@@ -1,9 +1,11 @@
 "use client";
 import { User } from "@/type";
+import { getRoleBadgeColor, getStatusBadgeColor } from "@/utils";
 
 interface UserDetailModalProps {
   user: User;
   onClose: () => void;
+  currentUserRole: "Owner" | "Admin" | "Manager" | "Staff";
   onEdit: () => void;
 }
 
@@ -11,30 +13,13 @@ export default function UserDetailModal({
   user,
   onClose,
   onEdit,
+  currentUserRole,
 }: UserDetailModalProps) {
-  const getRoleBadgeColor = (role: string) => {
-    switch (role) {
-      case "Admin":
-        return "bg-purple-100 text-purple-700";
-      case "Manager":
-        return "bg-blue-100 text-blue-700";
-      case "Staff":
-        return "bg-gray-100 text-gray-700";
-      default:
-        return "bg-gray-100 text-gray-700";
-    }
-  };
+  const normalizeRole = (role?: string) => (role || "").trim().toLowerCase();
 
-  const getStatusBadgeColor = (status: string) => {
-    switch (status) {
-      case "Active":
-        return "bg-green-100 text-green-700";
-      case "Deactivated":
-        return "bg-red-100 text-red-700";
-      default:
-        return "bg-gray-100 text-gray-700";
-    }
-  };
+  const canEdit =
+    ["owner", "admin"].includes(normalizeRole(currentUserRole)) &&
+    ["admin", "manager"].includes(normalizeRole(user.role));
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
@@ -206,11 +191,11 @@ export default function UserDetailModal({
                   </div>
                   <div className="flex justify-between">
                     <span className="font-secondary text-gray-500">
-                      Last Active
+                      Last Updated
                     </span>
                     <span className="font-secondary text-gray-900">
-                      {user.lastActive
-                        ? new Date(user.lastActive).toLocaleString()
+                      {user.lastUpdated
+                        ? new Date(user.lastUpdated).toLocaleString()
                         : "Never"}
                     </span>
                   </div>
@@ -226,25 +211,27 @@ export default function UserDetailModal({
             >
               Close
             </button>
-            <button
-              onClick={onEdit}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white font-secondary font-medium rounded-lg hover:bg-primary/90 transition-colors"
-            >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+            {canEdit && (
+              <button
+                onClick={onEdit}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white font-secondary font-medium rounded-lg hover:bg-primary/90 transition-colors"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                />
-              </svg>
-              Edit User
-            </button>
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                  />
+                </svg>
+                Edit User
+              </button>
+            )}
           </div>
         </div>
       </div>

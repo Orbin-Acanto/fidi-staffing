@@ -1,9 +1,10 @@
 "use client";
 import { User } from "@/type";
+import { getRoleBadgeColor, getStatusBadgeColor } from "@/utils";
 
 interface UserTableViewProps {
   filteredUsers: User[];
-  currentUserRole: "Admin" | "Manager" | "Staff";
+  currentUserRole: "Owner" | "Admin" | "Manager" | "Staff";
   onOpenDetail: (user: User) => void;
   onSuspend: (user: User) => void;
   onResetPassword: (user: User) => void;
@@ -16,51 +17,21 @@ export default function UserTableView({
   onSuspend,
   onResetPassword,
 }: UserTableViewProps) {
-  const getRoleBadgeColor = (role: string) => {
-    switch (role) {
-      case "Admin":
-        return "bg-purple-100 text-purple-700";
-      case "Manager":
-        return "bg-blue-100 text-blue-700";
-      case "Staff":
-        return "bg-gray-100 text-gray-700";
-      default:
-        return "bg-gray-100 text-gray-700";
-    }
-  };
-
-  const getStatusBadgeColor = (status: string) => {
-    switch (status) {
-      case "Active":
-        return "bg-green-100 text-green-700";
-      case "Deactivated":
-        return "bg-red-100 text-red-700";
-      default:
-        return "bg-gray-100 text-gray-700";
-    }
-  };
-
-  const formatLastActive = (dateString?: string) => {
-    if (!dateString) return "Never";
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-    if (diffHours < 1) return "Just now";
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-    return date.toLocaleDateString();
+  const normalizeRole = (role?: string) => {
+    return (role || "").trim().toLowerCase();
   };
 
   const canManageUser = (targetUser: User) => {
-    if (currentUserRole === "Staff") return false;
-    if (targetUser.role === "Admin" && currentUserRole !== "Admin")
-      return false;
-    if (targetUser.role === "Admin" && currentUserRole === "Admin")
-      return false;
-    return true;
+    const me = normalizeRole(currentUserRole);
+    const target = normalizeRole(targetUser.role);
+
+    if (me === "owner") return true;
+
+    if (me === "admin") {
+      return target !== "owner";
+    }
+
+    return false;
   };
 
   return (
@@ -82,7 +53,7 @@ export default function UserTableView({
                 Status
               </th>
               <th className="px-6 py-3 text-left text-xs font-secondary font-semibold text-gray-600 uppercase tracking-wider">
-                Last Active
+                Last Updated
               </th>
               <th className="px-6 py-3 text-right text-xs font-secondary font-semibold text-gray-600 uppercase tracking-wider">
                 Actions
@@ -132,7 +103,7 @@ export default function UserTableView({
                 </td>
                 <td className="px-6 py-4">
                   <span className="font-secondary text-sm text-gray-500">
-                    {formatLastActive(user.lastActive)}
+                    {user.lastUpdated}
                   </span>
                 </td>
                 <td className="px-6 py-4">

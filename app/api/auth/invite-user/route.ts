@@ -76,11 +76,11 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  if (!["admin", "moderator"].includes(role)) {
+  if (!["admin", "manager"].includes(role)) {
     return NextResponse.json(
       {
         message: "Validation error.",
-        errors: { role: ["Role must be admin or moderator."] },
+        errors: { role: ["Role must be admin or manager."] },
       },
       { status: 400 },
     );

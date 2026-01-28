@@ -2,26 +2,26 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 export function middleware(request: NextRequest) {
-  const accessToken = request.cookies.get("access_token");
-  const refreshToken = request.cookies.get("refresh_token");
+  const accessToken = request.cookies.get("access_token")?.value;
+  const refreshToken = request.cookies.get("refresh_token")?.value;
   const { pathname } = request.nextUrl;
 
+  const guestOnlyRoutes = ["/login"];
   const publicRoutes = [
-    "/login",
     "/accept-invitation",
     "/accept-invitation-1",
     "/forgot-password",
     "/reset-password",
   ];
 
-  const isPublicRoute = publicRoutes.some((route) =>
-    pathname.startsWith(route),
-  );
+  const isGuestOnly = guestOnlyRoutes.some((r) => pathname.startsWith(r));
+  const isPublic = publicRoutes.some((r) => pathname.startsWith(r));
 
-  if (isPublicRoute) {
-    if (accessToken) {
-      return NextResponse.redirect(new URL("/dashboard", request.url));
-    }
+  if (isGuestOnly && accessToken) {
+    return NextResponse.redirect(new URL("/admin/dashboard", request.url));
+  }
+
+  if (isGuestOnly || isPublic) {
     return NextResponse.next();
   }
 

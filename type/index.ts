@@ -155,7 +155,7 @@ export type Group = {
   archived: boolean;
 };
 
-export type UserRole = "Admin" | "Manager" | "Staff";
+export type UserRole = "Owner" | "Admin" | "Manager" | "Staff";
 
 export type UserStatus = "Active" | "Suspended" | "Deactivated";
 
@@ -168,7 +168,7 @@ export type User = {
   role: UserRole;
   status: UserStatus;
   createdAt: string;
-  lastActive?: string;
+  lastUpdated?: string;
   company?: string;
   companyId?: string;
 };

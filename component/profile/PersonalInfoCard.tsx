@@ -1,10 +1,13 @@
 "use client";
+
 import { AdminProfile } from "@/type";
 import { useState } from "react";
+import { apiFetch } from "@/lib/apiFetch";
+import { toastError, toastSuccess } from "@/lib/toast";
 
 interface PersonalInfoCardProps {
   profile: AdminProfile;
-  onSave: (data: Partial<AdminProfile>) => void;
+  onSave: (data: Partial<AdminProfile>) => void; // updates parent state
 }
 
 export default function PersonalInfoCard({
@@ -12,6 +15,8 @@ export default function PersonalInfoCard({
   onSave,
 }: PersonalInfoCardProps) {
   const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
   const [formData, setFormData] = useState({
     name: profile.name,
     email: profile.email,
@@ -24,11 +29,6 @@ export default function PersonalInfoCard({
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSave = () => {
-    onSave(formData);
-    setIsEditing(false);
-  };
-
   const handleCancel = () => {
     setFormData({
       name: profile.name,
@@ -37,6 +37,38 @@ export default function PersonalInfoCard({
       company: profile.company || "",
     });
     setIsEditing(false);
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+
+    try {
+      const payload = {
+        name: formData.name.trim(),
+        email: formData.email.trim().toLowerCase(),
+        phone: formData.phone?.trim() || null,
+      };
+
+      await apiFetch("/api/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      toastSuccess("Profile updated successfully!");
+
+      onSave({
+        name: payload.name,
+        email: payload.email,
+        phone: payload.phone || "",
+      });
+
+      setIsEditing(false);
+    } catch (err) {
+      toastError(err, "Failed to update profile. Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -58,6 +90,7 @@ export default function PersonalInfoCard({
           </svg>
           Personal Information
         </h3>
+
         {!isEditing && (
           <button
             onClick={() => setIsEditing(true)}
@@ -93,10 +126,12 @@ export default function PersonalInfoCard({
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
+                disabled={isSaving}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg font-secondary text-sm text-gray-900
-                         focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                         focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-50"
               />
             </div>
+
             <div>
               <label className="block text-sm font-secondary font-medium text-gray-700 mb-1">
                 Email Address
@@ -106,10 +141,12 @@ export default function PersonalInfoCard({
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
+                disabled={isSaving}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg font-secondary text-sm text-gray-900
-                         focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                         focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-50"
               />
             </div>
+
             <div>
               <label className="block text-sm font-secondary font-medium text-gray-700 mb-1">
                 Phone Number
@@ -119,10 +156,12 @@ export default function PersonalInfoCard({
                 name="phone"
                 value={formData.phone}
                 onChange={handleChange}
+                disabled={isSaving}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg font-secondary text-sm text-gray-900
-                         focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                         focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-50"
               />
             </div>
+
             <div>
               <label className="block text-sm font-secondary font-medium text-gray-700 mb-1">
                 Company
@@ -132,23 +171,25 @@ export default function PersonalInfoCard({
                 name="company"
                 value={formData.company}
                 disabled
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg font-secondary text-sm text-gray-900 
-                         focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg font-secondary text-sm text-gray-900 bg-gray-50"
               />
             </div>
+
             <div className="flex items-center justify-end gap-2 pt-2">
               <button
                 onClick={handleCancel}
-                className="px-3 py-1.5 text-sm font-secondary font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                disabled={isSaving}
+                className="px-3 py-1.5 text-sm font-secondary font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
               >
                 Cancel
               </button>
+
               <button
                 onClick={handleSave}
-                className="px-3 py-1.5 text-sm font-secondary font-medium text-white bg-primary hover:bg-primary/90 rounded-lg transition-colors"
+                disabled={isSaving}
+                className="px-3 py-1.5 text-sm font-secondary font-medium text-white bg-primary hover:bg-primary/90 rounded-lg transition-colors disabled:opacity-50"
               >
-                Save Changes
+                {isSaving ? "Saving..." : "Save Changes"}
               </button>
             </div>
           </>

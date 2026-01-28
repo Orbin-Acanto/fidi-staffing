@@ -107,7 +107,7 @@ export default function AddEditUserModal({
   };
 
   const apiRole = useMemo(() => {
-    return formData.role === "Admin" ? "admin" : "moderator";
+    return formData.role === "Admin" ? "admin" : "manager";
   }, [formData.role]);
 
   const validateForm = () => {
