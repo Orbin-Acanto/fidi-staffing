@@ -59,9 +59,9 @@ export default function ProfileHeader({
                 <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-secondary font-medium bg-purple-100 text-purple-700">
                   {profile.role}
                 </span>
-                {profile.department && (
+                {profile.company && (
                   <span className="text-sm font-secondary text-gray-500">
-                    {profile.department}
+                    {profile.company}
                   </span>
                 )}
               </div>
