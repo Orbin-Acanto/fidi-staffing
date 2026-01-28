@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { apiFetch } from "@/lib/apiFetch";
 import { toastError, toastSuccess } from "@/lib/toast";
@@ -26,7 +26,7 @@ function slugify(input: string) {
     .replace(/^_|_$/g, "");
 }
 
-export default function AcceptInvitationPage() {
+function AcceptInvitation() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -244,5 +244,13 @@ export default function AcceptInvitationPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AcceptInvitationPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <AcceptInvitation />
+    </Suspense>
   );
 }
