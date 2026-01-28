@@ -14,7 +14,7 @@ export function AppSelect({
   placeholder = "Select…",
 }: {
   label?: React.ReactNode;
-  value: string;
+  value: string | undefined; // Allow undefined
   onValueChange: (v: string) => void;
   options: Option[];
   placeholder?: string;
@@ -27,7 +27,7 @@ export function AppSelect({
         </label>
       ) : null}
 
-      <Select.Root value={value} onValueChange={onValueChange}>
+      <Select.Root value={value || ""} onValueChange={onValueChange}>
         <Select.Trigger
           className="w-full inline-flex items-center justify-between gap-3
           pl-4 pr-3 py-2 border border-gray-300 rounded-lg font-secondary text-sm text-dark-black

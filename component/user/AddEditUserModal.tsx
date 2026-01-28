@@ -39,14 +39,22 @@ export default function AddEditUserModal({
 }: AddEditUserModalProps) {
   const isEditing = !!user;
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    name: string;
+    email: string;
+    phone: string;
+    role: UserRole;
+    status: UserStatus;
+    message: string;
+    companyId: string | undefined;
+  }>({
     name: "",
     email: "",
     phone: "",
-    role: "Manager" as UserRole,
-    status: "Active" as UserStatus,
+    role: "Manager",
+    status: "Active",
     message: "",
-    companyId: "",
+    companyId: undefined,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -67,10 +75,19 @@ export default function AddEditUserModal({
         role: user.role || "Manager",
         status: user.status || "Active",
         message: "",
-        companyId: user.companyId || "",
+        companyId: user.companyId || undefined,
       });
       setInvitationLink("");
     } else {
+      setFormData({
+        name: "",
+        email: "",
+        phone: "",
+        role: "Manager",
+        status: "Active",
+        message: "",
+        companyId: undefined,
+      });
       setInvitationLink("");
     }
   }, [user]);
@@ -96,7 +113,7 @@ export default function AddEditUserModal({
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.name.trim() && !isEditing) {
+    if (!formData.name.trim()) {
       newErrors.name = "Name is required";
     }
 
@@ -109,6 +126,54 @@ export default function AddEditUserModal({
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
+
+  async function updateUser() {
+    setIsSubmitting(true);
+
+    try {
+      const nameParts = formData.name.trim().split(" ");
+      const firstName = nameParts[0] || "";
+      const lastName = nameParts.slice(1).join(" ") || nameParts[0] || "";
+
+      await apiFetch(`/api/users/${user!.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          first_name: firstName,
+          last_name: lastName,
+          email: formData.email.trim().toLowerCase(),
+          phone: formData.phone?.trim() || null,
+          role: apiRole,
+          current_company: formData.companyId || null,
+          is_active: formData.status === "Active",
+        }),
+      });
+
+      toastSuccess("User updated successfully!");
+
+      const selectedCompany = companies.find(
+        (c) => c.id === formData.companyId,
+      );
+
+      onSave({
+        id: user!.id,
+        name: formData.name.trim(),
+        email: formData.email.trim().toLowerCase(),
+        phone: formData.phone.trim() || undefined,
+        role: formData.role,
+        status: formData.status,
+        company: selectedCompany?.name,
+        companyId: formData.companyId,
+        createdAt: user?.createdAt || new Date().toISOString().split("T")[0],
+      });
+
+      onClose();
+    } catch (err) {
+      toastError(err, "Failed to update user. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
 
   async function inviteUser() {
     setIsSubmitting(true);
@@ -152,6 +217,8 @@ export default function AddEditUserModal({
         companyId: formData.companyId,
         createdAt: new Date().toISOString().split("T")[0],
       });
+
+      onClose();
     } catch (err) {
       toastError(err, "Failed to send invitation. Please try again.");
     } finally {
@@ -165,20 +232,10 @@ export default function AddEditUserModal({
     if (!validateForm()) return;
 
     if (isEditing) {
-      const selectedCompany = companies.find(
-        (c) => c.id === formData.companyId,
-      );
-
-      onSave({
-        ...formData,
-        id: user?.id || `user_${Date.now()}`,
-        company: selectedCompany?.name,
-        createdAt: user?.createdAt || new Date().toISOString().split("T")[0],
-      });
-      return;
+      await updateUser();
+    } else {
+      await inviteUser();
     }
-
-    await inviteUser();
   };
 
   const copyLink = async () => {
@@ -230,7 +287,8 @@ export default function AddEditUserModal({
             </div>
             <button
               onClick={onClose}
-              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              disabled={isSubmitting}
+              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
             >
               <svg
                 className="w-5 h-5"
@@ -253,18 +311,18 @@ export default function AddEditUserModal({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
-                    Full Name{" "}
-                    {!isEditing && <span className="text-red-500">*</span>}
+                    Full Name <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
                     name="name"
                     value={formData.name}
                     onChange={handleChange}
+                    disabled={isSubmitting}
                     placeholder="e.g., John Smith"
                     className={`w-full px-4 py-2 border rounded-lg font-secondary text-sm text-gray-900
                               placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
-                              transition-all duration-200 ${
+                              transition-all duration-200 disabled:bg-gray-50 disabled:cursor-not-allowed ${
                                 errors.name
                                   ? "border-red-500"
                                   : "border-gray-300"
@@ -302,10 +360,11 @@ export default function AddEditUserModal({
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
+                  disabled={isSubmitting}
                   placeholder="e.g., john@company.com"
                   className={`w-full px-4 py-2 border rounded-lg font-secondary text-sm text-gray-900
                            placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
-                           transition-all duration-200 ${
+                           transition-all duration-200 disabled:bg-gray-50 disabled:cursor-not-allowed ${
                              errors.email ? "border-red-500" : "border-gray-300"
                            }`}
                 />
@@ -324,10 +383,11 @@ export default function AddEditUserModal({
                     name="phone"
                     value={formData.phone}
                     onChange={handleChange}
+                    disabled={isSubmitting}
                     placeholder="e.g., +1 (212) 555-0123"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-sm text-gray-900
                            placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
-                           transition-all duration-200"
+                           transition-all duration-200 disabled:bg-gray-50 disabled:cursor-not-allowed"
                   />
                 </div>
               )}
@@ -337,11 +397,14 @@ export default function AddEditUserModal({
                   <div>
                     <AppSelect
                       label="Company"
-                      value={formData.companyId}
-                      onValueChange={(value) =>
-                        setFormData((prev) => ({ ...prev, companyId: value }))
+                      value={
+                        companies.some((c) => c.id === formData.companyId)
+                          ? formData.companyId
+                          : undefined
                       }
-                      placeholder="Select company"
+                      onValueChange={(value) => {
+                        setFormData((prev) => ({ ...prev, companyId: value }));
+                      }}
                       options={companies.map((company) => ({
                         label: company.name,
                         value: company.id,
@@ -353,13 +416,12 @@ export default function AddEditUserModal({
                     <AppSelect
                       label="Status"
                       value={formData.status}
-                      onValueChange={(value) =>
+                      onValueChange={(value) => {
                         setFormData((prev) => ({
                           ...prev,
                           status: value as UserStatus,
-                        }))
-                      }
-                      placeholder="Select status"
+                        }));
+                      }}
                       options={statusOptions}
                     />
                   </div>
@@ -376,10 +438,11 @@ export default function AddEditUserModal({
                     name="message"
                     value={formData.message}
                     onChange={handleChange}
+                    disabled={isSubmitting}
                     placeholder="e.g., Welcome to the team!"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-sm text-gray-900
                              placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
-                             transition-all duration-200"
+                             transition-all duration-200 disabled:bg-gray-50 disabled:cursor-not-allowed"
                   />
                 </div>
               )}
@@ -407,7 +470,8 @@ export default function AddEditUserModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 text-gray-700 font-secondary font-medium hover:bg-gray-200 rounded-lg transition-colors"
+                disabled={isSubmitting}
+                className="px-4 py-2 text-gray-700 font-secondary font-medium hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
@@ -417,26 +481,47 @@ export default function AddEditUserModal({
                 disabled={isSubmitting}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white font-secondary font-medium rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-                {isSubmitting
-                  ? isEditing
-                    ? "Saving..."
-                    : "Sending..."
-                  : isEditing
-                    ? "Save Changes"
-                    : "Send Invitation"}
+                {isSubmitting ? (
+                  <>
+                    <svg
+                      className="animate-spin h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      />
+                    </svg>
+                    {isEditing ? "Updating..." : "Sending..."}
+                  </>
+                ) : (
+                  <>
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                    {isEditing ? "Save Changes" : "Send Invitation"}
+                  </>
+                )}
               </button>
             </div>
           </form>

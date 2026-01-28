@@ -61,6 +61,7 @@ export default function UserManagementPage() {
   const [showSuspendModal, setShowSuspendModal] = useState(false);
   const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [isLoadingCompanies, setIsLoadingCompanies] = useState(true);
 
   const totalUsers = users.length;
   const adminCount = users.filter((u) => u.role === "Admin").length;
@@ -72,11 +73,14 @@ export default function UserManagementPage() {
   ).length;
 
   const fetchCompanies = async () => {
+    setIsLoadingCompanies(true);
     try {
-      const response = await apiFetch<Company[]>("/api/companies/list-company");
-      setCompanies(response);
+      const data = await apiFetch<Company[]>("/api/companies/list-company");
+      setCompanies(data);
     } catch (err) {
       toastError(err, "Failed to load companies");
+    } finally {
+      setIsLoadingCompanies(false);
     }
   };
 
