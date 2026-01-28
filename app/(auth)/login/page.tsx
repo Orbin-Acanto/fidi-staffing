@@ -1,17 +1,36 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "react-toastify";
 import { apiFetch } from "@/lib/apiFetch";
 import { toastError, toastSuccess } from "@/lib/toast";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectUrl = searchParams.get("redirect");
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const response = await fetch("/api/auth/me", {
+          credentials: "include",
+        });
+
+        if (response.ok) {
+          router.push(redirectUrl || "/admin/dashboard");
+        }
+      } catch (error) {}
+    };
+
+    checkAuth();
+  }, [router, redirectUrl]);
 
   function validateForm(): string | null {
     const e = email.trim().toLowerCase();
@@ -37,7 +56,7 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const response = await apiFetch("/api/auth/login", {
+      await apiFetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -48,7 +67,8 @@ export default function LoginPage() {
 
       await new Promise((resolve) => setTimeout(resolve, 200));
       toastSuccess("Signed in successfully!");
-      router.push("/admin/dashboard");
+
+      router.push(redirectUrl || "/admin/dashboard");
     } catch (err) {
       console.error("❌ Login error:", err);
       toastError(
@@ -80,7 +100,9 @@ export default function LoginPage() {
               Welcome Back
             </h1>
             <p className="text-gray-600 font-secondary text-sm">
-              Sign in to continue
+              {redirectUrl
+                ? "Your session expired. Please sign in again."
+                : "Sign in to continue"}
             </p>
           </div>
 
@@ -173,5 +195,22 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-whitesmoke">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+            <p className="mt-4 text-gray-600 font-secondary">Loading...</p>
+          </div>
+        </div>
+      }
+    >
+      <LoginForm />
+    </Suspense>
   );
 }

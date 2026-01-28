@@ -1,6 +1,6 @@
 import { toast } from "react-toastify";
 import { getErrorMessage } from "./errors";
-import { ApiError } from "./apiFetch";
+import { ApiError, AuthError } from "./apiFetch";
 
 function extractMessages(errors: any): string[] {
   if (!errors || typeof errors !== "object") return [];
@@ -17,6 +17,10 @@ function extractMessages(errors: any): string[] {
 }
 
 export function toastError(err: unknown, fallback = "Something went wrong.") {
+  if (err instanceof AuthError) {
+    return;
+  }
+
   if (err instanceof ApiError) {
     const msgs = extractMessages(err.data?.errors);
 
