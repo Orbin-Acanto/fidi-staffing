@@ -67,14 +67,9 @@ function LoginForm() {
 
       await new Promise((resolve) => setTimeout(resolve, 200));
       toastSuccess("Signed in successfully!");
-
       router.push(redirectUrl || "/admin/dashboard");
     } catch (err) {
-      console.error("❌ Login error:", err);
-      toastError(
-        err,
-        "Login failed. Please check your email and password and try again.",
-      );
+      toastError(err, "Login failed. Please check your email and password.");
     } finally {
       setIsLoading(false);
     }

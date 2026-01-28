@@ -77,33 +77,23 @@ export async function apiFetch<T = any>(
     data = null;
   }
 
-  if (res.status === 401 && retryCount === 0) {
+  if (res.status === 401) {
     const isAuthError =
       data?.message?.toLowerCase().includes("token") ||
       data?.message?.toLowerCase().includes("authentication") ||
       data?.message?.toLowerCase().includes("unauthorized") ||
       data?.errors?.auth;
 
-    if (isAuthError) {
+    if (isAuthError && retryCount === 0) {
       const refreshed = await refreshAccessToken();
 
       if (refreshed) {
         return apiFetch<T>(input, init, retryCount + 1);
-      } else {
-        const currentPath =
-          typeof window !== "undefined" ? window.location.pathname : "";
-        if (typeof window !== "undefined") {
-          window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
-        }
-        throw new AuthError("Session expired. Please login again.");
       }
     }
-  }
 
-  if (res.status === 401 && retryCount > 0) {
-    const currentPath =
-      typeof window !== "undefined" ? window.location.pathname : "";
     if (typeof window !== "undefined") {
+      const currentPath = window.location.pathname;
       window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
     }
     throw new AuthError("Session expired. Please login again.");
