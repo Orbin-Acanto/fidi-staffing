@@ -145,7 +145,7 @@ export default function AddEditUserModal({
           phone: formData.phone?.trim() || null,
           role: apiRole,
           current_company: formData.companyId || null,
-          is_active: formData.status === "Active",
+          is_active: normalizedStatus === "Active",
         }),
       });
 
@@ -161,7 +161,7 @@ export default function AddEditUserModal({
         email: formData.email.trim().toLowerCase(),
         phone: formData.phone.trim() || undefined,
         role: formData.role,
-        status: formData.status,
+        status: normalizedStatus,
         company: selectedCompany?.name,
         companyId: formData.companyId,
         createdAt: user?.createdAt || new Date().toISOString().split("T")[0],
@@ -247,6 +247,26 @@ export default function AddEditUserModal({
       toastError(err, "Could not copy link. Please copy manually.");
     }
   };
+
+  const companyExists = useMemo(() => {
+    return (
+      !!formData.companyId && companies.some((c) => c.id === formData.companyId)
+    );
+  }, [companies, formData.companyId]);
+
+  const companySelectValue = companyExists ? formData.companyId : "";
+
+  const companyPlaceholder = companyExists
+    ? "Select…"
+    : user?.company || "Select…";
+
+  const normalizedStatus = useMemo<UserStatus>(() => {
+    const raw = String(formData.status ?? "")
+      .trim()
+      .toLowerCase();
+
+    return raw === "active" ? "Active" : "Deactivated";
+  }, [formData.status]);
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
@@ -397,11 +417,8 @@ export default function AddEditUserModal({
                   <div>
                     <AppSelect
                       label="Company"
-                      value={
-                        companies.some((c) => c.id === formData.companyId)
-                          ? formData.companyId
-                          : undefined
-                      }
+                      value={companySelectValue}
+                      placeholder={companyPlaceholder}
                       onValueChange={(value) => {
                         setFormData((prev) => ({ ...prev, companyId: value }));
                       }}
@@ -415,7 +432,7 @@ export default function AddEditUserModal({
                   <div>
                     <AppSelect
                       label="Status"
-                      value={formData.status}
+                      value={normalizedStatus}
                       onValueChange={(value) => {
                         setFormData((prev) => ({
                           ...prev,

@@ -14,7 +14,7 @@ export function AppSelect({
   placeholder = "Select…",
 }: {
   label?: React.ReactNode;
-  value: string | undefined; // Allow undefined
+  value: string | undefined;
   onValueChange: (v: string) => void;
   options: Option[];
   placeholder?: string;
