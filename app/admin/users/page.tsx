@@ -75,6 +75,8 @@ export default function UserManagementPage() {
     me?.tenant_role || null,
   );
 
+  const currentUserId = me?.id ?? null;
+
   const fetchCompanies = async () => {
     try {
       const data = await apiFetch<Company[]>("/api/companies/list-company");
@@ -272,6 +274,7 @@ export default function UserManagementPage() {
           <UserTableView
             filteredUsers={filteredUsers}
             currentUserRole={currentUserRole}
+            currentUserId={currentUserId}
             onOpenDetail={(user) => {
               setSelectedUser(user);
               setShowDetailModal(true);
@@ -311,6 +314,8 @@ export default function UserManagementPage() {
         <AddEditUserModal
           user={selectedUser}
           companies={companies}
+          currentUserId={currentUserId}
+          currentUserRole={currentUserRole}
           onClose={() => {
             setShowAddEditModal(false);
             setSelectedUser(null);

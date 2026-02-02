@@ -17,6 +17,8 @@ interface AddEditUserModalProps {
   companies: Company[];
   onClose: () => void;
   onSave: (data: Partial<User>) => void;
+  currentUserId: string | null;
+  currentUserRole: UserRole;
 }
 
 type InviteResponse = {
@@ -36,6 +38,8 @@ export default function AddEditUserModal({
   companies,
   onClose,
   onSave,
+  currentUserId,
+  currentUserRole,
 }: AddEditUserModalProps) {
   const isEditing = !!user;
 
@@ -61,36 +65,43 @@ export default function AddEditUserModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [invitationLink, setInvitationLink] = useState<string>("");
 
+  const normalizeRole = (role: UserRole | string | null | undefined) =>
+    String(role || "")
+      .trim()
+      .toLowerCase();
+
+  const meRole = normalizeRole(currentUserRole);
+  const isOwner = meRole === "owner";
+  const isSelf = !!user && !!currentUserId && user.id === currentUserId;
+
+  const canChangeCompany = isEditing && isOwner && !isSelf;
+  const canChangeRole = isEditing && isOwner && !isSelf;
+  const canChangeStatus = isEditing && isOwner && !isSelf;
+
   const statusOptions: { label: string; value: UserStatus }[] = [
     { label: "Active", value: "Active" },
     { label: "Deactivated", value: "Deactivated" },
   ];
 
-  useEffect(() => {
-    if (user) {
-      setFormData({
-        name: user.name || "",
-        email: user.email || "",
-        phone: user.phone || "",
-        role: user.role || "Manager",
-        status: user.status || "Active",
-        message: "",
-        companyId: user.companyId || undefined,
-      });
-      setInvitationLink("");
-    } else {
-      setFormData({
-        name: "",
-        email: "",
-        phone: "",
-        role: "Manager",
-        status: "Active",
-        message: "",
-        companyId: undefined,
-      });
-      setInvitationLink("");
-    }
-  }, [user]);
+  const companyExists = useMemo(() => {
+    return (
+      !!formData.companyId && companies.some((c) => c.id === formData.companyId)
+    );
+  }, [companies, formData.companyId]);
+
+  const companySelectValue = companyExists ? formData.companyId : "";
+
+  const companyPlaceholder = companyExists
+    ? "Select…"
+    : user?.company || "Select…";
+
+  const normalizedStatus = useMemo<UserStatus>(() => {
+    const raw = String(formData.status ?? "")
+      .trim()
+      .toLowerCase();
+
+    return raw === "active" ? "Active" : "Deactivated";
+  }, [formData.status]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -248,25 +259,31 @@ export default function AddEditUserModal({
     }
   };
 
-  const companyExists = useMemo(() => {
-    return (
-      !!formData.companyId && companies.some((c) => c.id === formData.companyId)
-    );
-  }, [companies, formData.companyId]);
-
-  const companySelectValue = companyExists ? formData.companyId : "";
-
-  const companyPlaceholder = companyExists
-    ? "Select…"
-    : user?.company || "Select…";
-
-  const normalizedStatus = useMemo<UserStatus>(() => {
-    const raw = String(formData.status ?? "")
-      .trim()
-      .toLowerCase();
-
-    return raw === "active" ? "Active" : "Deactivated";
-  }, [formData.status]);
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        name: user.name || "",
+        email: user.email || "",
+        phone: user.phone || "",
+        role: user.role,
+        status: user.status || "Active",
+        message: "",
+        companyId: user.companyId || undefined,
+      });
+      setInvitationLink("");
+    } else {
+      setFormData({
+        name: "",
+        email: "",
+        phone: "",
+        role: "Manager",
+        status: "Active",
+        message: "",
+        companyId: undefined,
+      });
+      setInvitationLink("");
+    }
+  }, [user]);
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
@@ -367,6 +384,7 @@ export default function AddEditUserModal({
                       { label: "Manager", value: "Manager" },
                       { label: "Admin", value: "Admin" },
                     ]}
+                    disabled={isSubmitting || (isEditing && !canChangeRole)}
                   />
                 </div>
               </div>
@@ -426,6 +444,7 @@ export default function AddEditUserModal({
                         label: company.name,
                         value: company.id,
                       }))}
+                      disabled={isSubmitting || !canChangeCompany}
                     />
                   </div>
 
@@ -440,6 +459,7 @@ export default function AddEditUserModal({
                         }));
                       }}
                       options={statusOptions}
+                      disabled={isSubmitting || !canChangeStatus}
                     />
                   </div>
                 </div>

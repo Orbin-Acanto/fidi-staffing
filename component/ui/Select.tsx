@@ -4,7 +4,7 @@ import * as React from "react";
 import * as Select from "@radix-ui/react-select";
 import { ChevronDown, Check } from "lucide-react";
 
-type Option = { label: string; value: string };
+type Option = { label: string; value: string; disabled?: boolean };
 
 export function AppSelect({
   label,
@@ -12,12 +12,14 @@ export function AppSelect({
   onValueChange,
   options,
   placeholder = "Select…",
+  disabled = false,
 }: {
   label?: React.ReactNode;
   value: string | undefined;
   onValueChange: (v: string) => void;
   options: Option[];
   placeholder?: string;
+  disabled?: boolean;
 }) {
   return (
     <div className="w-full">
@@ -27,7 +29,11 @@ export function AppSelect({
         </label>
       ) : null}
 
-      <Select.Root value={value || ""} onValueChange={onValueChange}>
+      <Select.Root
+        value={value || ""}
+        onValueChange={onValueChange}
+        disabled={disabled}
+      >
         <Select.Trigger
           className="w-full inline-flex items-center justify-between gap-3
           pl-4 pr-3 py-2 border border-gray-300 rounded-lg font-secondary text-sm text-dark-black

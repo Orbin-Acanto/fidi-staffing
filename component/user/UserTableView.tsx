@@ -8,6 +8,7 @@ interface UserTableViewProps {
   onOpenDetail: (user: User) => void;
   onSuspend: (user: User) => void;
   onResetPassword: (user: User) => void;
+  currentUserId: string | null;
 }
 
 export default function UserTableView({
@@ -16,12 +17,15 @@ export default function UserTableView({
   onOpenDetail,
   onSuspend,
   onResetPassword,
+  currentUserId,
 }: UserTableViewProps) {
   const normalizeRole = (role?: string) => {
     return (role || "").trim().toLowerCase();
   };
 
   const canManageUser = (targetUser: User) => {
+    if (targetUser.id === currentUserId) return false;
+
     const me = normalizeRole(currentUserRole);
     const target = normalizeRole(targetUser.role);
 
