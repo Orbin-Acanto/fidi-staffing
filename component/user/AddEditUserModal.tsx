@@ -1,7 +1,7 @@
 "use client";
 
 import { CompaniesResponse, User, UserRole, UserStatus } from "@/type";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { AppSelect } from "../ui/Select";
 import { apiFetch } from "@/lib/apiFetch";
 import { toastError, toastSuccess } from "@/lib/toast";
@@ -44,15 +44,28 @@ export default function AddEditUserModal({
     role: UserRole;
     status: UserStatus;
     message: string;
-    companyId: string | undefined;
-  }>({
-    name: "",
-    email: "",
-    phone: "",
-    role: "Manager",
-    status: "Active",
-    message: "",
-    companyId: undefined,
+    companyId: string;
+  }>(() => {
+    if (user) {
+      return {
+        name: user.name || "",
+        email: user.email || "",
+        phone: user.phone || "",
+        role: user.role,
+        status: user.status || "Active",
+        message: "",
+        companyId: user.companyId || "",
+      };
+    }
+    return {
+      name: "",
+      email: "",
+      phone: "",
+      role: "Manager",
+      status: "Active",
+      message: "",
+      companyId: "",
+    };
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -79,7 +92,7 @@ export default function AddEditUserModal({
   const companyExists = useMemo(() => {
     return (
       !!formData.companyId &&
-      (companies?.companies || []).some((c) => c.id === formData.companyId)
+      companies.companies.some((c) => c.id === formData.companyId)
     );
   }, [companies, formData.companyId]);
 
@@ -88,14 +101,6 @@ export default function AddEditUserModal({
   const companyPlaceholder = companyExists
     ? "Select…"
     : user?.company || "Select…";
-
-  const normalizedStatus = useMemo<UserStatus>(() => {
-    const raw = String(formData.status ?? "")
-      .trim()
-      .toLowerCase();
-
-    return raw === "active" ? "Active" : "Deactivated";
-  }, [formData.status]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -114,6 +119,10 @@ export default function AddEditUserModal({
   const apiRole = useMemo(() => {
     return formData.role === "Admin" ? "admin" : "manager";
   }, [formData.role]);
+
+  const isActiveForApi = useMemo(() => {
+    return formData.status === "Active";
+  }, [formData.status]);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -140,23 +149,25 @@ export default function AddEditUserModal({
       const firstName = nameParts[0] || "";
       const lastName = nameParts.slice(1).join(" ") || nameParts[0] || "";
 
+      const updatePayload = {
+        first_name: firstName,
+        last_name: lastName,
+        email: formData.email.trim().toLowerCase(),
+        phone: formData.phone?.trim() || null,
+        role: apiRole,
+        current_company: formData.companyId || null,
+        is_active: isActiveForApi,
+      };
+
       await apiFetch(`/api/users/${user!.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          first_name: firstName,
-          last_name: lastName,
-          email: formData.email.trim().toLowerCase(),
-          phone: formData.phone?.trim() || null,
-          role: apiRole,
-          current_company: formData.companyId || null,
-          is_active: normalizedStatus === "Active",
-        }),
+        body: JSON.stringify(updatePayload),
       });
 
       toastSuccess("User updated successfully!");
 
-      const selectedCompany = companies?.companies?.find(
+      const selectedCompany = companies.companies.find(
         (c) => c.id === formData.companyId,
       );
 
@@ -166,7 +177,7 @@ export default function AddEditUserModal({
         email: formData.email.trim().toLowerCase(),
         phone: formData.phone.trim() || undefined,
         role: formData.role,
-        status: normalizedStatus,
+        status: formData.status,
         company: selectedCompany?.name,
         companyId: formData.companyId,
         createdAt: user?.createdAt || new Date().toISOString().split("T")[0],
@@ -184,21 +195,21 @@ export default function AddEditUserModal({
     setIsSubmitting(true);
 
     try {
+      const invitePayload = {
+        email: formData.email.trim(),
+        role: apiRole,
+        message: formData.message?.trim() || "",
+      };
+
       const res = (await apiFetch("/api/auth/invite-user", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: formData.email.trim(),
-          role: apiRole,
-          message: formData.message?.trim() || "",
-        }),
+        body: JSON.stringify(invitePayload),
       })) as InviteResponse;
-
-      const link = res?.invitation?.invitation_link;
 
       toastSuccess("Invitation sent successfully!");
 
-      const selectedCompany = companies?.companies?.find(
+      const selectedCompany = companies.companies.find(
         (c) => c.id === formData.companyId,
       );
 
@@ -233,30 +244,6 @@ export default function AddEditUserModal({
       await inviteUser();
     }
   };
-
-  useEffect(() => {
-    if (user) {
-      setFormData({
-        name: user.name || "",
-        email: user.email || "",
-        phone: user.phone || "",
-        role: user.role,
-        status: user.status || "Active",
-        message: "",
-        companyId: user.companyId || undefined,
-      });
-    } else {
-      setFormData({
-        name: "",
-        email: "",
-        phone: "",
-        role: "Manager",
-        status: "Active",
-        message: "",
-        companyId: undefined,
-      });
-    }
-  }, [user]);
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
@@ -413,7 +400,7 @@ export default function AddEditUserModal({
                       onValueChange={(value) => {
                         setFormData((prev) => ({ ...prev, companyId: value }));
                       }}
-                      options={(companies?.companies || []).map((company) => ({
+                      options={companies.companies.map((company) => ({
                         label: company.name,
                         value: company.id,
                       }))}
@@ -424,7 +411,7 @@ export default function AddEditUserModal({
                   <div>
                     <AppSelect
                       label="Status"
-                      value={normalizedStatus}
+                      value={formData.status}
                       onValueChange={(value) => {
                         setFormData((prev) => ({
                           ...prev,

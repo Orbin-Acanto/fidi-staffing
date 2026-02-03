@@ -86,12 +86,12 @@ export async function PATCH(
   }
 
   if (body.role !== undefined) {
-    const validRoles = ["admin", "moderator"];
+    const validRoles = ["admin", "manager"];
     if (!validRoles.includes(body.role.toLowerCase())) {
       return NextResponse.json(
         {
           message: "Validation error.",
-          errors: { role: ["Role must be admin or moderator."] },
+          errors: { role: ["Role must be admin or manager."] },
         },
         { status: 400 },
       );
