@@ -1,20 +1,14 @@
 "use client";
 
-import { User, UserRole, UserStatus } from "@/type";
+import { CompaniesResponse, User, UserRole, UserStatus } from "@/type";
 import { useState, useEffect, useMemo } from "react";
 import { AppSelect } from "../ui/Select";
 import { apiFetch } from "@/lib/apiFetch";
 import { toastError, toastSuccess } from "@/lib/toast";
 
-type Company = {
-  id: string;
-  name: string;
-  is_active: boolean;
-};
-
 interface AddEditUserModalProps {
   user?: User | null;
-  companies: Company[];
+  companies: CompaniesResponse;
   onClose: () => void;
   onSave: (data: Partial<User>) => void;
   currentUserId: string | null;
@@ -63,7 +57,6 @@ export default function AddEditUserModal({
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [invitationLink, setInvitationLink] = useState<string>("");
 
   const normalizeRole = (role: UserRole | string | null | undefined) =>
     String(role || "")
@@ -85,7 +78,8 @@ export default function AddEditUserModal({
 
   const companyExists = useMemo(() => {
     return (
-      !!formData.companyId && companies.some((c) => c.id === formData.companyId)
+      !!formData.companyId &&
+      (companies?.companies || []).some((c) => c.id === formData.companyId)
     );
   }, [companies, formData.companyId]);
 
@@ -162,7 +156,7 @@ export default function AddEditUserModal({
 
       toastSuccess("User updated successfully!");
 
-      const selectedCompany = companies.find(
+      const selectedCompany = companies?.companies?.find(
         (c) => c.id === formData.companyId,
       );
 
@@ -188,7 +182,6 @@ export default function AddEditUserModal({
 
   async function inviteUser() {
     setIsSubmitting(true);
-    setInvitationLink("");
 
     try {
       const res = (await apiFetch("/api/auth/invite-user", {
@@ -205,15 +198,7 @@ export default function AddEditUserModal({
 
       toastSuccess("Invitation sent successfully!");
 
-      if (link) {
-        setInvitationLink(link);
-        try {
-          await navigator.clipboard.writeText(link);
-          toastSuccess("Invitation link copied!");
-        } catch {}
-      }
-
-      const selectedCompany = companies.find(
+      const selectedCompany = companies?.companies?.find(
         (c) => c.id === formData.companyId,
       );
 
@@ -249,16 +234,6 @@ export default function AddEditUserModal({
     }
   };
 
-  const copyLink = async () => {
-    if (!invitationLink) return;
-    try {
-      await navigator.clipboard.writeText(invitationLink);
-      toastSuccess("Invitation link copied!");
-    } catch (err) {
-      toastError(err, "Could not copy link. Please copy manually.");
-    }
-  };
-
   useEffect(() => {
     if (user) {
       setFormData({
@@ -270,7 +245,6 @@ export default function AddEditUserModal({
         message: "",
         companyId: user.companyId || undefined,
       });
-      setInvitationLink("");
     } else {
       setFormData({
         name: "",
@@ -281,7 +255,6 @@ export default function AddEditUserModal({
         message: "",
         companyId: undefined,
       });
-      setInvitationLink("");
     }
   }, [user]);
 
@@ -440,7 +413,7 @@ export default function AddEditUserModal({
                       onValueChange={(value) => {
                         setFormData((prev) => ({ ...prev, companyId: value }));
                       }}
-                      options={companies.map((company) => ({
+                      options={(companies?.companies || []).map((company) => ({
                         label: company.name,
                         value: company.id,
                       }))}
@@ -481,24 +454,6 @@ export default function AddEditUserModal({
                              placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
                              transition-all duration-200 disabled:bg-gray-50 disabled:cursor-not-allowed"
                   />
-                </div>
-              )}
-
-              {!isEditing && invitationLink && (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <p className="font-secondary font-medium text-green-800">
-                    Invitation link generated
-                  </p>
-                  <p className="text-sm text-green-700 break-all mt-1">
-                    {invitationLink}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={copyLink}
-                    className="mt-3 inline-flex items-center gap-2 px-3 py-2 text-sm font-secondary font-medium rounded-lg bg-white border border-green-300 text-green-800 hover:bg-green-100 transition-colors"
-                  >
-                    Copy link
-                  </button>
                 </div>
               )}
             </div>

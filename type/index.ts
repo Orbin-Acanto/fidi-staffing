@@ -82,6 +82,34 @@ export interface Event {
   specialInstructions?: string;
 }
 
+type Company = {
+  id: string;
+  tenant: string;
+  tenant_name: string;
+  name: string;
+  slug: string;
+  logo: string | null;
+  primary_color: string;
+  email: string;
+  phone: string | null;
+  address_street: string | null;
+  address_city: string | null;
+  address_state: string | null;
+  address_zip: string | null;
+  address_country: string;
+  company_type: string | null;
+  description: string | null;
+  is_active: boolean;
+  is_tenant: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CompaniesResponse = {
+  count: number;
+  companies: Company[];
+};
+
 export type SavedLocation = {
   id: string;
   label: string;

@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { AppSelect } from "@/component/ui/Select";
 import { activityLogs } from "@/data";
-import { User, UserRole } from "@/type";
+import { CompaniesResponse, User, UserRole } from "@/type";
 import UserHeader from "@/component/user/UserHeader";
 import UserSummaryPanel from "@/component/user/UserSummaryPanel";
 import UserTableView from "@/component/user/UserTableView";
@@ -41,12 +41,6 @@ type UsersResponse = {
   }>;
 };
 
-type Company = {
-  id: string;
-  name: string;
-  is_active: boolean;
-};
-
 export default function UserManagementPage() {
   const { data: me, isLoading } = useMe();
   const [searchTerm, setSearchTerm] = useState("");
@@ -54,7 +48,10 @@ export default function UserManagementPage() {
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterCompany, setFilterCompany] = useState<string>("all");
   const [users, setUsers] = useState<User[]>([]);
-  const [companies, setCompanies] = useState<Company[]>([]);
+  const [companies, setCompanies] = useState<CompaniesResponse>({
+    count: 0,
+    companies: [],
+  });
 
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showAddEditModal, setShowAddEditModal] = useState(false);
@@ -79,7 +76,9 @@ export default function UserManagementPage() {
 
   const fetchCompanies = async () => {
     try {
-      const data = await apiFetch<Company[]>("/api/companies/list-company");
+      const data = await apiFetch<CompaniesResponse>(
+        "/api/companies/list-company",
+      );
       setCompanies(data);
     } catch (err) {
       toastError(err, "Failed to load companies");
@@ -248,7 +247,7 @@ export default function UserManagementPage() {
                   onValueChange={(value) => setFilterCompany(value)}
                   options={[
                     { label: "All Companies", value: "all" },
-                    ...companies.map((company) => ({
+                    ...(companies?.companies || []).map((company) => ({
                       label: company.name,
                       value: company.id,
                     })),
