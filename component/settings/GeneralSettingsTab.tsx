@@ -1,157 +1,524 @@
 "use client";
-import { GeneralSettings } from "@/type";
+import { TenantSettings, timeFormats } from "@/type";
 import { timeZones, dateFormats, currencies } from "@/data";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { AppSelect } from "@/component/ui/Select";
 
-interface GeneralSettingsTabProps {
-  settings: GeneralSettings;
-  onSave: (settings: GeneralSettings) => void;
+import { toast } from "react-toastify";
+import { apiFetch } from "@/lib/apiFetch";
+import { toMediaProxyUrl } from "@/lib/mediaUrl";
+
+const PROTECTED_FIELDS: (keyof TenantSettings)[] = [
+  "name",
+  "slug",
+  "subscription_plan",
+  "subscription_status",
+  "trial_ends_at",
+  "subscription_expires",
+  "is_active",
+  "created_at",
+  "updated_at",
+  "last_backup_at",
+];
+
+const EDITABLE_FIELDS: (keyof TenantSettings)[] = [
+  "email",
+  "phone",
+  "address",
+  "currency",
+  "timezone",
+  "date_format",
+  "time_format",
+  "billing_email",
+  "billing_address",
+  "notification_settings",
+  "require_2fa",
+  "backup_frequency",
+  "retention_period",
+  "automatic_backup_enabled",
+];
+
+function pickEditable(data: TenantSettings): Partial<TenantSettings> {
+  const out: Partial<TenantSettings> = {};
+  for (const k of EDITABLE_FIELDS) out[k] = data[k] as any;
+  return out;
 }
 
-export default function GeneralSettingsTab({
-  settings,
-  onSave,
-}: GeneralSettingsTabProps) {
-  const [formData, setFormData] = useState<GeneralSettings>(settings);
-  const [logoPreview, setLogoPreview] = useState<string | null>(
-    settings.logo || null
+const makeFreshLogoUrl = (urlOrKey?: string | null) => {
+  const proxied = toMediaProxyUrl(urlOrKey) ?? null;
+  if (!proxied) return null;
+
+  const sep = proxied.includes("?") ? "&" : "?";
+  return `${proxied}${sep}v=${Date.now()}`;
+};
+
+export default function GeneralSettingsTab() {
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [tenantSettings, setTenantSettings] = useState<TenantSettings | null>(
+    null,
   );
+  const [formData, setFormData] = useState<Partial<TenantSettings>>({});
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    loadTenantSettings();
+  }, []);
+
+  const loadTenantSettings = async () => {
+    setIsLoading(true);
+    try {
+      const data = await apiFetch<TenantSettings>("/api/tenant/settings", {
+        method: "GET",
+      });
+      console.log("Loaded tenant settings:", data);
+      setTenantSettings(data);
+      setFormData(pickEditable(data));
+      setLogoPreview(makeFreshLogoUrl(data.logo_url ?? data.logo ?? null));
+    } catch (error) {
+      toast.error("Failed to load organization settings", {
+        toastId: "load-tenant-error",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleChange = (
-    name: keyof GeneralSettings,
-    value: string | number
+    name: keyof TenantSettings,
+    value: string | boolean,
   ) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
     setHasChanges(true);
   };
 
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setLogoPreview(reader.result as string);
-        setFormData((prev) => ({ ...prev, logo: reader.result as string }));
-        setHasChanges(true);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Logo file size cannot exceed 2MB", {
+        toastId: "logo-size-error",
+      });
+      return;
+    }
+
+    const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error("Only JPEG, PNG, GIF, and WebP images are allowed", {
+        toastId: "logo-type-error",
+      });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const base64String = reader.result as string;
+      setLogoPreview(base64String);
+
+      setUploadingLogo(true);
+      try {
+        const updatedTenant = await apiFetch<TenantSettings>(
+          "/api/tenant/settings",
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              logo_base64: base64String,
+            }),
+          },
+        );
+        setTenantSettings(updatedTenant);
+        setFormData(updatedTenant);
+        setLogoPreview(
+          makeFreshLogoUrl(
+            updatedTenant.logo_url ?? updatedTenant.logo ?? null,
+          ),
+        );
+        toast.success("Logo uploaded successfully", {
+          toastId: "logo-upload-success",
+        });
+      } catch (error) {
+        setLogoPreview(
+          makeFreshLogoUrl(
+            tenantSettings?.logo_url ?? tenantSettings?.logo ?? null,
+          ),
+        );
+        toast.error("Failed to upload logo. Please try again.", {
+          toastId: "logo-upload-error",
+        });
+      } finally {
+        setUploadingLogo(false);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveLogo = async () => {
+    if (!confirm("Are you sure you want to remove the organization logo?"))
+      return;
+
+    setUploadingLogo(true);
+    try {
+      const updatedTenant = await apiFetch<TenantSettings>(
+        "/api/tenant/settings/logo",
+        {
+          method: "DELETE",
+        },
+      );
+
+      setTenantSettings(updatedTenant);
+      setFormData(updatedTenant);
+      setLogoPreview(null);
+      toast.success("Logo removed successfully", {
+        toastId: "logo-remove-success",
+      });
+    } catch (error) {
+      console.error("Failed to remove logo:", error);
+      toast.error("Failed to remove logo. Please try again.", {
+        toastId: "logo-remove-error",
+      });
+    } finally {
+      setUploadingLogo(false);
     }
   };
 
-  const handleRemoveLogo = () => {
-    setLogoPreview(null);
-    setFormData((prev) => ({ ...prev, logo: "" }));
-    setHasChanges(true);
-  };
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const updatedTenant = await apiFetch<TenantSettings>(
+        "/api/tenant/settings",
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
+        },
+      );
 
-  const handleSave = () => {
-    onSave(formData);
-    setHasChanges(false);
+      setTenantSettings(updatedTenant);
+      setFormData(updatedTenant);
+      setHasChanges(false);
+      toast.success("Organization settings saved successfully", {
+        toastId: "settings-save-success",
+      });
+    } catch (error) {
+      console.error("Failed to save tenant settings:", error);
+      toast.error("Failed to save settings. Please try again.", {
+        toastId: "settings-save-error",
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleReset = () => {
-    setFormData(settings);
-    setLogoPreview(settings.logo || null);
-    setHasChanges(false);
+    if (tenantSettings) {
+      setFormData(tenantSettings);
+      setLogoPreview(
+        makeFreshLogoUrl(
+          tenantSettings.logo_url ?? tenantSettings.logo ?? null,
+        ),
+      );
+      setHasChanges(false);
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center">
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
+          <p className="mt-2 text-sm text-gray-500">
+            Loading organization settings...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!tenantSettings) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-sm text-gray-500">
+          Failed to load organization settings
+        </p>
+        <button
+          onClick={loadTenantSettings}
+          className="mt-4 px-4 py-2 text-sm font-secondary font-medium text-primary border border-primary rounded-lg hover:bg-primary/10"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-lg border border-gray-200">
-        <div className="p-4 border-b border-gray-200">
+      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-200 flex items-center justify-between">
           <h3 className="font-primary font-semibold text-gray-900">
-            Company Information
+            Organization Information
           </h3>
-          <p className="text-sm text-gray-500 mt-1">
-            Basic information about your business
-          </p>
         </div>
-        <div className="p-4">
-          <div className="flex flex-col md:flex-row md:items-start gap-6 justify-between">
-            <div className="flex-1">
-              <label className="block text-sm font-secondary font-medium text-gray-700 mb-1">
-                Company/Business Name
-              </label>
-              <input
-                type="text"
-                value={formData.companyName}
-                onChange={(e) => handleChange("companyName", e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg font-secondary text-sm text-gray-900
-                         focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-              />
-            </div>
 
-            <div className="flex-1">
-              <label className="block text-sm font-secondary font-medium text-gray-700 mb-1">
-                Company Logo
-              </label>
-              <div className="flex items-center gap-4">
-                {logoPreview ? (
-                  <div className="relative">
-                    <img
-                      src={logoPreview}
-                      alt="Company Logo"
-                      className="w-12 h-12 object-contain border border-gray-200 rounded-lg bg-gray-50"
-                    />
-                    <button
-                      onClick={handleRemoveLogo}
-                      className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
-                    >
-                      <svg
-                        className="w-3 h-3"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M6 18L18 6M6 6l12 12"
-                        />
-                      </svg>
-                    </button>
+        <div className="p-5">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="rounded-lg border border-gray-200 bg-white">
+                  <div className="px-4 py-3 border-b border-gray-100">
+                    <p className="text-xs font-secondary font-medium text-gray-500">
+                      Organization Name
+                    </p>
                   </div>
-                ) : (
-                  <div className="w-12 h-12 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50">
-                    <svg
-                      className="w-6 h-6 text-gray-400"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                      />
-                    </svg>
+                  <div className="px-4 py-3">
+                    <p className="text-sm font-secondary text-gray-900">
+                      {tenantSettings.name}
+                    </p>
                   </div>
-                )}
-                <div>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleLogoUpload}
-                    className="hidden"
-                  />
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="px-3 py-1.5 text-sm font-secondary font-medium text-primary border border-primary rounded-lg hover:bg-primary/10 transition-colors"
-                  >
-                    Upload Logo
-                  </button>
-                  <p className="text-xs text-gray-500 mt-1">
-                    PNG, JPG up to 2MB
+                </div>
+
+                <div className="rounded-lg border border-gray-200 bg-white">
+                  <div className="px-4 py-3 border-b border-gray-100">
+                    <p className="text-xs font-secondary font-medium text-gray-500">
+                      Organization Owner
+                    </p>
+                  </div>
+                  <div className="px-4 py-3">
+                    <p className="text-sm font-secondary text-gray-900">
+                      {tenantSettings.owner_name}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {tenantSettings.owner_email}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-gray-200 bg-white">
+                <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                  <p className="text-xs font-secondary font-medium text-gray-500">
+                    Subscription
                   </p>
+
+                  <span
+                    className={`inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full ${
+                      tenantSettings.subscription_status === "active"
+                        ? "bg-green-100 text-green-700"
+                        : tenantSettings.subscription_status === "trial"
+                          ? "bg-blue-100 text-blue-700"
+                          : "bg-gray-100 text-gray-700"
+                    }`}
+                  >
+                    {tenantSettings.subscription_status}
+                  </span>
+                </div>
+
+                <div className="px-4 py-3 space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-secondary text-gray-600">Plan</p>
+                    <p className="text-sm font-secondary font-medium text-gray-900 capitalize">
+                      {tenantSettings.subscription_plan}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-secondary text-gray-600">
+                      {tenantSettings.subscription_plan === "trial"
+                        ? "Trial ends"
+                        : "Subscription expires"}
+                    </p>
+                    <p className="text-sm font-secondary text-gray-900">
+                      {tenantSettings.subscription_plan === "trial"
+                        ? tenantSettings.trial_ends_at
+                          ? new Date(
+                              tenantSettings.trial_ends_at,
+                            ).toLocaleString(undefined, {
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric",
+                            })
+                          : "—"
+                        : tenantSettings.subscription_expires
+                          ? new Date(
+                              tenantSettings.subscription_expires,
+                            ).toLocaleString(undefined, {
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric",
+                            })
+                          : "—"}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-secondary text-gray-600">
+                      Member since
+                    </p>
+                    <p className="text-sm font-secondary text-gray-900">
+                      {tenantSettings.created_at
+                        ? new Date(tenantSettings.created_at).toLocaleString(
+                            undefined,
+                            { year: "numeric", month: "long", day: "numeric" },
+                          )
+                        : "—"}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
+
+            <div className="lg:col-span-1">
+              <div className="rounded-lg border border-gray-200 bg-white p-4">
+                <p className="text-xs font-secondary font-medium text-gray-500 mb-3">
+                  Organization Logo
+                </p>
+
+                <div className="flex items-start gap-4">
+                  <div className="relative shrink-0">
+                    <div className="w-20 h-20 rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden">
+                      {logoPreview ? (
+                        <img
+                          src={logoPreview}
+                          alt="Organization Logo"
+                          className="w-full h-full object-contain p-2"
+                        />
+                      ) : (
+                        <svg
+                          className="w-8 h-8 text-gray-400"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                          />
+                        </svg>
+                      )}
+                    </div>
+
+                    {uploadingLogo && (
+                      <div className="absolute inset-0 bg-white/75 flex items-center justify-center rounded-xl">
+                        <div className="h-6 w-6 animate-spin rounded-full border-2 border-solid border-primary border-r-transparent" />
+                      </div>
+                    )}
+
+                    {!!logoPreview && !uploadingLogo && (
+                      <button
+                        onClick={handleRemoveLogo}
+                        className="absolute -top-2 -right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow"
+                        aria-label="Remove logo"
+                      >
+                        <svg
+                          className="w-3.5 h-3.5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="min-w-0">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/gif,image/webp"
+                      onChange={handleLogoUpload}
+                      className="hidden"
+                      disabled={uploadingLogo}
+                    />
+
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploadingLogo}
+                      className="inline-flex items-center justify-center px-3 py-2 text-sm font-secondary font-medium text-primary border border-primary rounded-lg hover:bg-primary/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {uploadingLogo
+                        ? "Uploading..."
+                        : logoPreview
+                          ? "Change logo"
+                          : "Upload logo"}
+                    </button>
+
+                    <p className="text-xs text-gray-500 mt-2">
+                      PNG, JPG, GIF, WebP up to 2MB
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <p className="text-xs text-gray-500 mt-3">
+                Only the logo can be updated here.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-lg border border-gray-200">
+        <div className="p-4 border-b border-gray-200">
+          <h3 className="font-primary font-semibold text-gray-900">
+            Contact Information
+          </h3>
+          <p className="text-sm text-gray-500 mt-1">
+            Primary contact details for your organization
+          </p>
+        </div>
+        <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-secondary font-medium text-gray-700 mb-1">
+              Email Address
+            </label>
+            <input
+              type="email"
+              value={formData.email || ""}
+              onChange={(e) => handleChange("email", e.target.value)}
+              placeholder="contact@company.com"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg font-secondary text-sm text-gray-900
+                       placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-secondary font-medium text-gray-700 mb-1">
+              Phone Number
+            </label>
+            <input
+              type="tel"
+              value={formData.phone || ""}
+              onChange={(e) => handleChange("phone", e.target.value)}
+              placeholder="+1 (555) 123-4567"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg font-secondary text-sm text-gray-900
+                       placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+            />
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="block text-sm font-secondary font-medium text-gray-700 mb-1">
+              Physical Address
+            </label>
+            <textarea
+              value={formData.address || ""}
+              onChange={(e) => handleChange("address", e.target.value)}
+              rows={2}
+              placeholder="123 Main Street, City, State ZIP"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg font-secondary text-sm text-gray-900
+                       placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
+            />
           </div>
         </div>
       </div>
@@ -165,22 +532,28 @@ export default function GeneralSettingsTab({
             Configure time, date, and currency formats
           </p>
         </div>
-        <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <AppSelect
             label="Time Zone"
-            value={formData.timeZone}
-            onValueChange={(value) => handleChange("timeZone", value)}
+            value={formData.timezone || ""}
+            onValueChange={(value) => handleChange("timezone", value)}
             options={timeZones}
           />
           <AppSelect
             label="Date Format"
-            value={formData.dateFormat}
-            onValueChange={(value) => handleChange("dateFormat", value)}
+            value={formData.date_format || ""}
+            onValueChange={(value) => handleChange("date_format", value)}
             options={dateFormats}
           />
           <AppSelect
+            label="Time Format"
+            value={formData.time_format || ""}
+            onValueChange={(value) => handleChange("time_format", value)}
+            options={timeFormats}
+          />
+          <AppSelect
             label="Currency"
-            value={formData.currency}
+            value={formData.currency || ""}
             onValueChange={(value) => handleChange("currency", value)}
             options={currencies}
           />
@@ -190,93 +563,36 @@ export default function GeneralSettingsTab({
       <div className="bg-white rounded-lg border border-gray-200">
         <div className="p-4 border-b border-gray-200">
           <h3 className="font-primary font-semibold text-gray-900">
-            Overtime Rules
+            Billing Information
           </h3>
           <p className="text-sm text-gray-500 mt-1">
-            Configure overtime pay calculations
-          </p>
-        </div>
-        <div className="p-4">
-          <div className="max-w-xs">
-            <label className="block text-sm font-secondary font-medium text-gray-700 mb-1">
-              Overtime Pay Multiplier
-            </label>
-            <div className="relative">
-              <input
-                type="number"
-                step="0.1"
-                min="1"
-                max="3"
-                value={formData.overtimeMultiplier}
-                onChange={(e) =>
-                  handleChange("overtimeMultiplier", parseFloat(e.target.value))
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg font-secondary text-sm text-gray-900
-                         focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-              />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">
-                x
-              </span>
-            </div>
-            <p className="text-xs text-gray-500 mt-1">
-              Example: 1.5x means overtime hours are paid at 150% of regular
-              rate
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-lg border border-gray-200">
-        <div className="p-4 border-b border-gray-200">
-          <h3 className="font-primary font-semibold text-gray-900">
-            Tax & Compliance
-          </h3>
-          <p className="text-sm text-gray-500 mt-1">
-            Tax rates and compliance settings
+            Billing contact and address for invoices
           </p>
         </div>
         <div className="p-4 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-secondary font-medium text-gray-700 mb-1">
-                Tax Rate (%)
-              </label>
-              <input
-                type="number"
-                step="0.001"
-                min="0"
-                max="100"
-                value={formData.taxRate}
-                onChange={(e) =>
-                  handleChange("taxRate", parseFloat(e.target.value))
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg font-secondary text-sm text-gray-900
-                         focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-secondary font-medium text-gray-700 mb-1">
-                Tax ID / EIN
-              </label>
-              <input
-                type="text"
-                value={formData.taxId || ""}
-                onChange={(e) => handleChange("taxId", e.target.value)}
-                placeholder="XX-XXXXXXX"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg font-secondary text-sm text-gray-900
-                         placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-              />
-            </div>
-          </div>
           <div>
             <label className="block text-sm font-secondary font-medium text-gray-700 mb-1">
-              Compliance Notes
+              Billing Email
+            </label>
+            <input
+              type="email"
+              value={formData.billing_email || ""}
+              onChange={(e) => handleChange("billing_email", e.target.value)}
+              placeholder="billing@company.com"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg font-secondary text-sm text-gray-900
+                       placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-secondary font-medium text-gray-700 mb-1">
+              Billing Address
             </label>
             <textarea
-              value={formData.complianceNotes || ""}
-              onChange={(e) => handleChange("complianceNotes", e.target.value)}
+              value={formData.billing_address || ""}
+              onChange={(e) => handleChange("billing_address", e.target.value)}
               rows={3}
-              placeholder="Add any compliance requirements or notes..."
+              placeholder="Billing address (if different from physical address)"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg font-secondary text-sm text-gray-900
                        placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
             />
@@ -284,19 +600,53 @@ export default function GeneralSettingsTab({
         </div>
       </div>
 
+      <div className="bg-white rounded-lg border border-gray-200">
+        <div className="p-4 border-b border-gray-200">
+          <h3 className="font-primary font-semibold text-gray-900">
+            Security Settings
+          </h3>
+          <p className="text-sm text-gray-500 mt-1">
+            Organization-wide security preferences
+          </p>
+        </div>
+        <div className="p-4">
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={formData.require_2fa || false}
+              onChange={(e) => handleChange("require_2fa", e.target.checked)}
+              className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-2 focus:ring-primary"
+            />
+            <div>
+              <p className="text-sm font-secondary font-medium text-gray-900">
+                Require Two-Factor Authentication (2FA)
+              </p>
+              <p className="text-xs text-gray-500 mt-0.5">
+                All users in this organization must enable 2FA
+              </p>
+            </div>
+          </label>
+        </div>
+      </div>
+
       {hasChanges && (
         <div className="flex items-center justify-end gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
           <button
             onClick={handleReset}
-            className="px-4 py-2 text-sm font-secondary font-medium text-gray-700 hover:bg-gray-200 rounded-lg transition-colors"
+            disabled={isSaving}
+            className="px-4 py-2 text-sm font-secondary font-medium text-gray-700 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Reset Changes
           </button>
           <button
             onClick={handleSave}
-            className="px-4 py-2 text-sm font-secondary font-medium text-white bg-primary hover:bg-primary/90 rounded-lg transition-colors"
+            disabled={isSaving}
+            className="px-4 py-2 text-sm font-secondary font-medium text-white bg-primary hover:bg-primary/90 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
-            Save Changes
+            {isSaving && (
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-solid border-white border-r-transparent"></div>
+            )}
+            {isSaving ? "Saving..." : "Save Changes"}
           </button>
         </div>
       )}

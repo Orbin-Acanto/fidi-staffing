@@ -17,11 +17,6 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("general");
   const [settings, setSettings] = useState<Settings>(settingsData);
 
-  const handleSaveGeneralSettings = (generalSettings: GeneralSettings) => {
-    setSettings((prev) => ({ ...prev, general: generalSettings }));
-    console.log("General settings saved:", generalSettings);
-  };
-
   const handleSaveEmailSettings = (emailSettings: EmailSettings) => {
     setSettings((prev) => ({ ...prev, email: emailSettings }));
     console.log("Email settings saved:", emailSettings);
@@ -47,12 +42,7 @@ export default function SettingsPage() {
       <SettingsHeader activeTab={activeTab} onTabChange={setActiveTab} />
 
       <div>
-        {activeTab === "general" && (
-          <GeneralSettingsTab
-            settings={settings.general}
-            onSave={handleSaveGeneralSettings}
-          />
-        )}
+        {activeTab === "general" && <GeneralSettingsTab />}
 
         {activeTab === "email" && (
           <EmailSettingsTab

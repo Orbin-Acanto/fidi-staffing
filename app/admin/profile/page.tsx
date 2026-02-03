@@ -14,7 +14,6 @@ import { useMe } from "@/hooks/useMe";
 export default function ProfilePage() {
   const { data: me, isLoading } = useMe();
   const mappedProfile = useMemo(() => {
-    console.log("Mapping profile from me:", me);
     return me ? userMeToAdminProfile(me) : null;
   }, [me]);
 

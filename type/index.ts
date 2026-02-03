@@ -855,3 +855,48 @@ type EntityRef = {
   id: string;
   name: string;
 };
+
+export const timeFormats = [
+  { value: "12h", label: "12-hour (2:30 PM)" },
+  { value: "24h", label: "24-hour (14:30)" },
+];
+
+export interface TenantSettings {
+  id: string;
+  name: string;
+  slug: string;
+  logo: string | null;
+  logo_url: string | null;
+
+  email: string;
+  phone: string;
+  address: string;
+
+  currency: string;
+  timezone: string;
+  date_format: string;
+  time_format: string;
+
+  billing_email: string | null;
+  billing_address: string;
+
+  notification_settings: Record<string, any>;
+  require_2fa: boolean;
+
+  backup_frequency: string;
+  retention_period: number;
+  last_backup_at: string | null;
+  automatic_backup_enabled: boolean;
+
+  owner_email: string;
+  owner_name: string;
+
+  subscription_plan: string;
+  subscription_status: string;
+  trial_ends_at: string | null;
+  subscription_expires: string | null;
+
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
