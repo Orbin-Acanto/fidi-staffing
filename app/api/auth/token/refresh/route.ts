@@ -64,6 +64,7 @@ export async function POST(req: NextRequest) {
     );
 
     const isProd = process.env.NODE_ENV === "production";
+
     res.cookies.set("access_token", "", {
       httpOnly: true,
       secure: isProd,
@@ -71,6 +72,7 @@ export async function POST(req: NextRequest) {
       path: "/",
       maxAge: 0,
     });
+
     res.cookies.set("refresh_token", "", {
       httpOnly: true,
       secure: isProd,
@@ -83,6 +85,8 @@ export async function POST(req: NextRequest) {
   }
 
   const newAccess = data?.access;
+  const newRefresh = data?.refresh;
+
   if (!newAccess) {
     return NextResponse.json(
       { message: "Access token missing from server response." },
@@ -100,6 +104,18 @@ export async function POST(req: NextRequest) {
     path: "/",
     maxAge: 60 * 30,
   });
+
+  if (newRefresh) {
+    res.cookies.set("refresh_token", newRefresh, {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 7,
+    });
+  } else {
+    console.log("No new refresh token from Server.");
+  }
 
   return res;
 }

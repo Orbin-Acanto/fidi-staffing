@@ -22,18 +22,13 @@ const defaultTwoFactorAuth: TwoFactorAuth = {
 };
 
 export function userMeToAdminProfile(me: UserMe): AdminProfile {
-  const name =
-    me.full_name?.trim() ||
-    `${me.first_name ?? ""} ${me.last_name ?? ""}`.trim() ||
-    me.email;
+  const name = `${me.first_name ?? ""} ${me.last_name ?? ""}`.trim();
 
-  const role: AdminProfile["role"] = me.is_saas_admin
-    ? "SaaS Admin"
-    : me.tenant_role
-      ? me.tenant_role
-      : me.is_staff
-        ? "Staff"
-        : "User";
+  const role: AdminProfile["role"] = me.tenant_role
+    ? me.tenant_role
+    : me.is_staff
+      ? "Staff"
+      : "User";
 
   return {
     id: me.id,
@@ -42,7 +37,7 @@ export function userMeToAdminProfile(me: UserMe): AdminProfile {
     phone: me.phone ?? "",
     avatar: me.avatar ?? null,
     role,
-    company: me.current_company?.name ?? me.current_tenant?.name ?? "",
+    company: me.current_company?.name ?? "",
     joinedAt: me.created_at,
 
     notificationPreferences: defaultNotificationPreferences,
