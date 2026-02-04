@@ -8,6 +8,11 @@ const nextConfig: NextConfig = {
         hostname: "avatar.iran.liara.run",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "randomuser.me",
+        pathname: "/**",
+      },
     ],
   },
 };

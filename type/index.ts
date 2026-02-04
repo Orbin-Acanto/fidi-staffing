@@ -900,3 +900,124 @@ export interface TenantSettings {
   created_at: string;
   updated_at: string;
 }
+
+export interface EventType {
+  id: string;
+  name: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  location: string;
+  expectedStaffCount: number;
+  checkedInCount: number;
+  status: "upcoming" | "active" | "completed";
+}
+
+export interface StaffType {
+  id: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  email: string;
+  photoUrl: string;
+  position: string;
+  notes?: string;
+}
+
+export interface CheckInSession {
+  id: string;
+  eventId: string;
+  event: EventType;
+  startedAt: string;
+  endedAt?: string;
+  startedBy: string;
+  endedBy?: string;
+  status: "active" | "ended";
+  totalCheckedIn: number;
+  autoCloseAt: string;
+}
+
+export interface CheckOutSession {
+  id: string;
+  eventId: string;
+  event: EventType;
+  startedAt: string;
+  endedAt?: string;
+  startedBy: string;
+  endedBy?: string;
+  status: "active" | "ended";
+  totalCheckedOut: number;
+}
+
+export interface CheckInRecord {
+  id: string;
+  staffId: string;
+  staff: StaffType;
+  sessionId: string;
+  checkInTime: string;
+  checkOutTime?: string;
+  verifiedBy?: string;
+  verificationMethod: "face" | "admin" | "pin";
+  isLate: boolean;
+  minutesLate?: number;
+  capturedPhotoUrl?: string;
+}
+
+export interface AdminHelpRequest {
+  id: string;
+  staffId: string;
+  staff: StaffType;
+  sessionId: string;
+  requestedAt: string;
+  status: "pending" | "resolved" | "timeout";
+  resolvedAt?: string;
+  resolvedBy?: string;
+}
+
+export interface LiveStats {
+  totalExpected: number;
+  checkedIn: number;
+  pendingHelpRequests: number;
+  lateArrivals: number;
+  onTimeArrivals: number;
+  recentCheckIns: CheckInRecord[];
+}
+
+export interface OfflineCheckIn {
+  id: string;
+  staffPhone: string;
+  staffPin: string;
+  capturedPhoto?: string;
+  timestamp: string;
+  synced: boolean;
+}
+
+export type ErrorType =
+  | "wrongCredentials"
+  | "faceVerificationFailed"
+  | "alreadyCheckedIn"
+  | "lateArrival"
+  | "notScheduled"
+  | "sessionEnded"
+  | "networkError"
+  | "cameraError"
+  | "unknown";
+
+export interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  errorType?: ErrorType;
+}
+
+export type SessionMode = "checkin" | "checkout";
+export type SessionStatus = "idle" | "active" | "ended";
+
+export interface AppState {
+  mode: SessionMode;
+  status: SessionStatus;
+  currentSession: CheckInSession | CheckOutSession | null;
+  currentEvent: Event | null;
+  isOnline: boolean;
+  offlineQueue: OfflineCheckIn[];
+}
