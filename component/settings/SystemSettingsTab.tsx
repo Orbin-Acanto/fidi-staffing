@@ -1,62 +1,170 @@
 "use client";
-import { SystemPreferences } from "@/type";
-import { useState } from "react";
-import { AppSelect } from "@/component/ui/Select";
 
-interface SystemSettingsTabProps {
-  settings: SystemPreferences;
-  onSave: (settings: SystemPreferences) => void;
-  onExportData: () => void;
-  onBackupNow: () => void;
+import { TenantSettings, UserMe } from "@/type";
+import { useEffect, useState } from "react";
+import { AppSelect } from "@/component/ui/Select";
+import { apiFetch } from "@/lib/apiFetch";
+import { toast } from "react-toastify";
+
+const SYSTEM_FIELDS: (keyof TenantSettings)[] = [
+  "backup_frequency",
+  "retention_period",
+  "automatic_backup_enabled",
+];
+
+function pickSystem(data: TenantSettings): Partial<TenantSettings> {
+  const out: Partial<TenantSettings> = {};
+  for (const k of SYSTEM_FIELDS) out[k] = data[k] as any;
+  return out;
 }
 
-export default function SystemSettingsTab({
-  settings,
-  onSave,
-  onExportData,
-  onBackupNow,
-}: SystemSettingsTabProps) {
-  const [formData, setFormData] = useState<SystemPreferences>(settings);
-  const [hasChanges, setHasChanges] = useState(false);
-  const [isExporting, setIsExporting] = useState(false);
+type Props = { me: UserMe };
+
+export default function SystemSettingsTab({ me }: Props) {
+  const isOwner = me.tenant_role === "owner";
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [isBackingUp, setIsBackingUp] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const [tenantSettings, setTenantSettings] = useState<TenantSettings | null>(
+    null,
+  );
+  const [formData, setFormData] = useState<Partial<TenantSettings>>({});
+  const [hasChanges, setHasChanges] = useState(false);
+
+  const denyEdit = () => {
+    toast.error("View only. Only the owner can update system settings.", {
+      toastId: "system-view-only",
+    });
+  };
+
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const load = async () => {
+    setIsLoading(true);
+    try {
+      const data = await apiFetch<TenantSettings>("/api/tenant/settings", {
+        method: "GET",
+      });
+      setTenantSettings(data);
+      setFormData(pickSystem(data));
+      setHasChanges(false);
+      console.log(data);
+    } catch (e) {
+      toast.error("Failed to load system settings", {
+        toastId: "system-load-error",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleChange = (
-    field: keyof SystemPreferences,
-    value: boolean | string | number
+    name: keyof TenantSettings,
+    value: string | boolean | number,
   ) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    if (!isOwner) {
+      denyEdit();
+      return;
+    }
+    setFormData((prev) => ({ ...prev, [name]: value as any }));
     setHasChanges(true);
   };
 
-  const handleSave = () => {
-    onSave(formData);
+  const handleSave = async () => {
+    if (!isOwner) {
+      denyEdit();
+      return;
+    }
+    setIsSaving(true);
+    try {
+      const updated = await apiFetch<TenantSettings>("/api/tenant/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+      setTenantSettings(updated);
+      setFormData(pickSystem(updated));
+      setHasChanges(false);
+      toast.success("System settings saved", {
+        toastId: "system-save-success",
+      });
+    } catch (e) {
+      toast.error("Failed to save system settings", {
+        toastId: "system-save-error",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleReset = () => {
+    if (!isOwner) {
+      denyEdit();
+      return;
+    }
+    if (!tenantSettings) return;
+    setFormData(pickSystem(tenantSettings));
     setHasChanges(false);
   };
 
   const handleExport = async () => {
+    if (!isOwner) return denyEdit();
     setIsExporting(true);
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    onExportData();
-    setIsExporting(false);
+    try {
+      alert("Export Request Submitted");
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const handleBackupNow = async () => {
+    if (!isOwner) return denyEdit();
     setIsBackingUp(true);
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    onBackupNow();
-    setFormData((prev) => ({
-      ...prev,
-      lastBackup: new Date().toISOString(),
-    }));
-    setIsBackingUp(false);
+    try {
+      alert("Backup Request Submitted");
+    } finally {
+      setIsBackingUp(false);
+    }
   };
 
-  const formatLastBackup = (dateString?: string) => {
+  const formatLastBackup = (dateString?: string | null) => {
     if (!dateString) return "Never";
     const date = new Date(dateString);
-    return date.toLocaleString();
+    return Number.isNaN(date.getTime()) ? "Never" : date.toLocaleString();
   };
+
+  if (isLoading) {
+    return (
+      <div className="py-10 text-sm text-gray-500">
+        Loading system settings...
+      </div>
+    );
+  }
+
+  if (!tenantSettings) {
+    return (
+      <div className="py-10">
+        <p className="text-sm text-gray-500">Failed to load system settings</p>
+        <button
+          onClick={load}
+          className="mt-3 px-4 py-2 text-sm font-secondary font-medium text-primary border border-primary rounded-lg hover:bg-primary/10"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  const lastBackupAt = (tenantSettings as TenantSettings).last_backup_at as
+    | string
+    | null
+    | undefined;
 
   return (
     <div className="space-y-6">
@@ -80,28 +188,35 @@ export default function SystemSettingsTab({
               </p>
             </div>
             <button
-              onClick={() => handleChange("autoBackup", !formData.autoBackup)}
+              onClick={() =>
+                handleChange(
+                  "automatic_backup_enabled",
+                  !formData.automatic_backup_enabled,
+                )
+              }
               className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                formData.autoBackup ? "bg-primary" : "bg-gray-300"
+                formData.automatic_backup_enabled ? "bg-primary" : "bg-gray-300"
               }`}
             >
               <span
                 className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                  formData.autoBackup ? "translate-x-5" : "translate-x-0"
+                  formData.automatic_backup_enabled
+                    ? "translate-x-5"
+                    : "translate-x-0"
                 }`}
               />
             </button>
           </div>
 
-          {formData.autoBackup && (
+          {formData.automatic_backup_enabled && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <AppSelect
                 label="Backup Frequency"
-                value={formData.backupFrequency}
+                value={formData.backup_frequency || undefined}
                 onValueChange={(value) =>
                   handleChange(
-                    "backupFrequency",
-                    value as "daily" | "weekly" | "monthly"
+                    "backup_frequency",
+                    value as "daily" | "weekly" | "monthly",
                   )
                 }
                 options={[
@@ -111,16 +226,19 @@ export default function SystemSettingsTab({
                 ]}
               />
               <div>
-                <label className="block text-sm font-secondary font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
                   Retention Period (Days)
                 </label>
                 <input
                   type="number"
                   min="7"
                   max="365"
-                  value={formData.retentionDays}
+                  value={formData.retention_period ?? ""}
                   onChange={(e) =>
-                    handleChange("retentionDays", parseInt(e.target.value))
+                    handleChange(
+                      "retention_period",
+                      parseInt(e.target.value || "0"),
+                    )
                   }
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg font-secondary text-sm text-gray-900
                            focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
@@ -135,7 +253,7 @@ export default function SystemSettingsTab({
                 Last Backup
               </p>
               <p className="font-secondary font-medium text-gray-900">
-                {formatLastBackup(formData.lastBackup)}
+                {formatLastBackup(lastBackupAt)}
               </p>
             </div>
             <button
@@ -263,10 +381,7 @@ export default function SystemSettingsTab({
       {hasChanges && (
         <div className="flex items-center justify-end gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
           <button
-            onClick={() => {
-              setFormData(settings);
-              setHasChanges(false);
-            }}
+            onClick={handleReset}
             className="px-4 py-2 text-sm font-secondary font-medium text-gray-700 hover:bg-gray-200 rounded-lg transition-colors"
           >
             Reset Changes

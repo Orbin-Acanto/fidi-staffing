@@ -53,14 +53,7 @@ export default function SettingsPage() {
           />
         )}
 
-        {activeTab === "system" && (
-          <SystemSettingsTab
-            settings={settings.system}
-            onSave={handleSaveSystemSettings}
-            onExportData={handleExportData}
-            onBackupNow={handleBackupNow}
-          />
-        )}
+        {activeTab === "system" && <SystemSettingsTab me={me} />}
       </div>
     </div>
   );
