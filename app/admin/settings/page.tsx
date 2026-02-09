@@ -7,10 +7,17 @@ import SettingsHeader from "@/component/settings/SettingsHeader";
 import GeneralSettingsTab from "@/component/settings/GeneralSettingsTab";
 import EmailSettingsTab from "@/component/settings/EmailSettingsTab";
 import SystemSettingsTab from "@/component/settings/SystemSettingsTab";
+import { useMe } from "@/component/auth/AuthProvider";
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("general");
   const [settings, setSettings] = useState<Settings>(settingsData);
+
+  const me = useMe();
+
+  if (!me) {
+    return null;
+  }
 
   const handleSaveEmailSettings = (emailSettings: EmailSettings) => {
     setSettings((prev) => ({ ...prev, email: emailSettings }));
@@ -35,7 +42,7 @@ export default function SettingsPage() {
       <SettingsHeader activeTab={activeTab} onTabChange={setActiveTab} />
 
       <div>
-        {activeTab === "general" && <GeneralSettingsTab />}
+        {activeTab === "general" && <GeneralSettingsTab me={me} />}
 
         {activeTab === "email" && (
           <EmailSettingsTab

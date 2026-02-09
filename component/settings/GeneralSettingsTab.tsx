@@ -1,5 +1,5 @@
 "use client";
-import { TenantSettings, timeFormats } from "@/type";
+import { TenantSettings, timeFormats, UserMe } from "@/type";
 import { timeZones, dateFormats, currencies } from "@/data";
 import { useState, useRef, useEffect } from "react";
 import { AppSelect } from "@/component/ui/Select";
@@ -18,11 +18,11 @@ const EDITABLE_FIELDS: (keyof TenantSettings)[] = [
   "time_format",
   "billing_email",
   "billing_address",
-  "notification_settings",
+  // "notification_settings",
   "require_2fa",
-  "backup_frequency",
-  "retention_period",
-  "automatic_backup_enabled",
+  // "backup_frequency",
+  // "retention_period",
+  // "automatic_backup_enabled",
 ];
 
 function pickEditable(data: TenantSettings): Partial<TenantSettings> {
@@ -39,7 +39,11 @@ const makeFreshLogoUrl = (urlOrKey?: string | null) => {
   return `${proxied}${sep}v=${Date.now()}`;
 };
 
-export default function GeneralSettingsTab() {
+type Props = {
+  me: UserMe;
+};
+
+export default function GeneralSettingsTab({ me }: Props) {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [tenantSettings, setTenantSettings] = useState<TenantSettings | null>(
@@ -51,8 +55,17 @@ export default function GeneralSettingsTab() {
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const isOwner = me.tenant_role === "owner";
+
+  const denyEdit = () => {
+    toast.error("View only. Only the owner can update organization settings.", {
+      toastId: "settings-view-only",
+    });
+  };
+
   useEffect(() => {
     loadTenantSettings();
+    console.log(me.tenant_role);
   }, []);
 
   const loadTenantSettings = async () => {
@@ -77,11 +90,25 @@ export default function GeneralSettingsTab() {
     name: keyof TenantSettings,
     value: string | boolean,
   ) => {
+    if (!isOwner) {
+      denyEdit();
+      return;
+    }
     setFormData((prev) => ({ ...prev, [name]: value }));
     setHasChanges(true);
   };
 
+  const clearFileInput = () => {
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!isOwner) {
+      denyEdit();
+      if (e.target) e.target.value = "";
+      return;
+    }
+
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -117,8 +144,6 @@ export default function GeneralSettingsTab() {
             }),
           },
         );
-        setTenantSettings(updatedTenant);
-        setFormData(updatedTenant);
         setLogoPreview(
           makeFreshLogoUrl(
             updatedTenant.logo_url ?? updatedTenant.logo ?? null,
@@ -127,6 +152,7 @@ export default function GeneralSettingsTab() {
         toast.success("Logo uploaded successfully", {
           toastId: "logo-upload-success",
         });
+        clearFileInput();
       } catch (error) {
         setLogoPreview(
           makeFreshLogoUrl(
@@ -144,6 +170,11 @@ export default function GeneralSettingsTab() {
   };
 
   const handleRemoveLogo = async () => {
+    if (!isOwner) {
+      denyEdit();
+      return;
+    }
+
     if (!confirm("Are you sure you want to remove the organization logo?"))
       return;
 
@@ -155,9 +186,6 @@ export default function GeneralSettingsTab() {
           method: "DELETE",
         },
       );
-
-      setTenantSettings(updatedTenant);
-      setFormData(updatedTenant);
       setLogoPreview(null);
       toast.success("Logo removed successfully", {
         toastId: "logo-remove-success",
@@ -173,6 +201,11 @@ export default function GeneralSettingsTab() {
   };
 
   const handleSave = async () => {
+    if (!isOwner) {
+      denyEdit();
+      return;
+    }
+
     setIsSaving(true);
     try {
       const updatedTenant = await apiFetch<TenantSettings>(
@@ -200,6 +233,11 @@ export default function GeneralSettingsTab() {
   };
 
   const handleReset = () => {
+    if (!isOwner) {
+      denyEdit();
+      return;
+    }
+
     if (tenantSettings) {
       setFormData(tenantSettings);
       setLogoPreview(
@@ -232,7 +270,8 @@ export default function GeneralSettingsTab() {
         </p>
         <button
           onClick={loadTenantSettings}
-          className="mt-4 px-4 py-2 text-sm font-secondary font-medium text-primary border border-primary rounded-lg hover:bg-primary/10"
+          disabled={isLoading}
+          className="mt-4 px-4 py-2 text-sm font-secondary font-medium text-primary border border-primary rounded-lg hover:bg-primary/10 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Retry
         </button>
@@ -396,7 +435,7 @@ export default function GeneralSettingsTab() {
 
                     {!!logoPreview && !uploadingLogo && (
                       <button
-                        onClick={handleRemoveLogo}
+                        onClick={isOwner ? handleRemoveLogo : denyEdit}
                         className="absolute -top-2 -right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow"
                         aria-label="Remove logo"
                       >
@@ -423,13 +462,15 @@ export default function GeneralSettingsTab() {
                       type="file"
                       accept="image/jpeg,image/png,image/gif,image/webp"
                       onChange={handleLogoUpload}
-                      className="hidden"
-                      disabled={uploadingLogo}
+                      className="hidden disabled:opacity-60 disabled:cursor-not-allowed"
+                      disabled={uploadingLogo || !isOwner}
                     />
 
                     <button
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={uploadingLogo}
+                      onClick={() =>
+                        isOwner ? fileInputRef.current?.click() : denyEdit()
+                      }
+                      disabled={uploadingLogo || !isOwner}
                       className="inline-flex items-center justify-center px-3 py-2 text-sm font-secondary font-medium text-primary border border-primary rounded-lg hover:bg-primary/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {uploadingLogo
@@ -471,9 +512,10 @@ export default function GeneralSettingsTab() {
             <input
               type="email"
               value={formData.email || ""}
+              disabled={!isOwner}
               onChange={(e) => handleChange("email", e.target.value)}
               placeholder="contact@company.com"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg font-secondary text-sm text-gray-900
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg font-secondary text-sm text-gray-900 disabled:opacity-60 disabled:cursor-not-allowed
                        placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
             />
           </div>
@@ -485,9 +527,10 @@ export default function GeneralSettingsTab() {
             <input
               type="tel"
               value={formData.phone || ""}
+              disabled={!isOwner}
               onChange={(e) => handleChange("phone", e.target.value)}
               placeholder="+1 (555) 123-4567"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg font-secondary text-sm text-gray-900
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg font-secondary text-sm text-gray-900 disabled:opacity-60 disabled:cursor-not-allowed
                        placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
             />
           </div>
@@ -498,10 +541,11 @@ export default function GeneralSettingsTab() {
             </label>
             <textarea
               value={formData.address || ""}
+              disabled={!isOwner}
               onChange={(e) => handleChange("address", e.target.value)}
               rows={2}
               placeholder="123 Main Street, City, State ZIP"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg font-secondary text-sm text-gray-900
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg font-secondary text-sm text-gray-900 disabled:opacity-60 disabled:cursor-not-allowed
                        placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
             />
           </div>
@@ -521,24 +565,28 @@ export default function GeneralSettingsTab() {
           <AppSelect
             label="Time Zone"
             value={formData.timezone || ""}
+            disabled={!isOwner}
             onValueChange={(value) => handleChange("timezone", value)}
             options={timeZones}
           />
           <AppSelect
             label="Date Format"
             value={formData.date_format || ""}
+            disabled={!isOwner}
             onValueChange={(value) => handleChange("date_format", value)}
             options={dateFormats}
           />
           <AppSelect
             label="Time Format"
             value={formData.time_format || ""}
+            disabled={!isOwner}
             onValueChange={(value) => handleChange("time_format", value)}
             options={timeFormats}
           />
           <AppSelect
             label="Currency"
             value={formData.currency || ""}
+            disabled={!isOwner}
             onValueChange={(value) => handleChange("currency", value)}
             options={currencies}
           />
@@ -562,9 +610,10 @@ export default function GeneralSettingsTab() {
             <input
               type="email"
               value={formData.billing_email || ""}
+              disabled={!isOwner}
               onChange={(e) => handleChange("billing_email", e.target.value)}
               placeholder="billing@company.com"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg font-secondary text-sm text-gray-900
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg font-secondary text-sm text-gray-900 disabled:opacity-60 disabled:cursor-not-allowed
                        placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
             />
           </div>
@@ -575,10 +624,11 @@ export default function GeneralSettingsTab() {
             </label>
             <textarea
               value={formData.billing_address || ""}
+              disabled={!isOwner}
               onChange={(e) => handleChange("billing_address", e.target.value)}
               rows={3}
               placeholder="Billing address (if different from physical address)"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg font-secondary text-sm text-gray-900
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg font-secondary text-sm text-gray-900 disabled:opacity-60 disabled:cursor-not-allowed
                        placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
             />
           </div>
@@ -595,12 +645,15 @@ export default function GeneralSettingsTab() {
           </p>
         </div>
         <div className="p-4">
-          <label className="flex items-center gap-3 cursor-pointer">
+          <label
+            className={`flex items-center gap-3 ${isOwner ? "cursor-pointer" : "cursor-not-allowed"}`}
+          >
             <input
               type="checkbox"
               checked={formData.require_2fa || false}
+              disabled={!isOwner}
               onChange={(e) => handleChange("require_2fa", e.target.checked)}
-              className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-2 focus:ring-primary"
+              className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-2 focus:ring-primary disabled:opacity-60 disabled:cursor-not-allowed"
             />
             <div>
               <p className="text-sm font-secondary font-medium text-gray-900">
@@ -617,15 +670,15 @@ export default function GeneralSettingsTab() {
       {hasChanges && (
         <div className="flex items-center justify-end gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
           <button
-            onClick={handleReset}
-            disabled={isSaving}
+            onClick={isOwner ? handleReset : denyEdit}
+            disabled={isSaving || !isOwner}
             className="px-4 py-2 text-sm font-secondary font-medium text-gray-700 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Reset Changes
           </button>
           <button
-            onClick={handleSave}
-            disabled={isSaving}
+            onClick={isOwner ? handleSave : denyEdit}
+            disabled={isSaving || !isOwner}
             className="px-4 py-2 text-sm font-secondary font-medium text-white bg-primary hover:bg-primary/90 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             {isSaving && (
