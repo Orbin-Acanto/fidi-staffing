@@ -1,4 +1,5 @@
 "use client";
+import { toMediaProxyUrl } from "@/lib/mediaUrl";
 import { User } from "@/type";
 import { getRoleBadgeColor, getStatusBadgeColor } from "@/utils";
 
@@ -33,7 +34,7 @@ export default function UserDetailModal({
           <div className="flex items-start justify-between p-6 border-b border-gray-200">
             <div className="flex items-center gap-4">
               <img
-                src={user.avatar || "/male.png"}
+                src={toMediaProxyUrl(user.avatar) || "/male.png"}
                 alt={user.name}
                 className="w-16 h-16 rounded-full object-cover"
               />

@@ -143,6 +143,7 @@ export default function GeneralSettingsTab({ me }: Props) {
             }),
           },
         );
+        clearFileInput();
         setLogoPreview(
           makeFreshLogoUrl(
             updatedTenant.logo_url ?? updatedTenant.logo ?? null,
@@ -151,7 +152,6 @@ export default function GeneralSettingsTab({ me }: Props) {
         toast.success("Logo uploaded successfully", {
           toastId: "logo-upload-success",
         });
-        clearFileInput();
       } catch (error) {
         setLogoPreview(
           makeFreshLogoUrl(

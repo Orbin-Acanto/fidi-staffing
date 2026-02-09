@@ -39,14 +39,6 @@ export default function AdminTopbar() {
 
   const role = me?.tenant_role ?? "Admin";
 
-  const makeFreshLogoUrl = (urlOrKey?: string | null) => {
-    const proxied = toMediaProxyUrl(urlOrKey) ?? null;
-    if (!proxied) return null;
-
-    const sep = proxied.includes("?") ? "&" : "?";
-    return `${proxied}${sep}v=${Date.now()}`;
-  };
-
   const handleLogout = async () => {
     if (isLoading) return;
     setIsLoading(true);
@@ -203,12 +195,10 @@ export default function AdminTopbar() {
             </div>
 
             <div className="relative">
-              <Image
-                src={makeFreshLogoUrl(me?.avatar) || "/male.png"}
+              <img
+                src={toMediaProxyUrl(me?.avatar) || "/male.png"}
                 alt="User"
-                width={40}
-                height={40}
-                className="rounded-full object-cover border-2 border-gray-200"
+                className="w-10 h-10 rounded-full object-cover"
               />
               <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full" />
             </div>

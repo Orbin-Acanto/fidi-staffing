@@ -1,22 +1,35 @@
 export function toMediaProxyUrl(urlOrKey?: string | null): string | null {
   if (!urlOrKey) return null;
 
-  const storageBase = process.env.NEXT_PUBLIC_STORAGE_BASE_URL?.replace(
-    /\/$/,
-    "",
-  );
   const proxyBase =
-    process.env.NEXT_PUBLIC_MEDIA_PROXY_BASE?.replace(/\/$/, "") ||
-    "/api/media";
+    process.env.NEXT_PUBLIC_MEDIA_API_ENDPOINT?.replace(/\/$/, "") ||
+    "/api/media/public";
 
-  if (storageBase && urlOrKey.startsWith(storageBase)) {
-    const rest = urlOrKey.slice(storageBase.length).replace(/^\/+/, "");
-    return `${proxyBase}/${rest}`;
+  if (urlOrKey.startsWith(proxyBase)) return urlOrKey;
+
+  const normalizeKey = (rawPath: string) => {
+    let p = rawPath.replace(/^\/+/, "");
+
+    const idx = p.indexOf("/public/");
+    if (idx >= 0) {
+      p = p.slice(idx + "/public/".length);
+    } else {
+      p = p.replace(/^public\//, "");
+    }
+
+    return p;
+  };
+
+  if (/^https?:\/\//i.test(urlOrKey)) {
+    try {
+      const u = new URL(urlOrKey);
+      const key = normalizeKey(u.pathname);
+      return `${proxyBase}/${key}`;
+    } catch {
+      return null;
+    }
   }
 
-  if (!/^https?:\/\//i.test(urlOrKey)) {
-    return `${proxyBase}/${urlOrKey.replace(/^\/+/, "")}`;
-  }
-
-  return urlOrKey;
+  const key = normalizeKey(urlOrKey);
+  return `${proxyBase}/${key}`;
 }

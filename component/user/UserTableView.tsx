@@ -1,4 +1,5 @@
 "use client";
+import { toMediaProxyUrl } from "@/lib/mediaUrl";
 import { User } from "@/type";
 import { getRoleBadgeColor, getStatusBadgeColor } from "@/utils";
 
@@ -70,7 +71,7 @@ export default function UserTableView({
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-3">
                     <img
-                      src={user.avatar || "/male.png"}
+                      src={toMediaProxyUrl(user.avatar) || "/male.png"}
                       alt={user.name}
                       className="w-10 h-10 rounded-full object-cover"
                     />
