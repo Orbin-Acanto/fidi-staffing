@@ -14,7 +14,10 @@ function isSafeOrigin(req: NextRequest) {
   }
 }
 
-export async function GET(req: NextRequest) {
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ company_id: string }> },
+) {
   const origin = req.headers.get("origin");
   if (origin && !isSafeOrigin(req)) {
     return NextResponse.json({ message: "Invalid origin." }, { status: 403 });
@@ -39,13 +42,27 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const upstream = await fetch(`${DJANGO_API_URL}/api/companies/`, {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${access}`,
+  const { company_id } = await params;
+
+  let body: any;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ message: "Invalid JSON." }, { status: 400 });
+  }
+
+  const upstream = await fetch(
+    `${DJANGO_API_URL}/api/companies/${company_id}/`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${access}`,
+      },
+      body: JSON.stringify(body),
+      cache: "no-store",
     },
-    cache: "no-store",
-  });
+  );
 
   const text = await upstream.text();
   let data: any = null;

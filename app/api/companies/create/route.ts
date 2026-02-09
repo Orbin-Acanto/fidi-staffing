@@ -14,7 +14,7 @@ function isSafeOrigin(req: NextRequest) {
   }
 }
 
-export async function GET(req: NextRequest) {
+export async function POST(req: NextRequest) {
   const origin = req.headers.get("origin");
   if (origin && !isSafeOrigin(req)) {
     return NextResponse.json({ message: "Invalid origin." }, { status: 403 });
@@ -39,11 +39,32 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const upstream = await fetch(`${DJANGO_API_URL}/api/companies/`, {
-    method: "GET",
+  let body: any;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ message: "Invalid JSON." }, { status: 400 });
+  }
+
+  const { name } = body;
+
+  if (!name || !name.trim()) {
+    return NextResponse.json(
+      {
+        message: "Validation error.",
+        errors: { name: ["Company name is required."] },
+      },
+      { status: 400 },
+    );
+  }
+
+  const upstream = await fetch(`${DJANGO_API_URL}/api/companies/create/`, {
+    method: "POST",
     headers: {
+      "Content-Type": "application/json",
       Authorization: `Bearer ${access}`,
     },
+    body: JSON.stringify(body),
     cache: "no-store",
   });
 
@@ -66,5 +87,5 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  return NextResponse.json(data, { status: 200 });
+  return NextResponse.json(data, { status: upstream.status });
 }

@@ -82,7 +82,7 @@ export interface Event {
   specialInstructions?: string;
 }
 
-type Company = {
+export type Company = {
   id: string;
   tenant: string;
   tenant_name: string;
@@ -825,7 +825,7 @@ export type RoleFormData = {
 
 export type UUID = string;
 
-export type TenantRole = "owner" | "admin" | "moderator";
+export type TenantRole = "owner" | "admin" | "moderator" | "staff";
 
 export type UserMe = {
   id: UUID;

@@ -8,6 +8,7 @@ import GeneralSettingsTab from "@/component/settings/GeneralSettingsTab";
 import EmailSettingsTab from "@/component/settings/EmailSettingsTab";
 import SystemSettingsTab from "@/component/settings/SystemSettingsTab";
 import { useMe } from "@/component/auth/AuthProvider";
+import CompanySettingsTab from "@/component/settings/CompanySettingsTab";
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("general");
@@ -43,6 +44,7 @@ export default function SettingsPage() {
 
       <div>
         {activeTab === "general" && <GeneralSettingsTab me={me} />}
+        {activeTab === "company" && <CompanySettingsTab me={me} />}
 
         {activeTab === "email" && (
           <EmailSettingsTab

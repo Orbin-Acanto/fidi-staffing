@@ -36,6 +36,26 @@ export default function SettingsHeader({
       ),
     },
     {
+      id: "company",
+      label: "Company",
+      icon: (
+        <svg
+          className="w-5 h-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M3 21h18M5 21V7a2 2 0 012-2h3V3h4v2h3a2 2 0 012 2v14M9 21v-4m6 4v-4M9 11h.01M15 11h.01M9 15h.01M15 15h.01"
+          />
+        </svg>
+      ),
+    },
+
+    {
       id: "email",
       label: "Email Templates",
       icon: (
