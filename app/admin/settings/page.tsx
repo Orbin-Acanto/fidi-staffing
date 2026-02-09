@@ -2,12 +2,7 @@
 import { useState } from "react";
 
 import { settingsData } from "@/data";
-import {
-  Settings,
-  GeneralSettings,
-  EmailSettings,
-  SystemPreferences,
-} from "@/type";
+import { Settings, EmailSettings, SystemPreferences } from "@/type";
 import SettingsHeader from "@/component/settings/SettingsHeader";
 import GeneralSettingsTab from "@/component/settings/GeneralSettingsTab";
 import EmailSettingsTab from "@/component/settings/EmailSettingsTab";
@@ -19,12 +14,10 @@ export default function SettingsPage() {
 
   const handleSaveEmailSettings = (emailSettings: EmailSettings) => {
     setSettings((prev) => ({ ...prev, email: emailSettings }));
-    console.log("Email settings saved:", emailSettings);
   };
 
   const handleSaveSystemSettings = (systemSettings: SystemPreferences) => {
     setSettings((prev) => ({ ...prev, system: systemSettings }));
-    console.log("System settings saved:", systemSettings);
   };
 
   const handleExportData = () => {

@@ -8,19 +8,6 @@ import { toast } from "react-toastify";
 import { apiFetch } from "@/lib/apiFetch";
 import { toMediaProxyUrl } from "@/lib/mediaUrl";
 
-const PROTECTED_FIELDS: (keyof TenantSettings)[] = [
-  "name",
-  "slug",
-  "subscription_plan",
-  "subscription_status",
-  "trial_ends_at",
-  "subscription_expires",
-  "is_active",
-  "created_at",
-  "updated_at",
-  "last_backup_at",
-];
-
 const EDITABLE_FIELDS: (keyof TenantSettings)[] = [
   "email",
   "phone",
@@ -74,7 +61,6 @@ export default function GeneralSettingsTab() {
       const data = await apiFetch<TenantSettings>("/api/tenant/settings", {
         method: "GET",
       });
-      console.log("Loaded tenant settings:", data);
       setTenantSettings(data);
       setFormData(pickEditable(data));
       setLogoPreview(makeFreshLogoUrl(data.logo_url ?? data.logo ?? null));
@@ -199,7 +185,6 @@ export default function GeneralSettingsTab() {
       );
 
       setTenantSettings(updatedTenant);
-      setFormData(updatedTenant);
       setHasChanges(false);
       toast.success("Organization settings saved successfully", {
         toastId: "settings-save-success",
