@@ -239,7 +239,7 @@ export type AdminProfileRole =
   | "admin"
   | "moderator"
   | "SaaS Admin"
-  | "Staff"
+  | "staff"
   | "User";
 
 export type AdminProfile = {

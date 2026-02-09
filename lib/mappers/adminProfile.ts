@@ -27,7 +27,7 @@ export function userMeToAdminProfile(me: UserMe): AdminProfile {
   const role: AdminProfile["role"] = me.tenant_role
     ? me.tenant_role
     : me.is_staff
-      ? "Staff"
+      ? "staff"
       : "User";
 
   return {

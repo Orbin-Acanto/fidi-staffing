@@ -10,6 +10,7 @@ import { toastError, toastSuccess } from "@/lib/toast";
 
 import { useMe } from "@/component/auth/AuthProvider";
 import Link from "next/link";
+import { toMediaProxyUrl } from "@/lib/mediaUrl";
 
 export default function AdminTopbar() {
   const router = useRouter();
@@ -37,6 +38,14 @@ export default function AdminTopbar() {
   const email = me?.email ?? "—";
 
   const role = me?.tenant_role ?? "Admin";
+
+  const makeFreshLogoUrl = (urlOrKey?: string | null) => {
+    const proxied = toMediaProxyUrl(urlOrKey) ?? null;
+    if (!proxied) return null;
+
+    const sep = proxied.includes("?") ? "&" : "?";
+    return `${proxied}${sep}v=${Date.now()}`;
+  };
 
   const handleLogout = async () => {
     if (isLoading) return;
@@ -195,7 +204,7 @@ export default function AdminTopbar() {
 
             <div className="relative">
               <Image
-                src="/logo.png"
+                src={makeFreshLogoUrl(me?.avatar) || "/male.png"}
                 alt="User"
                 width={40}
                 height={40}
