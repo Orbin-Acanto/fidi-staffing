@@ -12,7 +12,7 @@ import { userMeToAdminProfile } from "@/lib/mappers/adminProfile";
 import { useMe } from "@/hooks/useMe";
 
 export default function ProfilePage() {
-  const { data: me, isLoading } = useMe();
+  const { data: me, isLoading, mutate } = useMe();
   const mappedProfile = useMemo(() => {
     return me ? userMeToAdminProfile(me) : null;
   }, [me]);
@@ -35,6 +35,7 @@ export default function ProfilePage() {
   const handleUpdatePhoto = (photoUrl: string) => {
     setProfile((prev) => (prev ? { ...prev, avatar: photoUrl } : prev));
     setShowPhotoModal(false);
+    mutate();
   };
 
   // const handleUpdateNotifications = (preferences: NotificationPreferences) => {
