@@ -65,7 +65,6 @@ export default function GeneralSettingsTab({ me }: Props) {
 
   useEffect(() => {
     loadTenantSettings();
-    console.log(me.tenant_role);
   }, []);
 
   const loadTenantSettings = async () => {
