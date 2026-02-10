@@ -1,117 +1,19 @@
 "use client";
+import BulkAssignModal from "@/component/admin/BulkAssignModal";
 import GroupFormModal from "@/component/admin/GroupModal";
 import { AppCheckbox } from "@/component/ui/Checkbox";
 import { apiFetch } from "@/lib/apiFetch";
 import { toastSuccess, toastError } from "@/lib/toast";
+import { BackendGroup, ListGroupsResponse, UiGroup } from "@/type/group";
+import { StaffListResponse, UiStaff } from "@/type/staff";
+import {
+  mapBackendGroup,
+  mapGroupFormToPayload,
+  mapStaffToUi,
+  PencilIcon,
+  ToggleIcon,
+} from "@/utils";
 import { useCallback, useEffect, useMemo, useState } from "react";
-
-const PencilIcon = () => (
-  <svg
-    className="w-5 h-5"
-    fill="none"
-    stroke="currentColor"
-    viewBox="0 0 24 24"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={2}
-      d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-    />
-  </svg>
-);
-
-const ToggleIcon = ({ active }: { active: boolean }) =>
-  active ? (
-    <svg
-      className="w-5 h-5"
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
-      />
-    </svg>
-  ) : (
-    <svg
-      className="w-5 h-5"
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-      />
-    </svg>
-  );
-
-type BackendGroup = {
-  id: string;
-  company: string;
-  company_name: string;
-  name: string;
-  description: string | null;
-  color: string | null;
-  is_active: boolean;
-  member_count: number;
-  created_at: string;
-  updated_at: string;
-};
-
-type ListGroupsResponse = {
-  groups: BackendGroup[];
-  total: number;
-};
-
-export type UiGroup = {
-  id: string;
-  name: string;
-  description: string;
-  color: string;
-  isActive: boolean;
-  memberCount: number;
-  createdAt: string;
-  updatedAt: string;
-  companyId?: string;
-  companyName?: string;
-};
-
-function toNumber(v: unknown, fallback = 0) {
-  if (typeof v === "number") return v;
-  const n = Number(v);
-  return Number.isFinite(n) ? n : fallback;
-}
-
-function mapBackendGroup(g: BackendGroup): UiGroup {
-  return {
-    id: g.id,
-    name: g.name ?? "",
-    description: g.description ?? "",
-    color: g.color ?? "#6B7280",
-    isActive: !!g.is_active,
-    memberCount: toNumber(g.member_count, 0),
-    createdAt: g.created_at,
-    updatedAt: g.updated_at,
-    companyId: g.company,
-    companyName: g.company_name,
-  };
-}
-
-function mapGroupFormToPayload(data: any) {
-  return {
-    name: (data?.name ?? "").trim(),
-    description: (data?.description ?? "").trim(),
-    color: data?.color || "#6B7280",
-    is_active: !!data?.isActive,
-  };
-}
 
 export default function GroupManagementPage() {
   const [groups, setGroups] = useState<UiGroup[]>([]);
@@ -134,6 +36,16 @@ export default function GroupManagementPage() {
   const [showReactivateConfirm, setShowReactivateConfirm] = useState<
     string | null
   >(null);
+  const [showBulkAssignModal, setShowBulkAssignModal] =
+    useState<boolean>(false);
+
+  const [staff, setStaff] = useState<UiStaff[]>([]);
+  const [staffCount, setStaffCount] = useState(0);
+  const [staffPage, setStaffPage] = useState(1);
+  const [staffPageSize] = useState(20);
+  const [isStaffLoading, setIsStaffLoading] = useState(false);
+
+  const canBulkAssign = selectedGroups.length >= 2;
 
   const fetchGroups = useCallback(async () => {
     setIsLoading(true);
@@ -164,10 +76,35 @@ export default function GroupManagementPage() {
     }
   }, [searchTerm, archiveFilter]);
 
+  const fetchStaff = useCallback(async () => {
+    setIsStaffLoading(true);
+    try {
+      const qs = new URLSearchParams();
+      qs.set("status", "active");
+      qs.set("page", String(staffPage));
+      qs.set("page_size", String(staffPageSize));
+
+      const res = await apiFetch<StaffListResponse>(
+        `/api/staff/list?${qs.toString()}`,
+      );
+
+      setStaff((res.results || []).map(mapStaffToUi));
+      setStaffCount(res.count || 0);
+    } catch (err: any) {
+      toastError(err, "Failed to load staff list");
+    } finally {
+      setIsStaffLoading(false);
+    }
+  }, [staffPage, staffPageSize]);
+
   useEffect(() => {
     const t = setTimeout(() => fetchGroups(), 250);
     return () => clearTimeout(t);
   }, [fetchGroups]);
+
+  useEffect(() => {
+    fetchStaff();
+  }, [fetchStaff]);
 
   const stats = useMemo(() => {
     const active = groups.filter((g) => g.isActive);
@@ -456,10 +393,22 @@ export default function GroupManagementPage() {
 
               <button
                 type="button"
-                disabled
-                className="h-10 px-3 rounded-lg text-sm font-secondary font-medium transition
-                  bg-gray-200 text-gray-400 cursor-not-allowed"
-                title="Bulk assign will be connected later"
+                onClick={() => {
+                  if (!canBulkAssign) return;
+                  setShowBulkAssignModal(true);
+                }}
+                disabled={!canBulkAssign}
+                className={`h-10 px-3 rounded-lg text-sm font-secondary font-medium transition
+                ${
+                  canBulkAssign
+                    ? "bg-primary text-white hover:opacity-90 cursor-pointer"
+                    : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                }`}
+                title={
+                  canBulkAssign
+                    ? "Bulk assign staff to selected groups"
+                    : "Select at least 2 groups to bulk assign"
+                }
               >
                 Bulk Assign
               </button>
@@ -604,6 +553,8 @@ export default function GroupManagementPage() {
       {(showCreateModal || showEditModal) && (
         <GroupFormModal
           group={showEditModal ? selectedGroup : null}
+          staff={staff}
+          isStaffLoading={isStaffLoading}
           onClose={() => {
             setShowCreateModal(false);
             setShowEditModal(false);
@@ -703,6 +654,20 @@ export default function GroupManagementPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {showBulkAssignModal && (
+        <BulkAssignModal
+          selectedGroups={selectedGroups}
+          groups={groups}
+          staff={staff}
+          staffCount={staffCount}
+          staffPage={staffPage}
+          staffPageSize={staffPageSize}
+          isStaffLoading={isStaffLoading}
+          onChangeStaffPage={setStaffPage}
+          onClose={() => setShowBulkAssignModal(false)}
+        />
       )}
     </>
   );

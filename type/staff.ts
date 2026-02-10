@@ -101,6 +101,14 @@ export interface StaffFormData {
   notes: string;
 }
 
+export type UiStaff = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  profession: string;
+  avatar: string | null;
+};
+
 export interface Staff {
   id: string;
   firstName: string;

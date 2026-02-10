@@ -1,25 +1,37 @@
 import { upcomingEvents } from "@/data";
-import { Group } from "@/type";
+import { UiStaff } from "@/type/staff";
 import { useState } from "react";
 
 export default function BulkAssignModal({
   selectedGroups,
   groups,
+  staff,
+  staffCount,
+  staffPage,
+  staffPageSize,
+  isStaffLoading,
+  onChangeStaffPage,
   onClose,
 }: {
   selectedGroups: string[];
-  groups: Group[];
+  groups: any[];
+  staff: UiStaff[];
+  staffCount: number;
+  staffPage: number;
+  staffPageSize: number;
+  isStaffLoading: boolean;
+  onChangeStaffPage: (p: number) => void;
   onClose: () => void;
 }) {
   const [selectedEvents, setSelectedEvents] = useState<number[]>([]);
 
   const selectedGroupsData = groups.filter((g) =>
-    selectedGroups.includes(g.id)
+    selectedGroups.includes(g.id),
   );
 
   const totalStaffCount = selectedGroupsData.reduce(
-    (acc, g) => acc + g.memberIds.length,
-    0
+    (acc, g) => acc + (Number(g.memberCount) || 0),
+    0,
   );
 
   const handleToggleEvent = (eventId: number) => {
@@ -32,7 +44,7 @@ export default function BulkAssignModal({
 
   const handleAssign = () => {
     alert(
-      `Successfully assigned ${selectedGroups.length} group(s) with ${totalStaffCount} total staff to ${selectedEvents.length} event(s)!`
+      `Successfully assigned ${selectedGroups.length} group(s) with ${totalStaffCount} total staff to ${selectedEvents.length} event(s)!`,
     );
     onClose();
   };
@@ -50,7 +62,6 @@ export default function BulkAssignModal({
           </p>
         </div>
 
-        {/* Selected Groups Summary */}
         <div className="px-6 py-3 bg-gray-50 border-b border-gray-200">
           <h3 className="text-sm font-secondary font-semibold text-gray-700 mb-2">
             Selected Groups:
@@ -65,7 +76,7 @@ export default function BulkAssignModal({
                   className="w-3 h-3 rounded-full"
                   style={{ backgroundColor: group.color }}
                 />
-                {group.name} ({group.memberIds.length})
+                {group.name} ({Number(group.memberCount) || 0})
               </span>
             ))}
           </div>
