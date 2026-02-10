@@ -129,10 +129,20 @@ export default function StaffListPage() {
       }
 
       const contentDisposition = response.headers.get("Content-Disposition");
-      const filenameMatch = contentDisposition?.match(/filename="?(.+)"?/);
-      const filename =
-        filenameMatch?.[1] ||
-        `staff_export.${format === "csv" ? "csv" : "xlsx"}`;
+
+      let filename = `staff_export.${format === "csv" ? "csv" : "xlsx"}`;
+
+      if (contentDisposition) {
+        const utf8 = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
+        if (utf8?.[1]) {
+          filename = decodeURIComponent(utf8[1]);
+        } else {
+          const ascii = contentDisposition.match(/filename="?([^";\r\n]+)"?/i);
+          if (ascii?.[1]) filename = ascii[1];
+        }
+      }
+
+      filename = filename.trim().replace(/[._\s]+$/, "");
 
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import * as Select from "@radix-ui/react-select";
-import { ChevronDown, Check } from "lucide-react";
+import { ChevronDown, Check, ChevronUp } from "lucide-react";
 
 type Option = { label: string; value: string; disabled?: boolean };
 
@@ -48,10 +48,15 @@ export function AppSelect({
 
         <Select.Portal>
           <Select.Content
-            className="z-50 overflow-hidden rounded-lg border border-gray-200 bg-white text-dark-black shadow-lg"
             position="popper"
+            sideOffset={6}
+            className="z-50 overflow-hidden rounded-lg border border-gray-200 bg-white text-dark-black shadow-lg"
           >
-            <Select.Viewport>
+            <Select.ScrollUpButton className="flex items-center justify-center py-1 text-gray-500">
+              <ChevronUp className="h-4 w-4" />
+            </Select.ScrollUpButton>
+
+            <Select.Viewport className="max-h-56 overflow-y-auto">
               {options.map((opt) => (
                 <Select.Item
                   key={opt.value}
@@ -70,6 +75,10 @@ export function AppSelect({
                 </Select.Item>
               ))}
             </Select.Viewport>
+
+            <Select.ScrollDownButton className="flex items-center justify-center py-1 text-gray-500">
+              <ChevronDown className="h-4 w-4" />
+            </Select.ScrollDownButton>
           </Select.Content>
         </Select.Portal>
       </Select.Root>

@@ -1109,7 +1109,6 @@ export default function EditStaffPage() {
                 name="password"
                 value={formData.password}
                 onChange={handleInputChange}
-                required
                 className={`w-full px-4 py-2 border rounded-lg font-secondary text-dark-black
                          focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
                          transition-all duration-200 ${
@@ -1133,7 +1132,6 @@ export default function EditStaffPage() {
                 name="confirmPassword"
                 value={formData.confirmPassword}
                 onChange={handleInputChange}
-                required
                 className={`w-full px-4 py-2 border rounded-lg font-secondary text-dark-black
                          focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
                          transition-all duration-200 ${
@@ -1209,10 +1207,10 @@ export default function EditStaffPage() {
                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                   />
                 </svg>
-                Adding Staff...
+                Updating Staff...
               </span>
             ) : (
-              "Add Staff Member"
+              "Update Staff Member"
             )}
           </button>
         </div>
