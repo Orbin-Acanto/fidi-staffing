@@ -29,11 +29,9 @@ export default function RoleCard({
         role.status === "inactive" ? "opacity-60" : ""
       }`}
     >
-      {/* Color Bar */}
       <div className="h-1.5" style={{ backgroundColor: role.color }} />
 
       <div className="p-4">
-        {/* Header */}
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center gap-3">
             <div
@@ -58,15 +56,14 @@ export default function RoleCard({
             </div>
           </div>
 
-          {/* Actions Menu */}
           <div className="flex items-center gap-1">
             <button
               onClick={() => onEdit(role)}
-              className="p-1.5 text-gray-400 hover:text-primary hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-1.5 text-gray-400 cursor-pointer hover:text-primary hover:bg-gray-100 rounded-lg transition-colors"
               title="Edit"
             >
               <svg
-                className="w-4 h-4"
+                className="w-5 h-5"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -81,7 +78,7 @@ export default function RoleCard({
             </button>
             <button
               onClick={() => onToggleStatus(role.id)}
-              className={`p-1.5 rounded-lg transition-colors ${
+              className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
                 role.status === "active"
                   ? "text-gray-400 hover:text-orange-500 hover:bg-orange-50"
                   : "text-gray-400 hover:text-green-500 hover:bg-green-50"
@@ -90,7 +87,7 @@ export default function RoleCard({
             >
               {role.status === "active" ? (
                 <svg
-                  className="w-4 h-4"
+                  className="w-5 h-5"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -104,7 +101,7 @@ export default function RoleCard({
                 </svg>
               ) : (
                 <svg
-                  className="w-4 h-4"
+                  className="w-5 h-5"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -118,13 +115,13 @@ export default function RoleCard({
                 </svg>
               )}
             </button>
-            <button
+            {/* <button
               onClick={() => onDelete(role.id)}
-              className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+              className="p-1.5 text-gray-400 cursor-pointer hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
               title="Delete"
             >
               <svg
-                className="w-4 h-4"
+                className="w-5 h-5"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -136,18 +133,16 @@ export default function RoleCard({
                   d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
                 />
               </svg>
-            </button>
+            </button> */}
           </div>
         </div>
 
-        {/* Description */}
         {role.description && (
           <p className="text-sm text-gray-500 font-secondary mb-4 line-clamp-2">
             {role.description}
           </p>
         )}
 
-        {/* Pay Info */}
         <div className="flex items-center gap-4 mb-4">
           <div className="flex-1 bg-gray-50 rounded-lg p-3">
             <p className="text-xs text-gray-500 font-secondary mb-1">
@@ -170,7 +165,6 @@ export default function RoleCard({
           </div>
         </div>
 
-        {/* Footer */}
         <div className="flex items-center justify-between pt-3 border-t border-gray-100">
           <div className="flex items-center gap-1.5 text-gray-500">
             <svg

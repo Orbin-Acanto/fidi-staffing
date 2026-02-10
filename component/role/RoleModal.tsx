@@ -3,6 +3,7 @@
 import { roleColors } from "@/data";
 import { Role, RoleFormData } from "@/type";
 import { useState, useEffect } from "react";
+import { AppCheckbox } from "../ui/Checkbox";
 
 interface RoleModalProps {
   role?: Role | null;
@@ -63,7 +64,6 @@ export default function RoleModal({ role, onSave, onClose }: RoleModalProps) {
   return (
     <div className="fixed inset-0 bg-gray-700/70 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
-        {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 sticky top-0 bg-white">
           <div>
             <h2 className="text-xl font-primary font-bold text-gray-900">
@@ -95,9 +95,7 @@ export default function RoleModal({ role, onSave, onClose }: RoleModalProps) {
           </button>
         </div>
 
-        {/* Content */}
-        <div className="p-6 space-y-5">
-          {/* Role Name */}
+        <div className="px-6 space-y-5">
           <div>
             <label className="block text-sm font-secondary font-medium text-gray-700 mb-1.5">
               Role Name <span className="text-red-500">*</span>
@@ -118,7 +116,6 @@ export default function RoleModal({ role, onSave, onClose }: RoleModalProps) {
             )}
           </div>
 
-          {/* Description */}
           <div>
             <label className="block text-sm font-secondary font-medium text-gray-700 mb-1.5">
               Description
@@ -137,7 +134,6 @@ export default function RoleModal({ role, onSave, onClose }: RoleModalProps) {
             />
           </div>
 
-          {/* Pay Type */}
           <div>
             <label className="block text-sm font-secondary font-medium text-gray-700 mb-1.5">
               Pay Type <span className="text-red-500">*</span>
@@ -241,7 +237,6 @@ export default function RoleModal({ role, onSave, onClose }: RoleModalProps) {
             </div>
           </div>
 
-          {/* Rate and Overtime */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-secondary font-medium text-gray-700 mb-1.5">
@@ -316,7 +311,6 @@ export default function RoleModal({ role, onSave, onClose }: RoleModalProps) {
             )}
           </div>
 
-          {/* Color Selection */}
           <div>
             <label className="block text-sm font-secondary font-medium text-gray-700 mb-1.5">
               Role Color
@@ -338,71 +332,80 @@ export default function RoleModal({ role, onSave, onClose }: RoleModalProps) {
             </div>
           </div>
 
-          {/* Status */}
-          <div>
-            <label className="block text-sm font-secondary font-medium text-gray-700 mb-1.5">
-              Status
-            </label>
-            <div className="flex items-center gap-4">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="status"
-                  checked={formData.status === "active"}
-                  onChange={() =>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="shrink-0">
+              <label className="block text-sm font-secondary font-medium text-gray-700 mb-1">
+                Status
+              </label>
+
+              <div className="flex items-center gap-4">
+                <button
+                  type="button"
+                  onClick={() =>
                     setFormData((prev) => ({ ...prev, status: "active" }))
                   }
-                  className="w-4 h-4 text-primary focus:ring-primary"
-                />
-                <span className="text-sm font-secondary text-gray-700">
-                  Active
-                </span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="status"
-                  checked={formData.status === "inactive"}
-                  onChange={() =>
+                  className="flex items-center gap-2 cursor-pointer"
+                >
+                  <AppCheckbox
+                    checked={formData.status === "active"}
+                    onCheckedChange={() =>
+                      setFormData((prev) => ({ ...prev, status: "active" }))
+                    }
+                  />
+                  <span className="text-sm font-secondary text-gray-700">
+                    Active
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() =>
                     setFormData((prev) => ({ ...prev, status: "inactive" }))
                   }
-                  className="w-4 h-4 text-primary focus:ring-primary"
-                />
-                <span className="text-sm font-secondary text-gray-700">
-                  Inactive
-                </span>
-              </label>
-            </div>
-          </div>
-
-          {/* Preview */}
-          <div className="bg-gray-50 rounded-lg p-4">
-            <p className="text-xs text-gray-500 font-secondary mb-2">Preview</p>
-            <div className="flex items-center gap-3">
-              <div
-                className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-primary font-bold text-lg"
-                style={{ backgroundColor: formData.color }}
-              >
-                {formData.name ? formData.name.charAt(0).toUpperCase() : "R"}
+                  className="flex items-center gap-2 cursor-pointer"
+                >
+                  <AppCheckbox
+                    checked={formData.status === "inactive"}
+                    onCheckedChange={() =>
+                      setFormData((prev) => ({ ...prev, status: "inactive" }))
+                    }
+                  />
+                  <span className="text-sm font-secondary text-gray-700">
+                    Inactive
+                  </span>
+                </button>
               </div>
-              <div>
-                <p className="font-secondary font-semibold text-gray-900">
-                  {formData.name || "Role Name"}
-                </p>
-                <p className="text-sm text-gray-500">
-                  ${formData.defaultRate}
-                  {formData.payType === "hourly" ? "/hr" : "/event"}
-                  {formData.payType === "hourly"
-                    ? `$ • ${formData.overtimeMultiplier}x OT`
-                    : ""}
-                </p>
+            </div>
+
+            <div className="flex-1 bg-gray-50 rounded-lg p-4">
+              <p className="text-xs text-gray-500 font-secondary mb-1">
+                Preview
+              </p>
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-primary font-bold text-lg"
+                  style={{ backgroundColor: formData.color }}
+                >
+                  {formData.name ? formData.name.charAt(0).toUpperCase() : "R"}
+                </div>
+                <div>
+                  <p className="font-secondary font-semibold text-gray-900">
+                    {formData.name || "Role Name"}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    ${formData.defaultRate}
+                    {formData.payType === "hourly" ? "/hr" : "/event"}
+                    {formData.payType === "hourly"
+                      ? ` • ${formData.overtimeMultiplier}x OT`
+                      : ""}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50 sticky bottom-0">
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50 sticky bottom-0">
           <button
             onClick={onClose}
             className="px-4 py-2.5 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 font-secondary font-medium transition-colors"

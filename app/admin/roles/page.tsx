@@ -1,15 +1,81 @@
 "use client";
 
-import { useState } from "react";
-import { roles as initialRoles } from "@/data";
-import { Role, RoleFormData } from "@/type";
 import RoleCard from "@/component/role/RoleCard";
 import RoleModal from "@/component/role/RoleModal";
+import { apiFetch } from "@/lib/apiFetch";
+import { toastSuccess, toastError } from "@/lib/toast";
+import type { Role, RoleFormData } from "@/type";
+import { useCallback, useEffect, useState } from "react";
+
+type BackendRole = {
+  id: string;
+  company: string;
+  company_name: string;
+  name: string;
+  description: string | null;
+  pay_type: "hourly" | "fixed";
+  default_rate: string | number | null;
+  overtime_multiplier: string | number | null;
+  color: string | null;
+  icon: string | null;
+  status: "active" | "inactive";
+  sort_order: number;
+  staff_count: number;
+  created_at: string;
+  updated_at: string;
+};
+
+type ListRolesResponse = {
+  roles: BackendRole[];
+  total: number;
+};
+
+function toNumber(v: unknown, fallback = 0) {
+  if (typeof v === "number") return v;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function mapBackendRole(r: BackendRole): Role {
+  return {
+    id: r.id,
+    name: r.name ?? "",
+    description: r.description ?? "",
+    payType: r.pay_type,
+    defaultRate: toNumber(r.default_rate, 0),
+    overtimeMultiplier: toNumber(r.overtime_multiplier, 1.5),
+    color: r.color ?? "#3B82F6",
+    icon: r.icon ?? null,
+    status: r.status,
+    sortOrder: r.sort_order ?? 0,
+    staffCount: r.staff_count ?? 0,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+    companyId: r.company,
+    companyName: r.company_name,
+  } as unknown as Role;
+}
+
+function mapRoleFormToPayload(data: RoleFormData) {
+  return {
+    name: data.name?.trim(),
+    description: data.description?.trim() || "",
+    pay_type: data.payType,
+    default_rate: String(data.defaultRate ?? 0),
+    overtime_multiplier: String(data.overtimeMultiplier ?? 1.5),
+    color: data.color || "#3B82F6",
+    status: data.status ?? "active",
+    sort_order: data.sortOrder ?? 0,
+  };
+}
 
 export default function RolesPage() {
-  const [roles, setRoles] = useState<Role[]>(initialRoles);
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
   const [showModal, setShowModal] = useState(false);
   const [editingRole, setEditingRole] = useState<Role | null>(null);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<
     "all" | "active" | "inactive"
@@ -17,24 +83,43 @@ export default function RolesPage() {
   const [filterPayType, setFilterPayType] = useState<
     "all" | "hourly" | "fixed"
   >("all");
+
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(
-    null
+    null,
   );
 
-  const filteredRoles = roles.filter((role) => {
-    const matchesSearch = role.name
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
-    const matchesStatus =
-      filterStatus === "all" || role.status === filterStatus;
-    const matchesPayType =
-      filterPayType === "all" || role.payType === filterPayType;
-    return matchesSearch && matchesStatus && matchesPayType;
-  });
+  const fetchRoles = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (searchTerm.trim()) params.set("search", searchTerm.trim());
+      if (filterStatus !== "all") params.set("status", filterStatus);
+      if (filterPayType !== "all") params.set("pay_type", filterPayType);
+
+      const qs = params.toString();
+      const res = await apiFetch<ListRolesResponse>(
+        `/api/roles/list${qs ? `?${qs}` : ""}`,
+      );
+
+      const mapped = (res.roles || []).map(mapBackendRole);
+      setRoles(mapped);
+    } catch (err: any) {
+      toastError(err, "Failed to load roles");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [searchTerm, filterStatus, filterPayType]);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      fetchRoles();
+    }, 250);
+    return () => clearTimeout(t);
+  }, [fetchRoles]);
 
   const activeRoles = roles.filter((r) => r.status === "active").length;
   const hourlyRoles = roles.filter((r) => r.payType === "hourly").length;
-  const totalStaff = roles.reduce((sum, r) => sum + r.staffCount, 0);
+  const totalStaff = roles.reduce((sum, r) => sum + (r.staffCount || 0), 0);
 
   const handleAddRole = () => {
     setEditingRole(null);
@@ -46,62 +131,120 @@ export default function RolesPage() {
     setShowModal(true);
   };
 
-  const handleSaveRole = (data: RoleFormData) => {
-    if (editingRole) {
+  const handleSaveRole = async (data: RoleFormData) => {
+    try {
+      const payload = mapRoleFormToPayload(data);
+
+      if (editingRole) {
+        const res = await apiFetch<{ message?: string; role?: BackendRole }>(
+          `/api/roles/${editingRole.id}/update`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          },
+        );
+
+        toastSuccess(res.message || "Role updated successfully");
+
+        if (res.role) {
+          const updated = mapBackendRole(res.role);
+          setRoles((prev) =>
+            prev.map((r) => (r.id === updated.id ? updated : r)),
+          );
+        } else {
+          await fetchRoles();
+        }
+      } else {
+        const res = await apiFetch<{ message?: string; role?: BackendRole }>(
+          `/api/roles/create`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          },
+        );
+
+        toastSuccess(res.message || "Role created successfully");
+
+        if (res.role) {
+          const created = mapBackendRole(res.role);
+          setRoles((prev) => [created, ...prev]);
+        } else {
+          await fetchRoles();
+        }
+      }
+
+      setShowModal(false);
+      setEditingRole(null);
+    } catch (err: any) {
+      if (err?.data?.errors) {
+        toastError(err, "Please fix the form errors");
+        return;
+      }
+      toastError(err, "Failed to save role");
+    }
+  };
+
+  const handleDeleteRole = async (roleId: string) => {
+    try {
+      const role = roles.find((r) => r.id === roleId);
+
+      if (role && (role.staffCount || 0) > 0) {
+        toastError(
+          "Failed to update role status because staff members are assigned to it",
+        );
+        return;
+      }
+
+      const res = await apiFetch<{ message?: string }>(
+        `/api/roles/${roleId}/delete`,
+        { method: "DELETE" },
+      );
+
+      toastSuccess(res.message || "Role deactivated successfully");
       setRoles((prev) =>
-        prev.map((r) =>
-          r.id === editingRole.id
-            ? {
-                ...r,
-                ...data,
-                updatedAt: new Date().toISOString(),
-              }
-            : r
-        )
+        prev.map((r) => (r.id === roleId ? { ...r, status: "inactive" } : r)),
       );
-    } else {
-      const newRole: Role = {
-        id: `role_${Date.now()}`,
-        ...data,
-        staffCount: 0,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      setRoles((prev) => [...prev, newRole]);
+      setShowDeleteConfirm(null);
+    } catch (err: any) {
+      toastError(err, "Failed to delete role");
     }
-    setShowModal(false);
-    setEditingRole(null);
   };
 
-  const handleDeleteRole = (roleId: string) => {
+  const handleToggleStatus = async (roleId: string) => {
     const role = roles.find((r) => r.id === roleId);
-    if (role && role.staffCount > 0) {
-      alert(
-        `Cannot delete "${role.name}" because ${role.staffCount} staff members are assigned to this role.`
-      );
-      return;
-    }
-    setRoles((prev) => prev.filter((r) => r.id !== roleId));
-    setShowDeleteConfirm(null);
-  };
+    if (!role) return;
 
-  const handleToggleStatus = (roleId: string) => {
-    setRoles((prev) =>
-      prev.map((r) =>
-        r.id === roleId
-          ? {
-              ...r,
-              status: r.status === "active" ? "inactive" : "active",
-              updatedAt: new Date().toISOString(),
-            }
-          : r
-      )
-    );
+    try {
+      if (role.status === "inactive") {
+        const res = await apiFetch<{ message?: string; role?: BackendRole }>(
+          `/api/roles/${roleId}/reactivate`,
+          { method: "POST" },
+        );
+
+        toastSuccess(res.message || "Role Reactivated");
+
+        if (res.role) {
+          const updated = mapBackendRole(res.role);
+          setRoles((prev) =>
+            prev.map((r) => (r.id === updated.id ? updated : r)),
+          );
+        } else {
+          setRoles((prev) =>
+            prev.map((r) => (r.id === roleId ? { ...r, status: "active" } : r)),
+          );
+        }
+      } else {
+        setShowDeleteConfirm(roleId);
+      }
+    } catch (err: any) {
+      toastError(err, "Failed to update role status");
+    }
   };
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-primary font-bold text-gray-900">
@@ -132,7 +275,6 @@ export default function RolesPage() {
         </button>
       </div>
 
-      {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white rounded-lg border border-gray-200 p-4">
           <div className="flex items-center gap-3">
@@ -245,10 +387,8 @@ export default function RolesPage() {
         </div>
       </div>
 
-      {/* Filters */}
       <div className="bg-white rounded-lg border border-gray-200 p-4">
         <div className="flex flex-col md:flex-row md:items-center gap-4">
-          {/* Search */}
           <div className="flex-1">
             <div className="relative">
               <svg
@@ -274,7 +414,6 @@ export default function RolesPage() {
             </div>
           </div>
 
-          {/* Status Filter */}
           <div className="flex items-center gap-2">
             <span className="text-sm font-secondary text-gray-500">
               Status:
@@ -300,7 +439,6 @@ export default function RolesPage() {
             </div>
           </div>
 
-          {/* Pay Type Filter */}
           <div className="flex items-center gap-2">
             <span className="text-sm font-secondary text-gray-500">Pay:</span>
             <div className="flex items-center bg-gray-100 rounded-lg p-1">
@@ -326,8 +464,11 @@ export default function RolesPage() {
         </div>
       </div>
 
-      {/* Roles Grid */}
-      {filteredRoles.length === 0 ? (
+      {isLoading ? (
+        <div className="bg-white rounded-lg border border-gray-200 p-12 text-center text-gray-500 font-secondary">
+          Loading roles...
+        </div>
+      ) : roles.length === 0 ? (
         <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
           <svg
             className="w-12 h-12 text-gray-300 mx-auto mb-4"
@@ -346,35 +487,31 @@ export default function RolesPage() {
             No roles found
           </h3>
           <p className="text-sm text-gray-500 font-secondary mb-4">
-            {searchTerm || filterStatus !== "all" || filterPayType !== "all"
-              ? "Try adjusting your filters"
-              : "Get started by adding your first role"}
+            Try adjusting your filters or create a new role
           </p>
-          {!searchTerm && filterStatus === "all" && filterPayType === "all" && (
-            <button
-              onClick={handleAddRole}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-secondary font-medium text-primary border border-primary rounded-lg hover:bg-primary/5 transition-colors"
+          <button
+            onClick={handleAddRole}
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-secondary font-medium text-primary border border-primary rounded-lg hover:bg-primary/5 transition-colors"
+          >
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
             >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                />
-              </svg>
-              Add Your First Role
-            </button>
-          )}
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+              />
+            </svg>
+            Add Role
+          </button>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredRoles.map((role) => (
+          {roles.map((role) => (
             <RoleCard
               key={role.id}
               role={role}
@@ -386,7 +523,6 @@ export default function RolesPage() {
         </div>
       )}
 
-      {/* Role Modal */}
       {showModal && (
         <RoleModal
           role={editingRole}
@@ -398,7 +534,6 @@ export default function RolesPage() {
         />
       )}
 
-      {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-gray-700/70 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-sm w-full p-6">
@@ -418,24 +553,23 @@ export default function RolesPage() {
               </svg>
             </div>
             <h3 className="text-lg font-primary font-semibold text-gray-900 text-center mb-2">
-              Delete Role?
+              Deactivate Role?
             </h3>
             <p className="text-sm text-gray-500 font-secondary text-center mb-6">
-              This action cannot be undone. Are you sure you want to delete this
-              role?
+              This will set the role to inactive. You can activate it later.
             </p>
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setShowDeleteConfirm(null)}
-                className="flex-1 px-4 py-2.5 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 font-secondary font-medium transition-colors"
+                className="flex-1 px-4 py-2.5 cursor-pointer text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 font-secondary font-medium transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={() => handleDeleteRole(showDeleteConfirm)}
-                className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 font-secondary font-medium transition-colors"
+                className="flex-1 px-4 py-2.5 bg-red-600 cursor-pointer text-white rounded-lg hover:bg-red-700 font-secondary font-medium transition-colors"
               >
-                Delete
+                Deactivate
               </button>
             </div>
           </div>

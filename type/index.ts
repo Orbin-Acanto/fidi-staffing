@@ -750,26 +750,31 @@ export type RoleStatus = "active" | "inactive";
 export type Role = {
   id: string;
   name: string;
-  description?: string;
-  payType: PayType;
+  description: string;
+  payType: "hourly" | "fixed";
   defaultRate: number;
   overtimeMultiplier: number;
   color: string;
-  icon?: string;
-  status: RoleStatus;
+  icon: string | null;
+  status: "active" | "inactive";
+  sortOrder: number;
   staffCount: number;
   createdAt: string;
   updatedAt: string;
+
+  companyId?: string;
+  companyName?: string;
 };
 
 export type RoleFormData = {
   name: string;
   description: string;
-  payType: PayType;
+  payType: "hourly" | "fixed";
   defaultRate: number;
   overtimeMultiplier: number;
   color: string;
-  status: RoleStatus;
+  status: "active" | "inactive";
+  sortOrder?: number;
 };
 
 export type UUID = string;
