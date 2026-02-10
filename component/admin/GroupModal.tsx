@@ -73,18 +73,38 @@ export default function GroupFormModal({
   return (
     <div className="fixed inset-0 bg-gray-700/70 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl max-w-xl w-full overflow-hidden flex flex-col">
-        <div className="px-6 py-3 border-b border-gray-200">
-          <h2 className="text-2xl font-primary font-bold text-gray-900">
-            {group ? "Edit Group" : "Create New Group"}
-          </h2>
-          <p className="text-sm text-gray-600 font-secondary mt-1">
-            {group
-              ? "Update group details"
-              : "Create a group to organize your staff"}
-          </p>
+        <div className="flex items-center justify-between px-6 py-3 border-b border-gray-200 sticky top-0 bg-white">
+          <div>
+            <h2 className="text-2xl font-primary font-bold text-gray-900">
+              {group ? "Edit Group" : "Create New Group"}
+            </h2>
+            <p className="text-sm text-gray-600 font-secondary mt-1">
+              {group
+                ? "Update group details"
+                : "Create a group to organize your staff"}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+          >
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
         </div>
 
-        <div className="px-6 py-3 space-y-6">
+        <div className="px-6 pt-3 space-y-6">
           <div>
             <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
               Group Name
