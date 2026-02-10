@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import type { ChangeEvent, FormEvent } from "react";
+import { useState, useEffect } from "react";
+import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 
 import { employmentTypes, experienceLevels } from "@/data";
@@ -31,13 +32,17 @@ const relationOptions = [
   { label: "Other", value: "Other" },
 ];
 
-export default function AddStaffPage() {
+export default function EditStaffPage() {
   const router = useRouter();
+  const params = useParams();
+  const staffId = params.staff_id as string;
+
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingGroups, setIsLoadingGroups] = useState(true);
+
   const [roles, setRoles] = useState<Array<{ id: string; name: string }>>([]);
   const [groups, setGroups] = useState<Array<{ id: string; name: string }>>([]);
-  const [isLoadingRoles, setIsLoadingRoles] = useState(true);
-  const [isLoadingGroups, setIsLoadingGroups] = useState(true);
 
   const uniformSizes = ["XS", "S", "M", "L", "XL", "2XL", "3XL"];
 
@@ -78,62 +83,174 @@ export default function AddStaffPage() {
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [currentAvatar, setCurrentAvatar] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchRolesAndGroups();
+    fetchStaffData();
+  }, [staffId]);
+
+  const fetchRolesAndGroups = async () => {
+    setIsLoadingGroups(true);
+    try {
+      const [rolesResponse, groupsResponse] = await Promise.all([
+        apiFetch("/api/roles/list?status=active"),
+        apiFetch("/api/groups/list?is_active=true"),
+      ]);
+
+      setRoles(rolesResponse.roles || []);
+      setGroups(groupsResponse.groups || []);
+    } catch (error) {
+      console.error("Failed to fetch roles and groups:", error);
+      toastError("Failed to load roles and groups");
+    } finally {
+      setIsLoadingGroups(false);
+    }
+  };
+
+  const mapEmploymentTypeToDisplay = (type: string): string => {
+    const typeMap: Record<string, string> = {
+      full: "Full-time",
+      part: "Part-time",
+      contract: "Contract",
+      casual: "Casual",
+    };
+    return typeMap[type] || "Full-time";
+  };
+
+  const fetchStaffData = async () => {
+    try {
+      const response = await apiFetch(`/api/staff/${staffId}`);
+
+      setFormData({
+        firstName: response.first_name || "",
+        lastName: response.last_name || "",
+        email: response.email || "",
+        phone: response.phone || "",
+        secondaryPhone: response.secondary_phone || "",
+        dateOfBirth: response.date_of_birth || "",
+        gender: response.gender || "",
+        profilePicture: null,
+        profession: response.primary_role?.id || "",
+        experienceLevel: response.experience_level
+          ? response.experience_level.charAt(0).toUpperCase() +
+            response.experience_level.slice(1)
+          : "Junior",
+        employeeId: response.employee_id || "",
+        startDate: response.hire_date || "",
+        employmentType: response.employment_type
+          ? mapEmploymentTypeToDisplay(response.employment_type)
+          : "Full-time",
+        groups: response.groups?.map((g: any) => String(g.id)) || [],
+        street: response.address_street || "",
+        city: response.address_city || "",
+        state: response.address_state || "",
+        zipCode: response.address_zip || "",
+        country: response.address_country || "United States",
+        emergencyContactName: response.emergency_contact_name || "",
+        emergencyContactPhone: response.emergency_contact_phone || "",
+        emergencyContactRelation: response.emergency_contact_relation || "",
+        username: "",
+        password: "",
+        confirmPassword: "",
+        status: response.status
+          ? response.status.charAt(0).toUpperCase() +
+            response.status.slice(1).replaceAll("_", " ")
+          : "Active",
+        wage:
+          typeof response.hourly_rate === "number"
+            ? response.hourly_rate
+            : Number(response.hourly_rate || 0),
+        payType: (response.pay_type as PayType) || "hourly",
+        fixedRate:
+          typeof response.fixed_rate === "number"
+            ? response.fixed_rate
+            : Number(response.fixed_rate || 0),
+        uniformSize: response.uniform_size?.toUpperCase() || "",
+        overtimeMultiplier:
+          typeof response.overtime_multiplier === "number"
+            ? response.overtime_multiplier
+            : Number(response.overtime_multiplier || 1.5),
+        taxWithholdingRate:
+          typeof response.tax_withholding_rate === "number"
+            ? response.tax_withholding_rate
+            : Number(response.tax_withholding_rate || 15.0),
+        notes: response.notes || "",
+      });
+
+      if (response.avatar) setCurrentAvatar(response.avatar);
+    } catch (error) {
+      console.error("Failed to fetch staff data:", error);
+      toastError("Failed to load staff data");
+      router.push("/admin/staff");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const isPayType = (value: string): value is PayType =>
     value === "hourly" || value === "fixed";
 
   const handleInputChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >,
+    e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+
+    const numericFields = new Set([
+      "wage",
+      "fixedRate",
+      "overtimeMultiplier",
+      "taxWithholdingRate",
+    ]);
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]: numericFields.has(name)
+        ? value === ""
+          ? 0
+          : Number(value)
+        : value,
+    }));
+
     if (errors[name]) {
       setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[name];
-        return newErrors;
+        const next = { ...prev };
+        delete next[name];
+        return next;
       });
     }
   };
 
-  const handleToggleGroup = (group: string) => {
+  const handleToggleGroup = (groupId: string) => {
     setFormData((prev) => ({
       ...prev,
-      groups: prev.groups.includes(group)
-        ? prev.groups.filter((g) => g !== group)
-        : [...prev.groups, group],
+      groups: prev.groups.includes(groupId)
+        ? prev.groups.filter((g) => g !== groupId)
+        : [...prev.groups, groupId],
     }));
   };
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.firstName.trim()) {
+    if (!formData.firstName.trim())
       newErrors.firstName = "First name is required";
-    }
-    if (!formData.lastName.trim()) {
-      newErrors.lastName = "Last name is required";
-    }
+    if (!formData.lastName.trim()) newErrors.lastName = "Last name is required";
+
     if (!formData.email.trim()) {
       newErrors.email = "Email is required";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = "Invalid email format";
     }
-    if (!formData.phone.trim()) {
-      newErrors.phone = "Phone number is required";
-    }
-    if (!formData.profession) {
-      newErrors.profession = "Profession/Role is required";
-    }
 
-    if (!formData.password) {
-      newErrors.password = "Password is required";
-    } else if (formData.password.length < 8) {
+    if (!formData.phone.trim()) newErrors.phone = "Phone number is required";
+    if (!formData.profession)
+      newErrors.profession = "Profession/Role is required";
+
+    if (formData.password && formData.password.length < 8) {
       newErrors.password = "Password must be at least 8 characters";
     }
-    if (formData.password !== formData.confirmPassword) {
+    if (formData.password && formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = "Passwords do not match";
     }
 
@@ -154,7 +271,7 @@ export default function AddStaffPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
     if (!validateForm()) {
@@ -169,72 +286,54 @@ export default function AddStaffPage() {
 
       formDataToSend.append("first_name", formData.firstName.trim());
       formDataToSend.append("last_name", formData.lastName.trim());
-      formDataToSend.append("email", formData.email.trim().toLowerCase());
       formDataToSend.append("phone", formData.phone.trim());
 
-      if (formData.secondaryPhone?.trim()) {
+      if (formData.secondaryPhone?.trim())
         formDataToSend.append(
           "secondary_phone",
           formData.secondaryPhone.trim(),
         );
-      }
-
-      if (formData.dateOfBirth) {
+      if (formData.dateOfBirth)
         formDataToSend.append("date_of_birth", formData.dateOfBirth);
-      }
+      if (formData.gender) formDataToSend.append("gender", formData.gender);
 
-      if (formData.gender) {
-        formDataToSend.append("gender", formData.gender);
-      }
-
-      if (formData.profilePicture) {
+      if (formData.profilePicture)
         formDataToSend.append("avatar", formData.profilePicture);
-      }
 
-      if (formData.street?.trim()) {
+      if (formData.street?.trim())
         formDataToSend.append("address_street", formData.street.trim());
-      }
-      if (formData.city?.trim()) {
+      if (formData.city?.trim())
         formDataToSend.append("address_city", formData.city.trim());
-      }
-      if (formData.state?.trim()) {
+      if (formData.state?.trim())
         formDataToSend.append("address_state", formData.state.trim());
-      }
-      if (formData.zipCode?.trim()) {
+      if (formData.zipCode?.trim())
         formDataToSend.append("address_zip", formData.zipCode.trim());
-      }
-      if (formData.country) {
+      if (formData.country)
         formDataToSend.append("address_country", formData.country);
-      }
 
-      if (formData.emergencyContactName?.trim()) {
+      if (formData.emergencyContactName?.trim())
         formDataToSend.append(
           "emergency_contact_name",
           formData.emergencyContactName.trim(),
         );
-      }
-      if (formData.emergencyContactPhone?.trim()) {
+      if (formData.emergencyContactPhone?.trim())
         formDataToSend.append(
           "emergency_contact_phone",
           formData.emergencyContactPhone.trim(),
         );
-      }
-      if (formData.emergencyContactRelation) {
+      if (formData.emergencyContactRelation)
         formDataToSend.append(
           "emergency_contact_relation",
           formData.emergencyContactRelation,
         );
-      }
 
-      if (formData.profession) {
+      if (formData.profession)
         formDataToSend.append("primary_role", formData.profession);
-      }
 
       formDataToSend.append(
         "experience_level",
         formData.experienceLevel.toLowerCase(),
       );
-
       formDataToSend.append("pay_type", formData.payType);
 
       const employmentTypeMap: Record<string, string> = {
@@ -248,51 +347,46 @@ export default function AddStaffPage() {
         employmentTypeMap[formData.employmentType] || "full",
       );
 
-      if (formData.uniformSize) {
+      if (formData.uniformSize)
         formDataToSend.append(
           "uniform_size",
           formData.uniformSize.toLowerCase(),
         );
-      }
 
-      if (formData.payType === "hourly") {
-        formDataToSend.append("hourly_rate", formData.wage.toString());
-      }
-
-      if (formData.payType === "fixed") {
-        formDataToSend.append("fixed_rate", formData.fixedRate.toString());
-      }
+      if (formData.payType === "hourly")
+        formDataToSend.append("hourly_rate", String(formData.wage));
+      if (formData.payType === "fixed")
+        formDataToSend.append("fixed_rate", String(formData.fixedRate));
 
       formDataToSend.append(
         "overtime_multiplier",
-        formData.overtimeMultiplier.toString(),
+        String(formData.overtimeMultiplier),
       );
       formDataToSend.append(
         "tax_withholding_rate",
-        formData.taxWithholdingRate.toString(),
+        String(formData.taxWithholdingRate),
       );
 
-      if (formData.groups.length > 0) {
-        formData.groups.forEach((group) => {
-          formDataToSend.append("groups", group);
-        });
-      }
+      formData.groups.forEach((groupId) =>
+        formDataToSend.append("groups", groupId),
+      );
 
-      formDataToSend.append("status", formData.status.toLowerCase());
-      formDataToSend.append("availability_status", "available");
+      const normalizedStatus = formData.status
+        .toLowerCase()
+        .replaceAll(" ", "_");
+      formDataToSend.append("status", normalizedStatus);
 
-      if (formData.startDate) {
+      if (formData.startDate)
         formDataToSend.append("hire_date", formData.startDate);
-      }
 
-      formDataToSend.append("password", formData.password);
+      if (formData.password)
+        formDataToSend.append("password", formData.password);
 
-      if (formData.notes?.trim()) {
+      if (formData.notes?.trim())
         formDataToSend.append("notes", formData.notes.trim());
-      }
 
-      const response = await fetch("/api/staff/create", {
-        method: "POST",
+      const response = await fetch(`/api/staff/${staffId}/update`, {
+        method: "PATCH",
         body: formDataToSend,
       });
 
@@ -330,56 +424,56 @@ export default function AddStaffPage() {
           setErrors(backendErrors);
         }
 
-        throw new Error(data.message || "Failed to create staff member");
+        throw new Error(data.message || "Failed to update staff member");
       }
 
-      toastSuccess(data.message || "Staff member created successfully!");
-
+      toastSuccess(data.message || "Staff member updated successfully!");
       router.push("/admin/staff");
     } catch (err: any) {
       toastError(
-        err.message || "Failed to create staff member. Please try again.",
+        err.message || "Failed to update staff member. Please try again.",
       );
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  useEffect(() => {
-    async function fetchRolesAndGroups() {
-      try {
-        const rolesResponse = await apiFetch("/api/roles/list?status=active");
-        setRoles(rolesResponse.roles || []);
-      } catch (error) {
-        console.error("Failed to fetch roles:", error);
-        toastError("Failed to load roles");
-      } finally {
-        setIsLoadingRoles(false);
-      }
-
-      try {
-        const groupsResponse = await apiFetch(
-          "/api/groups/list?is_active=true",
-        );
-        setGroups(groupsResponse.groups || []);
-      } catch (error) {
-        console.error("Failed to fetch groups:", error);
-        toastError("Failed to load groups");
-      } finally {
-        setIsLoadingGroups(false);
-      }
-    }
-
-    fetchRolesAndGroups();
-  }, []);
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <svg
+          className="animate-spin h-12 w-12 text-primary"
+          fill="none"
+          viewBox="0 0 24 24"
+        >
+          <circle
+            className="opacity-25"
+            cx="12"
+            cy="12"
+            r="10"
+            stroke="currentColor"
+            strokeWidth="4"
+          />
+          <path
+            className="opacity-75"
+            fill="currentColor"
+            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+          />
+        </svg>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-primary font-semibold text-gray-900">
-            Add New Staff
+            Edit Staff Member
           </h1>
+          <p className="text-sm font-secondary text-gray-600 mt-1">
+            Update staff member information
+          </p>
         </div>
         <Link
           href="/admin/staff"
@@ -464,18 +558,13 @@ export default function AddStaffPage() {
                 type="email"
                 name="email"
                 value={formData.email}
-                onChange={handleInputChange}
-                required
-                className={`w-full px-4 py-2 border rounded-lg font-secondary text-dark-black
-                         focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
-                         transition-all duration-200 ${
-                           errors.email ? "border-red-500" : "border-gray-300"
-                         }`}
+                disabled
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-dark-black bg-gray-50 cursor-not-allowed"
                 placeholder="email@example.com"
               />
-              {errors.email && (
-                <p className="mt-1 text-sm text-red-500">{errors.email}</p>
-              )}
+              <p className="mt-1 text-xs text-gray-500">
+                Email cannot be changed
+              </p>
             </div>
 
             <div>
@@ -542,15 +631,27 @@ export default function AddStaffPage() {
               }
             />
 
-            <AppFileUpload
-              label="Profile Picture"
-              onChange={(file) => {
-                setFormData((prev) => ({
-                  ...prev,
-                  profilePicture: file,
-                }));
-              }}
-            />
+            <div>
+              <AppFileUpload
+                label="Profile Picture"
+                onChange={(file) => {
+                  setFormData((prev) => ({
+                    ...prev,
+                    profilePicture: file,
+                  }));
+                }}
+              />
+              {currentAvatar && !formData.profilePicture && (
+                <div className="mt-2">
+                  <p className="text-xs text-gray-500 mb-1">Current photo:</p>
+                  <img
+                    src={currentAvatar}
+                    alt="Current avatar"
+                    className="w-16 h-16 rounded-full object-cover"
+                  />
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -580,10 +681,7 @@ export default function AddStaffPage() {
                     });
                   }
                 }}
-                placeholder={
-                  isLoadingRoles ? "Loading roles..." : "Select profession"
-                }
-                disabled={isLoadingRoles}
+                placeholder="Select profession"
                 options={roles.map((role) => ({
                   label: role.name,
                   value: role.id,
@@ -591,11 +689,6 @@ export default function AddStaffPage() {
               />
               {errors.profession && (
                 <p className="mt-1 text-sm text-red-500">{errors.profession}</p>
-              )}
-              {roles.length === 0 && !isLoadingRoles && (
-                <p className="mt-1 text-xs text-amber-600">
-                  No roles available. Please create roles first.
-                </p>
               )}
             </div>
 
@@ -618,7 +711,6 @@ export default function AddStaffPage() {
             </div>
           </div>
         </div>
-
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <h2 className="text-xl font-primary font-semibold text-gray-900 mb-6">
             Employment Details

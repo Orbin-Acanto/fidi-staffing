@@ -10,62 +10,6 @@ export interface NavSection {
   items: NavItem[];
 }
 
-export interface Staff {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  profession: string;
-  groups: string[];
-  status: "Active" | "Inactive";
-  profilePicture?: string;
-  lastActive: string;
-  wage: number;
-}
-
-export interface StaffFormData {
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  secondaryPhone: string;
-  dateOfBirth: string;
-  gender: "male" | "female" | "other" | "prefer_not_to_say" | "";
-  profilePicture: File | null;
-
-  profession: string;
-  experienceLevel: string;
-
-  employeeId: string;
-  startDate: string;
-  employmentType: string;
-  uniformSize: string;
-  payType: "hourly" | "fixed";
-  wage: number;
-  fixedRate: number;
-  overtimeMultiplier: number;
-  taxWithholdingRate: number;
-  groups: string[];
-
-  street: string;
-  city: string;
-  state: string;
-  zipCode: string;
-  country: string;
-
-  emergencyContactName: string;
-  emergencyContactPhone: string;
-  emergencyContactRelation: string;
-
-  username: string;
-  password: string;
-  confirmPassword: string;
-  status: string;
-
-  notes: string;
-}
-
 export interface Event {
   id: string;
   eventName: string;
