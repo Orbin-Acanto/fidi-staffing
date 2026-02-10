@@ -73,7 +73,7 @@ export default function GroupFormModal({
   return (
     <div className="fixed inset-0 bg-gray-700/70 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl max-w-xl w-full overflow-hidden flex flex-col">
-        <div className="p-6 border-b border-gray-200">
+        <div className="px-6 py-3 border-b border-gray-200">
           <h2 className="text-2xl font-primary font-bold text-gray-900">
             {group ? "Edit Group" : "Create New Group"}
           </h2>
@@ -84,7 +84,7 @@ export default function GroupFormModal({
           </p>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="px-6 py-3 space-y-6">
           <div>
             <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
               Group Name
