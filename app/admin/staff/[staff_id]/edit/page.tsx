@@ -153,10 +153,11 @@ export default function EditStaffPage() {
         username: "",
         password: "",
         confirmPassword: "",
-        status: response.status
-          ? response.status.charAt(0).toUpperCase() +
-            response.status.slice(1).replaceAll("_", " ")
-          : "Active",
+        // status: response.status
+        //   ? response.status.charAt(0).toUpperCase() +
+        //     response.status.slice(1).replaceAll("_", " ")
+        //   : "Active",
+        status: (response.status as string) || "active",
         wage:
           typeof response.hourly_rate === "number"
             ? response.hourly_rate
@@ -1091,9 +1092,9 @@ export default function EditStaffPage() {
                   }))
                 }
                 options={[
-                  { label: "Active", value: "Active" },
-                  { label: "Inactive", value: "Inactive" },
-                  { label: "On Leave", value: "On Leave" },
+                  { label: "Active", value: "active" },
+                  { label: "Inactive", value: "inactive" },
+                  { label: "On Leave", value: "on_leave" },
                 ]}
               />
             </div>
