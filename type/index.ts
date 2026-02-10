@@ -29,8 +29,10 @@ export interface StaffFormData {
   lastName: string;
   email: string;
   phone: string;
+  secondaryPhone: string;
   dateOfBirth: string;
-  profilePicture?: File | null;
+  gender: "male" | "female" | "other" | "prefer_not_to_say" | "";
+  profilePicture: File | null;
 
   profession: string;
   experienceLevel: string;
@@ -38,6 +40,12 @@ export interface StaffFormData {
   employeeId: string;
   startDate: string;
   employmentType: string;
+  uniformSize: string;
+  payType: "hourly" | "fixed";
+  wage: number;
+  fixedRate: number;
+  overtimeMultiplier: number;
+  taxWithholdingRate: number;
   groups: string[];
 
   street: string;
@@ -48,17 +56,14 @@ export interface StaffFormData {
 
   emergencyContactName: string;
   emergencyContactPhone: string;
+  emergencyContactRelation: string;
 
   username: string;
   password: string;
   confirmPassword: string;
   status: string;
 
-  payType: "hourly" | "fixed";
-  wage?: number;
-  fixedRate?: number;
-
-  uniformSize?: string;
+  notes: string;
 }
 
 export interface Event {

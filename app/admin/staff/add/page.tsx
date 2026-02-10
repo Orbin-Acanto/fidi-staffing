@@ -1,25 +1,42 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { StaffFormData } from "@/type";
-import {
-  availableGroups,
-  employmentTypes,
-  experienceLevels,
-  professions,
-} from "@/data";
+import { employmentTypes, experienceLevels } from "@/data";
 import { AppDatePicker } from "@/component/ui/AppDatePicker";
 import { AppFileUpload } from "@/component/ui/AppFileUpload";
 import { AppSelect } from "@/component/ui/Select";
 import { AppCheckbox } from "@/component/ui/Checkbox";
+import { apiFetch } from "@/lib/apiFetch";
+import { toastSuccess, toastError } from "@/lib/toast";
 
 type PayType = "hourly" | "fixed";
+
+const genderOptions = [
+  { label: "Male", value: "male" },
+  { label: "Female", value: "female" },
+  { label: "Other", value: "other" },
+  { label: "Prefer not to say", value: "prefer_not_to_say" },
+];
+
+const relationOptions = [
+  { label: "Spouse", value: "Spouse" },
+  { label: "Parent", value: "Parent" },
+  { label: "Sibling", value: "Sibling" },
+  { label: "Child", value: "Child" },
+  { label: "Friend", value: "Friend" },
+  { label: "Other", value: "Other" },
+];
 
 export default function AddStaffPage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [roles, setRoles] = useState<Array<{ id: string; name: string }>>([]);
+  const [groups, setGroups] = useState<Array<{ id: string; name: string }>>([]);
+  const [isLoadingRoles, setIsLoadingRoles] = useState(true);
+  const [isLoadingGroups, setIsLoadingGroups] = useState(true);
 
   const uniformSizes = ["XS", "S", "M", "L", "XL", "2XL", "3XL"];
 
@@ -28,7 +45,9 @@ export default function AddStaffPage() {
     lastName: "",
     email: "",
     phone: "",
+    secondaryPhone: "",
     dateOfBirth: "",
+    gender: "",
     profilePicture: null,
     profession: "",
     experienceLevel: "Junior",
@@ -43,6 +62,7 @@ export default function AddStaffPage() {
     country: "United States",
     emergencyContactName: "",
     emergencyContactPhone: "",
+    emergencyContactRelation: "",
     username: "",
     password: "",
     confirmPassword: "",
@@ -51,7 +71,12 @@ export default function AddStaffPage() {
     payType: "hourly",
     fixedRate: 0,
     uniformSize: "",
+    overtimeMultiplier: 1.5,
+    taxWithholdingRate: 15.0,
+    notes: "",
   });
+
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const isPayType = (value: string): value is PayType =>
     value === "hourly" || value === "fixed";
@@ -59,10 +84,17 @@ export default function AddStaffPage() {
   const handleInputChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >
+    >,
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    if (errors[name]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
   };
 
   const handleToggleGroup = (group: string) => {
@@ -74,27 +106,271 @@ export default function AddStaffPage() {
     }));
   };
 
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.firstName.trim()) {
+      newErrors.firstName = "First name is required";
+    }
+    if (!formData.lastName.trim()) {
+      newErrors.lastName = "Last name is required";
+    }
+    if (!formData.email.trim()) {
+      newErrors.email = "Email is required";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = "Invalid email format";
+    }
+    if (!formData.phone.trim()) {
+      newErrors.phone = "Phone number is required";
+    }
+    if (!formData.profession) {
+      newErrors.profession = "Profession/Role is required";
+    }
+
+    if (!formData.password) {
+      newErrors.password = "Password is required";
+    } else if (formData.password.length < 8) {
+      newErrors.password = "Password must be at least 8 characters";
+    }
+    if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = "Passwords do not match";
+    }
+
+    if (
+      formData.payType === "hourly" &&
+      (!formData.wage || formData.wage <= 0)
+    ) {
+      newErrors.wage = "Hourly rate must be greater than 0";
+    }
+    if (
+      formData.payType === "fixed" &&
+      (!formData.fixedRate || formData.fixedRate <= 0)
+    ) {
+      newErrors.fixedRate = "Fixed rate must be greater than 0";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
 
-    if (formData.password !== formData.confirmPassword) {
-      alert("Passwords do not match!");
-      setIsSubmitting(false);
+    if (!validateForm()) {
+      toastError("Please fix the errors in the form");
       return;
     }
 
+    setIsSubmitting(true);
+
     try {
-      console.log("Form data:", formData);
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const formDataToSend = new FormData();
+
+      formDataToSend.append("first_name", formData.firstName.trim());
+      formDataToSend.append("last_name", formData.lastName.trim());
+      formDataToSend.append("email", formData.email.trim().toLowerCase());
+      formDataToSend.append("phone", formData.phone.trim());
+
+      if (formData.secondaryPhone?.trim()) {
+        formDataToSend.append(
+          "secondary_phone",
+          formData.secondaryPhone.trim(),
+        );
+      }
+
+      if (formData.dateOfBirth) {
+        formDataToSend.append("date_of_birth", formData.dateOfBirth);
+      }
+
+      if (formData.gender) {
+        formDataToSend.append("gender", formData.gender);
+      }
+
+      if (formData.profilePicture) {
+        formDataToSend.append("avatar", formData.profilePicture);
+      }
+
+      if (formData.street?.trim()) {
+        formDataToSend.append("address_street", formData.street.trim());
+      }
+      if (formData.city?.trim()) {
+        formDataToSend.append("address_city", formData.city.trim());
+      }
+      if (formData.state?.trim()) {
+        formDataToSend.append("address_state", formData.state.trim());
+      }
+      if (formData.zipCode?.trim()) {
+        formDataToSend.append("address_zip", formData.zipCode.trim());
+      }
+      if (formData.country) {
+        formDataToSend.append("address_country", formData.country);
+      }
+
+      if (formData.emergencyContactName?.trim()) {
+        formDataToSend.append(
+          "emergency_contact_name",
+          formData.emergencyContactName.trim(),
+        );
+      }
+      if (formData.emergencyContactPhone?.trim()) {
+        formDataToSend.append(
+          "emergency_contact_phone",
+          formData.emergencyContactPhone.trim(),
+        );
+      }
+      if (formData.emergencyContactRelation) {
+        formDataToSend.append(
+          "emergency_contact_relation",
+          formData.emergencyContactRelation,
+        );
+      }
+
+      if (formData.profession) {
+        formDataToSend.append("primary_role", formData.profession);
+      }
+
+      formDataToSend.append(
+        "experience_level",
+        formData.experienceLevel.toLowerCase(),
+      );
+
+      formDataToSend.append("pay_type", formData.payType);
+
+      const employmentTypeMap: Record<string, string> = {
+        "Full-time": "full",
+        "Part-time": "part",
+        Contract: "contract",
+        Casual: "casual",
+      };
+      formDataToSend.append(
+        "employment_type",
+        employmentTypeMap[formData.employmentType] || "full",
+      );
+
+      if (formData.uniformSize) {
+        formDataToSend.append(
+          "uniform_size",
+          formData.uniformSize.toLowerCase(),
+        );
+      }
+
+      if (formData.payType === "hourly") {
+        formDataToSend.append("hourly_rate", formData.wage.toString());
+      }
+
+      if (formData.payType === "fixed") {
+        formDataToSend.append("fixed_rate", formData.fixedRate.toString());
+      }
+
+      formDataToSend.append(
+        "overtime_multiplier",
+        formData.overtimeMultiplier.toString(),
+      );
+      formDataToSend.append(
+        "tax_withholding_rate",
+        formData.taxWithholdingRate.toString(),
+      );
+
+      if (formData.groups.length > 0) {
+        formData.groups.forEach((group) => {
+          formDataToSend.append("groups", group);
+        });
+      }
+
+      formDataToSend.append("status", formData.status.toLowerCase());
+      formDataToSend.append("availability_status", "available");
+
+      if (formData.startDate) {
+        formDataToSend.append("hire_date", formData.startDate);
+      }
+
+      formDataToSend.append("password", formData.password);
+
+      if (formData.notes?.trim()) {
+        formDataToSend.append("notes", formData.notes.trim());
+      }
+
+      const response = await fetch("/api/staff/create", {
+        method: "POST",
+        body: formDataToSend,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (data.errors) {
+          const backendErrors: Record<string, string> = {};
+          Object.keys(data.errors).forEach((key) => {
+            const fieldMap: Record<string, string> = {
+              first_name: "firstName",
+              last_name: "lastName",
+              email: "email",
+              phone: "phone",
+              secondary_phone: "secondaryPhone",
+              hourly_rate: "wage",
+              fixed_rate: "fixedRate",
+              pay_type: "payType",
+              primary_role: "profession",
+              date_of_birth: "dateOfBirth",
+              address_street: "street",
+              address_city: "city",
+              address_state: "state",
+              address_zip: "zipCode",
+              emergency_contact_name: "emergencyContactName",
+              emergency_contact_phone: "emergencyContactPhone",
+              emergency_contact_relation: "emergencyContactRelation",
+            };
+
+            const frontendKey = fieldMap[key] || key;
+            backendErrors[frontendKey] = Array.isArray(data.errors[key])
+              ? data.errors[key][0]
+              : data.errors[key];
+          });
+          setErrors(backendErrors);
+        }
+
+        throw new Error(data.message || "Failed to create staff member");
+      }
+
+      toastSuccess(data.message || "Staff member created successfully!");
+
       router.push("/admin/staff");
-    } catch (error) {
-      console.error("Error adding staff:", error);
-      alert("Failed to add staff member. Please try again.");
+    } catch (err: any) {
+      toastError(
+        err.message || "Failed to create staff member. Please try again.",
+      );
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  useEffect(() => {
+    async function fetchRolesAndGroups() {
+      try {
+        const rolesResponse = await apiFetch("/api/roles/list?status=active");
+        setRoles(rolesResponse.roles || []);
+      } catch (error) {
+        console.error("Failed to fetch roles:", error);
+        toastError("Failed to load roles");
+      } finally {
+        setIsLoadingRoles(false);
+      }
+
+      try {
+        const groupsResponse = await apiFetch(
+          "/api/groups/list?is_active=true",
+        );
+        setGroups(groupsResponse.groups || []);
+      } catch (error) {
+        console.error("Failed to fetch groups:", error);
+        toastError("Failed to load groups");
+      } finally {
+        setIsLoadingGroups(false);
+      }
+    }
+
+    fetchRolesAndGroups();
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -141,11 +417,18 @@ export default function AddStaffPage() {
                 value={formData.firstName}
                 onChange={handleInputChange}
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-dark-black
+                className={`w-full px-4 py-2 border rounded-lg font-secondary text-dark-black
                          focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
-                         transition-all duration-200"
+                         transition-all duration-200 ${
+                           errors.firstName
+                             ? "border-red-500"
+                             : "border-gray-300"
+                         }`}
                 placeholder="Enter first name"
               />
+              {errors.firstName && (
+                <p className="mt-1 text-sm text-red-500">{errors.firstName}</p>
+              )}
             </div>
 
             <div>
@@ -158,11 +441,18 @@ export default function AddStaffPage() {
                 value={formData.lastName}
                 onChange={handleInputChange}
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-dark-black
+                className={`w-full px-4 py-2 border rounded-lg font-secondary text-dark-black
                          focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
-                         transition-all duration-200"
+                         transition-all duration-200 ${
+                           errors.lastName
+                             ? "border-red-500"
+                             : "border-gray-300"
+                         }`}
                 placeholder="Enter last name"
               />
+              {errors.lastName && (
+                <p className="mt-1 text-sm text-red-500">{errors.lastName}</p>
+              )}
             </div>
 
             <div>
@@ -175,11 +465,16 @@ export default function AddStaffPage() {
                 value={formData.email}
                 onChange={handleInputChange}
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-dark-black
+                className={`w-full px-4 py-2 border rounded-lg font-secondary text-dark-black
                          focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
-                         transition-all duration-200"
+                         transition-all duration-200 ${
+                           errors.email ? "border-red-500" : "border-gray-300"
+                         }`}
                 placeholder="email@example.com"
               />
+              {errors.email && (
+                <p className="mt-1 text-sm text-red-500">{errors.email}</p>
+              )}
             </div>
 
             <div>
@@ -192,10 +487,46 @@ export default function AddStaffPage() {
                 value={formData.phone}
                 onChange={handleInputChange}
                 required
+                className={`w-full px-4 py-2 border rounded-lg font-secondary text-dark-black
+                         focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
+                         transition-all duration-200 ${
+                           errors.phone ? "border-red-500" : "border-gray-300"
+                         }`}
+                placeholder="+1 (555) 000-0000"
+              />
+              {errors.phone && (
+                <p className="mt-1 text-sm text-red-500">{errors.phone}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
+                Secondary Phone
+              </label>
+              <input
+                type="tel"
+                name="secondaryPhone"
+                value={formData.secondaryPhone}
+                onChange={handleInputChange}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-dark-black
                          focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
                          transition-all duration-200"
                 placeholder="+1 (555) 000-0000"
+              />
+            </div>
+
+            <div>
+              <AppSelect
+                label="Gender"
+                value={formData.gender}
+                onValueChange={(value) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    gender: value as any,
+                  }))
+                }
+                placeholder="Select gender"
+                options={genderOptions}
               />
             </div>
 
@@ -235,18 +566,36 @@ export default function AddStaffPage() {
                   </>
                 }
                 value={formData.profession}
-                onValueChange={(value) =>
+                onValueChange={(value) => {
                   setFormData((prev) => ({
                     ...prev,
                     profession: value,
-                  }))
+                  }));
+                  if (errors.profession) {
+                    setErrors((prev) => {
+                      const newErrors = { ...prev };
+                      delete newErrors.profession;
+                      return newErrors;
+                    });
+                  }
+                }}
+                placeholder={
+                  isLoadingRoles ? "Loading roles..." : "Select profession"
                 }
-                placeholder="Select profession"
-                options={professions.map((prof) => ({
-                  label: prof,
-                  value: prof,
+                disabled={isLoadingRoles}
+                options={roles.map((role) => ({
+                  label: role.name,
+                  value: role.id,
                 }))}
               />
+              {errors.profession && (
+                <p className="mt-1 text-sm text-red-500">{errors.profession}</p>
+              )}
+              {roles.length === 0 && !isLoadingRoles && (
+                <p className="mt-1 text-xs text-amber-600">
+                  No roles available. Please create roles first.
+                </p>
+              )}
             </div>
 
             <div>
@@ -283,8 +632,7 @@ export default function AddStaffPage() {
                 name="employeeId"
                 disabled
                 value={formData.employeeId}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-dark-black
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-dark-black bg-gray-50
                          focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
                          transition-all duration-200"
                 placeholder="Auto-generated"
@@ -354,8 +702,6 @@ export default function AddStaffPage() {
                   setFormData((prev) => ({
                     ...prev,
                     payType: value,
-                    hourlyRate: value === "hourly" ? prev.wage : 0,
-                    fixedRate: value === "fixed" ? prev.fixedRate : 0,
                   }));
                 }}
                 placeholder="Select pay type"
@@ -369,60 +715,129 @@ export default function AddStaffPage() {
             {formData.payType === "hourly" && (
               <div>
                 <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
-                  Hourly Pay Rate
+                  Hourly Pay Rate <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="number"
-                  name="hourlyRate"
+                  name="wage"
+                  step="0.01"
+                  min="0"
                   value={formData.wage}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-dark-black
+                  className={`w-full px-4 py-2 border rounded-lg font-secondary text-dark-black
                focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
-               transition-all duration-200"
-                  placeholder="Enter employee hourly wage rate"
+               transition-all duration-200 ${
+                 errors.wage ? "border-red-500" : "border-gray-300"
+               }`}
+                  placeholder="Enter hourly wage rate"
                 />
+                {errors.wage && (
+                  <p className="mt-1 text-sm text-red-500">{errors.wage}</p>
+                )}
               </div>
             )}
 
             {formData.payType === "fixed" && (
               <div>
                 <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
-                  Fixed Salary
+                  Fixed Salary <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="number"
                   name="fixedRate"
+                  step="0.01"
+                  min="0"
                   value={formData.fixedRate}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-dark-black
+                  className={`w-full px-4 py-2 border rounded-lg font-secondary text-dark-black
                focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
-               transition-all duration-200"
+               transition-all duration-200 ${
+                 errors.fixedRate ? "border-red-500" : "border-gray-300"
+               }`}
                   placeholder="Enter fixed salary amount"
                 />
+                {errors.fixedRate && (
+                  <p className="mt-1 text-sm text-red-500">
+                    {errors.fixedRate}
+                  </p>
+                )}
               </div>
             )}
 
             <div>
               <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
+                Overtime Multiplier
+              </label>
+              <input
+                type="number"
+                name="overtimeMultiplier"
+                step="0.1"
+                min="1"
+                max="3"
+                value={formData.overtimeMultiplier}
+                onChange={handleInputChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-dark-black
+                         focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
+                         transition-all duration-200"
+                placeholder="1.5"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                Multiplier for overtime pay (default: 1.5x)
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
+                Tax Withholding Rate (%)
+              </label>
+              <input
+                type="number"
+                name="taxWithholdingRate"
+                step="0.01"
+                min="0"
+                max="100"
+                value={formData.taxWithholdingRate}
+                onChange={handleInputChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-dark-black
+                         focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
+                         transition-all duration-200"
+                placeholder="15.00"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                Tax withholding percentage (default: 15%)
+              </p>
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
                 Group Assignment
               </label>
-              <div className="border border-gray-300 rounded-lg p-3 max-h-40 overflow-y-auto">
-                {availableGroups.map((group) => (
-                  <label
-                    key={group}
-                    className="flex items-center gap-2 py-2 cursor-pointer hover:bg-gray-50 px-2 rounded"
-                  >
-                    <AppCheckbox
-                      checked={formData.groups.includes(group)}
-                      onCheckedChange={() => handleToggleGroup(group)}
-                    />
-
-                    <span className="text-sm font-secondary text-gray-700">
-                      {group}
-                    </span>
-                  </label>
-                ))}
-              </div>
+              {isLoadingGroups ? (
+                <div className="border border-gray-300 rounded-lg p-4 text-center text-gray-500">
+                  Loading groups...
+                </div>
+              ) : groups.length === 0 ? (
+                <div className="border border-gray-300 rounded-lg p-4 text-center text-amber-600">
+                  No groups available. Groups are optional.
+                </div>
+              ) : (
+                <div className="border border-gray-300 rounded-lg p-3 max-h-40 overflow-y-auto">
+                  {groups.map((group) => (
+                    <label
+                      key={group.id}
+                      className="flex items-center gap-2 py-2 cursor-pointer hover:bg-gray-50 px-2 rounded"
+                    >
+                      <AppCheckbox
+                        checked={formData.groups.includes(group.id)}
+                        onCheckedChange={() => handleToggleGroup(group.id)}
+                      />
+                      <span className="text-sm font-secondary text-gray-700">
+                        {group.name}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -505,8 +920,7 @@ export default function AddStaffPage() {
                 name="country"
                 disabled
                 value={formData.country}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-dark-black
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-dark-black bg-gray-50
                          focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
                          transition-all duration-200"
               />
@@ -550,6 +964,21 @@ export default function AddStaffPage() {
                 placeholder="+1 (555) 000-0000"
               />
             </div>
+
+            <div>
+              <AppSelect
+                label="Relationship"
+                value={formData.emergencyContactRelation}
+                onValueChange={(value) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    emergencyContactRelation: value,
+                  }))
+                }
+                placeholder="Select relationship"
+                options={relationOptions}
+              />
+            </div>
           </div>
         </div>
 
@@ -558,23 +987,6 @@ export default function AddStaffPage() {
             Account Information
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
-                Username <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                name="username"
-                value={formData.username}
-                onChange={handleInputChange}
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-dark-black
-                         focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
-                         transition-all duration-200"
-                placeholder="username"
-              />
-            </div>
-
             <div>
               <AppSelect
                 label="Account Status"
@@ -588,9 +1000,12 @@ export default function AddStaffPage() {
                 options={[
                   { label: "Active", value: "Active" },
                   { label: "Inactive", value: "Inactive" },
+                  { label: "On Leave", value: "On Leave" },
                 ]}
               />
             </div>
+
+            <div></div>
 
             <div>
               <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
@@ -602,11 +1017,18 @@ export default function AddStaffPage() {
                 value={formData.password}
                 onChange={handleInputChange}
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-dark-black
+                className={`w-full px-4 py-2 border rounded-lg font-secondary text-dark-black
                          focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
-                         transition-all duration-200"
+                         transition-all duration-200 ${
+                           errors.password
+                             ? "border-red-500"
+                             : "border-gray-300"
+                         }`}
                 placeholder="Enter password"
               />
+              {errors.password && (
+                <p className="mt-1 text-sm text-red-500">{errors.password}</p>
+              )}
             </div>
 
             <div>
@@ -619,16 +1041,45 @@ export default function AddStaffPage() {
                 value={formData.confirmPassword}
                 onChange={handleInputChange}
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-dark-black
+                className={`w-full px-4 py-2 border rounded-lg font-secondary text-dark-black
                          focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
-                         transition-all duration-200"
+                         transition-all duration-200 ${
+                           errors.confirmPassword
+                             ? "border-red-500"
+                             : "border-gray-300"
+                         }`}
                 placeholder="Confirm password"
               />
+              {errors.confirmPassword && (
+                <p className="mt-1 text-sm text-red-500">
+                  {errors.confirmPassword}
+                </p>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Form Actions */}
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <h2 className="text-xl font-primary font-semibold text-gray-900 mb-6">
+            Additional Notes
+          </h2>
+          <div>
+            <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
+              Notes
+            </label>
+            <textarea
+              name="notes"
+              value={formData.notes}
+              onChange={handleInputChange}
+              rows={4}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-dark-black
+                       focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
+                       transition-all duration-200"
+              placeholder="Add any additional notes about this staff member..."
+            />
+          </div>
+        </div>
+
         <div className="flex items-center justify-end gap-4">
           <Link
             href="/admin/staff"
