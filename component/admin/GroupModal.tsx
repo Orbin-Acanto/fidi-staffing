@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { AppCheckbox } from "../ui/Checkbox";
 import { UiStaff } from "@/type/staff";
-import { UiGroup } from "@/app/admin/groups/page";
+import { UiGroup } from "@/type/group";
 
 const COLOR_OPTIONS = [
   "#6B7280",
@@ -86,7 +86,7 @@ export default function GroupFormModal({
 
   return (
     <div className="fixed inset-0 bg-gray-700/70 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-xl w-full overflow-scroll max-h-176 flex flex-col">
+      <div className="bg-white rounded-lg shadow-xl max-w-xl w-full overflow-y-scroll max-h-176 flex flex-col">
         <div className="flex items-center justify-between px-6 py-3 border-b border-gray-200 sticky top-0 bg-white">
           <div>
             <h2 className="text-2xl font-primary font-bold text-gray-900">
@@ -118,7 +118,7 @@ export default function GroupFormModal({
           </button>
         </div>
 
-        <div className="px-6 pt-3 space-y-6">
+        <div className="px-6 py-3 space-y-6">
           <div>
             <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
               Group Name
@@ -244,7 +244,7 @@ export default function GroupFormModal({
             </div>
           </div>
 
-          <div>
+          <div className="max-h-100">
             <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
               Assign staff members
             </label>
@@ -326,19 +326,32 @@ export default function GroupFormModal({
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50">
+        <div className="flex items-center justify-end gap-3 px-6 py-3 border-t border-gray-200 ">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 font-secondary font-medium transition-colors cursor-pointer"
+            className="px-4 py-2 text-gray-700 bg-gray-200 cursor-pointer font-secondary font-medium hover:bg-gray-200 rounded-lg transition-colors"
           >
             Cancel
           </button>
           <button
             type="button"
             onClick={handleSubmit}
-            className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-[#e0c580] font-secondary font-medium transition-colors cursor-pointer"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-primary cursor-pointer text-white font-secondary font-medium rounded-lg hover:bg-primary/90 transition-colors"
           >
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M5 13l4 4L19 7"
+              />
+            </svg>
             {group ? "Update Group" : "Create Group"}
           </button>
         </div>
