@@ -149,3 +149,11 @@ export interface EventRoleRequirement {
   estimatedCost: number;
   notes: string;
 }
+
+export interface Role {
+  id: string;
+  name: string;
+  color: string;
+  pay_type: string;
+  default_rate: string | number;
+}

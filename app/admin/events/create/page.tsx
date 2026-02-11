@@ -10,16 +10,7 @@ import { AppTimePicker } from "@/component/ui/AppTimePicker";
 import EventStaffingSection from "@/component/event/Eventstaffingsection";
 import { apiFetch } from "@/lib/apiFetch";
 import { toastError, toastSuccess } from "@/lib/toast";
-import { EventFormData, EventRoleRequirement } from "@/type/events";
-
-interface Role {
-  id: string;
-  name: string;
-  color: string;
-  default_pay_type: string;
-  hourly_rate: number | null;
-  fixed_rate: number | null;
-}
+import { EventFormData, EventRoleRequirement, Role } from "@/type/events";
 
 interface Location {
   id: string;

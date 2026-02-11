@@ -3,16 +3,7 @@
 import { useEffect } from "react";
 import { AppCheckbox } from "../ui/Checkbox";
 import { AppTimePicker } from "../ui/AppTimePicker";
-import { EventRoleRequirement } from "@/type/events";
-
-interface Role {
-  id: string;
-  name: string;
-  color: string;
-  default_pay_type: string;
-  hourly_rate: number | null;
-  fixed_rate: number | null;
-}
+import { EventRoleRequirement, Role } from "@/type/events";
 
 interface StaffGroup {
   id: string;
@@ -51,16 +42,16 @@ export default function EventStaffingSection({
       const initialRequirements: EventRoleRequirement[] = activeRoles.map(
         (role) => {
           const defaultRate =
-            role.default_pay_type === "hourly"
-              ? role.hourly_rate || 0
-              : role.fixed_rate || 0;
+            typeof role.default_rate === "string"
+              ? parseFloat(role.default_rate)
+              : role.default_rate || 0;
 
           return {
             id: role.id,
             roleId: role.id,
             roleName: role.name,
             roleColor: role.color,
-            payType: role.default_pay_type as "hourly" | "fixed",
+            payType: role.pay_type as "hourly" | "fixed",
             defaultRate: defaultRate,
             eventRate: defaultRate,
             startTime: eventStartTime || "",
@@ -86,11 +77,12 @@ export default function EventStaffingSection({
         const updated = requirements.map((req) => {
           if (!req.startTime || !req.endTime) {
             const hours = calculateHours(eventStartTime, eventEndTime);
-            const estimatedHours = hours * req.staffCount;
-            const estimatedCost =
-              req.payType === "hourly"
-                ? estimatedHours * req.eventRate
-                : req.staffCount * req.eventRate;
+            const { estimatedHours, estimatedCost } = calculateEstimates(
+              req.payType,
+              hours,
+              req.staffCount,
+              req.eventRate,
+            );
 
             return {
               ...req,
@@ -129,6 +121,24 @@ export default function EventStaffingSection({
     return hours + mins / 60;
   };
 
+  const calculateEstimates = (
+    payType: "hourly" | "fixed",
+    hours: number,
+    staffCount: number,
+    rate: number,
+  ): { estimatedHours: number; estimatedCost: number } => {
+    const estimatedHours = hours * staffCount;
+    let estimatedCost = 0;
+
+    if (payType === "hourly") {
+      estimatedCost = rate * hours * staffCount;
+    } else {
+      estimatedCost = rate * staffCount;
+    }
+
+    return { estimatedHours, estimatedCost };
+  };
+
   const updateRequirement = (
     roleId: string,
     field: keyof EventRoleRequirement,
@@ -140,14 +150,15 @@ export default function EventStaffingSection({
       const updatedReq = { ...req, [field]: value };
 
       const hours = calculateHours(updatedReq.startTime, updatedReq.endTime);
-      updatedReq.estimatedHours = hours * updatedReq.staffCount;
+      const { estimatedHours, estimatedCost } = calculateEstimates(
+        updatedReq.payType,
+        hours,
+        updatedReq.staffCount,
+        updatedReq.eventRate,
+      );
 
-      if (updatedReq.payType === "hourly") {
-        updatedReq.estimatedCost =
-          updatedReq.estimatedHours * updatedReq.eventRate;
-      } else {
-        updatedReq.estimatedCost = updatedReq.staffCount * updatedReq.eventRate;
-      }
+      updatedReq.estimatedHours = estimatedHours;
+      updatedReq.estimatedCost = estimatedCost;
 
       return updatedReq;
     });
@@ -160,11 +171,12 @@ export default function EventStaffingSection({
 
     const updated = requirements.map((req) => {
       const hours = calculateHours(eventStartTime, eventEndTime);
-      const estimatedHours = hours * req.staffCount;
-      const estimatedCost =
-        req.payType === "hourly"
-          ? estimatedHours * req.eventRate
-          : req.staffCount * req.eventRate;
+      const { estimatedHours, estimatedCost } = calculateEstimates(
+        req.payType,
+        hours,
+        req.staffCount,
+        req.eventRate,
+      );
 
       return {
         ...req,
@@ -406,6 +418,28 @@ export default function EventStaffingSection({
                     </div>
                   </div>
                 </div>
+
+                {hasStaff && (
+                  <div className="mt-3 pt-3 border-t border-gray-100">
+                    <p className="text-xs text-gray-500 font-secondary">
+                      {req.payType === "hourly" ? (
+                        <>
+                          Calculation: ${req.eventRate}/hr ×{" "}
+                          {calculateHours(req.startTime, req.endTime).toFixed(
+                            1,
+                          )}
+                          h × {req.staffCount} staff ={" "}
+                          {formatCurrency(req.estimatedCost)}
+                        </>
+                      ) : (
+                        <>
+                          Calculation: ${req.eventRate} × {req.staffCount} staff
+                          = {formatCurrency(req.estimatedCost)}
+                        </>
+                      )}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           );
