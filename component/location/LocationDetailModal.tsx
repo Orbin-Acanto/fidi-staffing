@@ -1,4 +1,5 @@
 "use client";
+
 import { SavedLocation } from "@/type";
 import Link from "next/link";
 
@@ -13,29 +14,8 @@ export default function LocationDetailModal({
   onClose,
   onEdit,
 }: LocationDetailModalProps) {
-  const fullAddress = `${location.street}, ${location.city}, ${location.state} ${location.zipCode}, ${location.country}`;
+  const fullAddress = `${location.street}, ${location.city}${location.state ? `, ${location.state}` : ""}${location.zipCode ? ` ${location.zipCode}` : ""}, ${location.country || "United States"}`;
   const encodedAddress = encodeURIComponent(fullAddress);
-
-  const recentEvents = [
-    {
-      id: "1",
-      name: "Annual Corporate Gala",
-      date: "Dec 15, 2024",
-      status: "Completed",
-    },
-    {
-      id: "2",
-      name: "Product Launch Event",
-      date: "Jan 20, 2025",
-      status: "Upcoming",
-    },
-    {
-      id: "3",
-      name: "Team Building Workshop",
-      date: "Nov 28, 2024",
-      status: "Completed",
-    },
-  ];
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
@@ -66,14 +46,18 @@ export default function LocationDetailModal({
                   />
                 </svg>
               </div>
+
               <div>
                 <h2 className="text-xl font-primary font-bold text-gray-900">
-                  {location.venueName}
+                  {(location as any).venueName ||
+                    (location as any).locationName ||
+                    "Location"}
                 </h2>
                 <p className="text-sm font-secondary text-gray-500">
                   {location.label}
                 </p>
               </div>
+
               {location.isFavorite && (
                 <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-secondary font-medium bg-yellow-100 text-yellow-700">
                   <svg
@@ -86,7 +70,14 @@ export default function LocationDetailModal({
                   Favorite
                 </span>
               )}
+
+              {location.isActive === false && (
+                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-secondary font-medium bg-gray-100 text-gray-700">
+                  Inactive
+                </span>
+              )}
             </div>
+
             <button
               onClick={onClose}
               className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
@@ -115,7 +106,7 @@ export default function LocationDetailModal({
                   className="w-full h-full border-0"
                   loading="lazy"
                   referrerPolicy="no-referrer-when-downgrade"
-                  title={`Map of ${location.venueName}`}
+                  title={`Map of ${(location as any).venueName || (location as any).locationName || "location"}`}
                   allowFullScreen
                 />
                 <a
@@ -171,10 +162,12 @@ export default function LocationDetailModal({
                     {location.street}
                   </p>
                   <p className="font-secondary text-gray-600">
-                    {location.city}, {location.state} {location.zipCode}
+                    {location.city}
+                    {location.state ? `, ${location.state}` : ""}{" "}
+                    {location.zipCode || ""}
                   </p>
                   <p className="font-secondary text-gray-600">
-                    {location.country}
+                    {location.country || "United States"}
                   </p>
                 </div>
               </div>
@@ -196,12 +189,14 @@ export default function LocationDetailModal({
                   </svg>
                   Contact Information
                 </h3>
+
                 <div className="bg-gray-50 rounded-lg p-4 space-y-2">
                   {location.contactPerson ? (
                     <>
                       <p className="font-secondary text-gray-900">
                         {location.contactPerson}
                       </p>
+
                       {location.phoneNumber && (
                         <a
                           href={`tel:${location.phoneNumber}`}
@@ -223,6 +218,28 @@ export default function LocationDetailModal({
                           {location.phoneNumber}
                         </a>
                       )}
+
+                      {(location as any).contactEmail && (
+                        <a
+                          href={`mailto:${(location as any).contactEmail}`}
+                          className="flex items-center gap-2 text-primary hover:underline font-secondary"
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8m-18 8h18a2 2 0 002-2V8a2 2 0 00-2-2H3a2 2 0 00-2 2v6a2 2 0 002 2z"
+                            />
+                          </svg>
+                          {(location as any).contactEmail}
+                        </a>
+                      )}
                     </>
                   ) : (
                     <p className="text-gray-400 font-secondary">
@@ -232,6 +249,37 @@ export default function LocationDetailModal({
                 </div>
               </div>
             </div>
+
+            {(location as any).geofenceRadius !== undefined && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <p className="text-xs font-secondary text-gray-500 mb-1">
+                    Geofence Radius
+                  </p>
+                  <p className="font-secondary font-medium text-gray-900">
+                    {(location as any).geofenceRadius || 100} m
+                  </p>
+                </div>
+
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <p className="text-xs font-secondary text-gray-500 mb-1">
+                    Latitude
+                  </p>
+                  <p className="font-secondary font-medium text-gray-900">
+                    {(location as any).latitude ?? "Not set"}
+                  </p>
+                </div>
+
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <p className="text-xs font-secondary text-gray-500 mb-1">
+                    Longitude
+                  </p>
+                  <p className="font-secondary font-medium text-gray-900">
+                    {(location as any).longitude ?? "Not set"}
+                  </p>
+                </div>
+              </div>
+            )}
 
             {location.locationNotes && (
               <div className="space-y-3">
@@ -281,32 +329,16 @@ export default function LocationDetailModal({
                   {location.eventsCount || 0} total events
                 </span>
               </div>
-              <div className="bg-gray-50 rounded-lg divide-y divide-gray-200">
-                {recentEvents.map((event) => (
-                  <div
-                    key={event.id}
-                    className="flex items-center justify-between p-3"
-                  >
-                    <div>
-                      <p className="font-secondary font-medium text-gray-900">
-                        {event.name}
-                      </p>
-                      <p className="text-sm text-gray-500">{event.date}</p>
-                    </div>
-                    <span
-                      className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-secondary font-medium ${
-                        event.status === "Completed"
-                          ? "bg-green-100 text-green-700"
-                          : event.status === "Upcoming"
-                          ? "bg-blue-100 text-blue-700"
-                          : "bg-gray-100 text-gray-700"
-                      }`}
-                    >
-                      {event.status}
-                    </span>
-                  </div>
-                ))}
+
+              <div className="bg-gray-50 rounded-lg p-6 text-center">
+                <p className="text-sm font-secondary text-gray-600">
+                  Events are not loaded on this screen yet.
+                </p>
+                <p className="text-xs font-secondary text-gray-500 mt-1">
+                  You can view events in the Events page.
+                </p>
               </div>
+
               <Link href="/admin/events">
                 <button className="w-full text-sm text-primary hover:underline font-secondary py-2">
                   View all events →

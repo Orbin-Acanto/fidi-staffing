@@ -63,12 +63,18 @@ export type SavedLocation = {
   id: string;
   label: string;
   venueName: string;
+  isActive: boolean;
+  locationName?: string;
+  latitude?: number;
+  longitude?: number;
   street: string;
   city: string;
   state: string;
   zipCode: string;
   country: string;
   contactPerson?: string;
+  geofenceRadius?: number;
+  contactEmail?: string;
   phoneNumber?: string;
   locationNotes?: string;
   isFavorite?: boolean;

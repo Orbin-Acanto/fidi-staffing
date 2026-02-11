@@ -1,4 +1,5 @@
 "use client";
+
 import { SavedLocation } from "@/type";
 
 interface LocationTableViewProps {
@@ -6,6 +7,12 @@ interface LocationTableViewProps {
   onOpenDetail: (location: SavedLocation) => void;
   onOpenDelete: (location: SavedLocation) => void;
   onToggleFavorite: (location: SavedLocation) => void;
+}
+
+function getDisplayName(location: SavedLocation) {
+  return (
+    (location as any).venueName || (location as any).locationName || "Location"
+  );
 }
 
 export default function LocationTableView({
@@ -40,6 +47,7 @@ export default function LocationTableView({
               </th>
             </tr>
           </thead>
+
           <tbody className="divide-y divide-gray-200">
             {filteredLocations.map((location) => (
               <tr
@@ -76,22 +84,33 @@ export default function LocationTableView({
                         </svg>
                       )}
                     </button>
+
                     <div>
                       <p className="font-secondary font-medium text-gray-900">
-                        {location.venueName}
+                        {getDisplayName(location)}
                       </p>
                       <p className="text-sm text-gray-500">{location.label}</p>
+
+                      {location.isFavorite && (
+                        <span className="inline-flex items-center mt-1 px-2 py-0.5 rounded-full text-[11px] font-secondary font-medium bg-yellow-50 text-yellow-700">
+                          Favorite
+                        </span>
+                      )}
                     </div>
                   </div>
                 </td>
+
                 <td className="px-6 py-4">
                   <p className="font-secondary text-sm text-gray-900">
                     {location.street}
                   </p>
                   <p className="text-sm text-gray-500">
-                    {location.city}, {location.state} {location.zipCode}
+                    {location.city}
+                    {location.state ? `, ${location.state}` : ""}{" "}
+                    {location.zipCode || ""}
                   </p>
                 </td>
+
                 <td className="px-6 py-4">
                   {location.contactPerson ? (
                     <div>
@@ -99,13 +118,14 @@ export default function LocationTableView({
                         {location.contactPerson}
                       </p>
                       <p className="text-sm text-gray-500">
-                        {location.phoneNumber}
+                        {location.phoneNumber || ""}
                       </p>
                     </div>
                   ) : (
                     <span className="text-sm text-gray-400">Not assigned</span>
                   )}
                 </td>
+
                 <td className="px-6 py-4">
                   <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-secondary font-medium bg-blue-50 text-blue-700">
                     <svg
@@ -124,17 +144,19 @@ export default function LocationTableView({
                     {location.eventsCount || 0} events
                   </span>
                 </td>
+
                 <td className="px-6 py-4">
-                  {location.isFavorite ? (
-                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-secondary font-medium bg-yellow-50 text-yellow-700">
-                      Favorite
+                  {location.isActive === false ? (
+                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-secondary font-medium bg-gray-100 text-gray-600">
+                      Inactive
                     </span>
                   ) : (
-                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-secondary font-medium bg-gray-100 text-gray-600">
-                      Regular
+                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-secondary font-medium bg-green-50 text-green-700">
+                      Active
                     </span>
                   )}
                 </td>
+
                 <td className="px-6 py-4">
                   <div className="flex items-center justify-end gap-2">
                     <button
@@ -162,6 +184,7 @@ export default function LocationTableView({
                         />
                       </svg>
                     </button>
+
                     <button
                       onClick={() => onOpenDelete(location)}
                       className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"

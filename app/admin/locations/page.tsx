@@ -1,9 +1,10 @@
 "use client";
-import { useState } from "react";
+
+import { useEffect, useMemo, useState } from "react";
+import { toast } from "react-toastify";
 
 import { AppSelect } from "@/component/ui/Select";
-import { savedLocations } from "@/data";
-import { SavedLocation } from "@/type";
+
 import LocationHeader from "@/component/location/LocationHeader";
 import LocationSummaryPanel from "@/component/location/LocationSummaryPanel";
 import LocationTableView from "@/component/location/LocationTableView";
@@ -12,80 +13,291 @@ import AddEditLocationModal from "@/component/location/AddEditLocationModal";
 import LocationDetailModal from "@/component/location/LocationDetailModal";
 import DeleteLocationModal from "@/component/location/DeleteLocationModal";
 
+import type {
+  BackendLocation,
+  CitiesResponse,
+  ListLocationsResponse,
+} from "@/type/location";
+import {
+  mapBackendLocationToUi,
+  mapUiToCreateLocationPayload,
+  mapUiToUpdateLocationPayload,
+} from "@/type/location";
+
+import type { SavedLocation } from "@/type";
+
+async function apiGetJson<T>(url: string): Promise<T> {
+  const res = await fetch(url, { cache: "no-store" });
+  const data = await res.json().catch(() => null);
+
+  if (!res.ok) {
+    const message =
+      (data && (data.message || data.error || data.detail)) ||
+      `Request failed (${res.status})`;
+    throw new Error(message);
+  }
+
+  return data as T;
+}
+
+async function apiSendJson<T>(
+  url: string,
+  method: "POST" | "PUT" | "PATCH" | "DELETE",
+  body?: any,
+): Promise<T> {
+  const res = await fetch(url, {
+    method,
+    headers: body ? { "Content-Type": "application/json" } : undefined,
+    body: body ? JSON.stringify(body) : undefined,
+    cache: "no-store",
+  });
+
+  const data = await res.json().catch(() => null);
+
+  if (!res.ok) {
+    const message =
+      (data && (data.message || data.error || data.detail)) ||
+      `Request failed (${res.status})`;
+    throw new Error(message);
+  }
+
+  return data as T;
+}
+
+function uiToSavedLocation(
+  ui: ReturnType<typeof mapBackendLocationToUi>,
+): SavedLocation {
+  return {
+    id: ui.id,
+    venueName: ui.venueName || ui.locationName,
+    label: ui.label,
+
+    street: ui.street,
+    city: ui.city,
+    state: ui.state,
+    zipCode: ui.zipCode,
+    country: ui.country,
+
+    contactPerson: ui.contactPerson,
+    phoneNumber: ui.phoneNumber,
+    contactEmail: ui.contactEmail,
+
+    locationNotes: ui.locationNotes,
+
+    isFavorite: ui.isFavorite,
+    isActive: ui.isActive,
+
+    createdAt: ui.createdAt,
+    updatedAt: ui.updatedAt,
+
+    eventsCount: ui.eventsCount,
+
+    latitude: ui.latitude,
+    longitude: ui.longitude,
+    geofenceRadius: ui.geofenceRadius,
+
+    locationName: ui.locationName,
+  } as any;
+}
+
+function savedToUiLike(saved: SavedLocation) {
+  const venueName = (saved as any).venueName ?? "";
+  const locationName = (saved as any).locationName ?? venueName;
+
+  return {
+    id: saved.id,
+
+    locationName,
+    venueName,
+
+    street: saved.street ?? "",
+    city: saved.city ?? "",
+    state: (saved as any).state ?? "",
+    zipCode: (saved as any).zipCode ?? "",
+    country: (saved as any).country ?? "United States",
+
+    latitude: (saved as any).latitude ?? null,
+    longitude: (saved as any).longitude ?? null,
+    geofenceRadius: (saved as any).geofenceRadius ?? 100,
+
+    contactPerson: (saved as any).contactPerson ?? "",
+    phoneNumber: (saved as any).phoneNumber ?? "",
+    contactEmail: (saved as any).contactEmail ?? "",
+
+    locationNotes: (saved as any).locationNotes ?? "",
+
+    isFavorite: !!saved.isFavorite,
+    isActive: saved.isActive ?? true,
+
+    createdAt: (saved as any).createdAt ?? "",
+    updatedAt: (saved as any).updatedAt ?? "",
+
+    eventsCount: saved.eventsCount ?? 0,
+
+    label: (saved as any).label ?? "",
+  };
+}
+
 export default function LocationListPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterFavorite, setFilterFavorite] = useState<string>("all");
   const [filterCity, setFilterCity] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
+
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showAddEditModal, setShowAddEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+
   const [selectedLocation, setSelectedLocation] =
     useState<SavedLocation | null>(null);
-  const [locations, setLocations] = useState<SavedLocation[]>(savedLocations);
 
-  const totalLocations = locations.length;
+  const [locations, setLocations] = useState<SavedLocation[]>([]);
+  const [cities, setCities] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(20);
+  const [totalCount, setTotalCount] = useState(0);
+
+  const uniqueCities = useMemo(() => {
+    if (cities.length) return cities;
+    return Array.from(new Set(locations.map((l) => l.city).filter(Boolean)));
+  }, [cities, locations]);
+
+  async function fetchCities() {
+    try {
+      const data = await apiGetJson<CitiesResponse>("/api/locations/cities/");
+      setCities(data.cities || []);
+    } catch (e: any) {
+      setCities([]);
+    }
+  }
+
+  async function fetchLocations(nextPage?: number) {
+    const p = nextPage ?? page;
+
+    const params = new URLSearchParams();
+    params.set("page", String(p));
+    params.set("page_size", String(pageSize));
+
+    const trimmed = searchTerm.trim();
+    if (trimmed) params.set("search", trimmed);
+
+    if (filterCity !== "all") params.set("city", filterCity);
+
+    if (filterFavorite === "favorite") params.set("is_favorite", "true");
+
+    setIsLoading(true);
+    try {
+      const data = await apiGetJson<ListLocationsResponse>(
+        `/api/locations/list/?${params.toString()}`,
+      );
+
+      const results = (data.results || []) as BackendLocation[];
+      const mapped = results.map((b) =>
+        uiToSavedLocation(mapBackendLocationToUi(b)),
+      );
+
+      setLocations(mapped);
+      setTotalCount(data.count ?? mapped.length);
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to load locations");
+      setLocations([]);
+      setTotalCount(0);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    fetchCities();
+  }, []);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm, filterCity, filterFavorite]);
+
+  useEffect(() => {
+    fetchLocations(1);
+  }, [searchTerm, filterCity, filterFavorite]);
+
+  useEffect(() => {
+    fetchLocations(page);
+  }, [page]);
+
+  const totalLocations = totalCount || locations.length;
   const favoriteLocations = locations.filter((l) => l.isFavorite).length;
   const totalEvents = locations.reduce(
     (sum, l) => sum + (l.eventsCount || 0),
-    0
+    0,
   );
-  const citiesCount = new Set(locations.map((l) => l.city)).size;
+  const citiesCount = uniqueCities.length;
 
-  const uniqueCities = Array.from(new Set(locations.map((l) => l.city)));
+  const filteredLocations = locations;
 
-  const filteredLocations = locations.filter((location) => {
-    const matchesSearch =
-      location.venueName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      location.street.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      location.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (location.contactPerson
-        ?.toLowerCase()
-        .includes(searchTerm.toLowerCase()) ??
-        false);
-
-    const matchesFavorite =
-      filterFavorite === "all" ||
-      (filterFavorite === "favorite" && location.isFavorite) ||
-      (filterFavorite === "regular" && !location.isFavorite);
-
-    const matchesCity = filterCity === "all" || location.city === filterCity;
-
-    return matchesSearch && matchesFavorite && matchesCity;
-  });
-
-  const handleToggleFavorite = (location: SavedLocation) => {
-    setLocations((prev) =>
-      prev.map((l) =>
-        l.id === location.id ? { ...l, isFavorite: !l.isFavorite } : l
-      )
-    );
-  };
-
-  const handleSaveLocation = (data: Partial<SavedLocation>) => {
-    if (selectedLocation) {
-      setLocations((prev) =>
-        prev.map((l) => (l.id === selectedLocation.id ? { ...l, ...data } : l))
+  const handleToggleFavorite = async (location: SavedLocation) => {
+    try {
+      await apiSendJson(
+        `/api/locations/${location.id}/toggle-favorite/`,
+        "POST",
       );
-    } else {
-      setLocations((prev) => [
-        ...prev,
-        {
-          ...data,
-          eventsCount: 0,
-          createdAt: new Date().toISOString().split("T")[0],
-        } as SavedLocation,
-      ]);
+
+      setLocations((prev) =>
+        prev.map((l) =>
+          l.id === location.id ? { ...l, isFavorite: !l.isFavorite } : l,
+        ),
+      );
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to update favorite");
     }
-    setShowAddEditModal(false);
-    setSelectedLocation(null);
   };
 
-  const handleDeleteLocation = () => {
+  const handleSaveLocation = async (data: Partial<SavedLocation>) => {
+    try {
+      const merged = selectedLocation
+        ? { ...selectedLocation, ...data }
+        : (data as SavedLocation);
+      const uiLike = savedToUiLike(merged);
+
+      if (selectedLocation) {
+        const payload = mapUiToUpdateLocationPayload(uiLike as any);
+        await apiSendJson(
+          `/api/locations/${selectedLocation.id}/update/`,
+          "PATCH",
+          payload,
+        );
+        toast.success("Location updated");
+      } else {
+        const payload = mapUiToCreateLocationPayload(uiLike as any);
+        await apiSendJson(`/api/locations/create/`, "POST", payload);
+        toast.success("Location created");
+      }
+
+      setShowAddEditModal(false);
+      setSelectedLocation(null);
+      await fetchLocations(1);
+      await fetchCities();
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to save location");
+    }
+  };
+
+  const handleDeleteLocation = async () => {
     if (!selectedLocation) return;
-    setLocations((prev) => prev.filter((l) => l.id !== selectedLocation.id));
-    setShowDeleteModal(false);
-    setSelectedLocation(null);
+
+    try {
+      await apiSendJson(
+        `/api/locations/${selectedLocation.id}/delete/`,
+        "DELETE",
+      );
+      toast.success("Location deleted");
+      setShowDeleteModal(false);
+      setSelectedLocation(null);
+      await fetchLocations(1);
+      await fetchCities();
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to delete location");
+    }
   };
 
   return (
@@ -199,7 +411,6 @@ export default function LocationListPage() {
               options={[
                 { label: "All Locations", value: "all" },
                 { label: "Favorites", value: "favorite" },
-                { label: "Regular", value: "regular" },
               ]}
             />
           </div>
@@ -219,9 +430,32 @@ export default function LocationListPage() {
             />
           </div>
         </div>
+
+        {totalCount > pageSize ? (
+          <div className="mt-4 flex items-center justify-between">
+            <div className="text-sm font-secondary text-gray-600">
+              Page {page} of {Math.max(1, Math.ceil(totalCount / pageSize))}
+            </div>
+            <div className="flex gap-2">
+              <button
+                disabled={page <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                className="px-3 py-2 rounded-lg bg-gray-100 text-gray-700 disabled:opacity-50"
+              >
+                Prev
+              </button>
+              <button
+                disabled={page >= Math.ceil(totalCount / pageSize)}
+                onClick={() => setPage((p) => p + 1)}
+                className="px-3 py-2 rounded-lg bg-gray-100 text-gray-700 disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        ) : null}
       </div>
 
-      {/* View Modes */}
       {viewMode === "list" ? (
         <LocationTableView
           filteredLocations={filteredLocations}
@@ -250,7 +484,6 @@ export default function LocationListPage() {
         />
       )}
 
-      {/* Modals */}
       {showDetailModal && selectedLocation && (
         <LocationDetailModal
           location={selectedLocation}

@@ -1,4 +1,5 @@
 "use client";
+
 import { SavedLocation } from "@/type";
 
 interface LocationGridViewProps {
@@ -8,17 +9,29 @@ interface LocationGridViewProps {
   onToggleFavorite: (location: SavedLocation) => void;
 }
 
+function getDisplayName(location: SavedLocation) {
+  return (
+    (location as any).venueName || (location as any).locationName || "Location"
+  );
+}
+
+function getEncodedAddress(location: SavedLocation) {
+  const street = location.street || "";
+  const city = location.city || "";
+  const state = location.state ? `, ${location.state}` : "";
+  const zip = location.zipCode ? ` ${location.zipCode}` : "";
+  const country = location.country || "United States";
+
+  const fullAddress = `${street}, ${city}${state}${zip}, ${country}`;
+  return encodeURIComponent(fullAddress);
+}
+
 export default function LocationGridView({
   filteredLocations,
   onOpenDetail,
   onOpenDelete,
   onToggleFavorite,
 }: LocationGridViewProps) {
-  const getEncodedAddress = (location: SavedLocation) => {
-    const fullAddress = `${location.street}, ${location.city}, ${location.state} ${location.zipCode}, ${location.country}`;
-    return encodeURIComponent(fullAddress);
-  };
-
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {filteredLocations.map((location) => (
@@ -28,13 +41,11 @@ export default function LocationGridView({
         >
           <div className="h-32 relative">
             <iframe
-              src={`https://maps.google.com/maps?q=${getEncodedAddress(
-                location
-              )}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
+              src={`https://maps.google.com/maps?q=${getEncodedAddress(location)}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
               className="w-full h-full border-0"
               loading="lazy"
               referrerPolicy="no-referrer-when-downgrade"
-              title={`Map of ${location.venueName}`}
+              title={`Map of ${getDisplayName(location)}`}
             />
             <button
               onClick={() => onToggleFavorite(location)}
@@ -68,11 +79,13 @@ export default function LocationGridView({
 
           <div className="p-4">
             <h3 className="font-primary font-semibold text-gray-900 mb-1">
-              {location.venueName}
+              {getDisplayName(location)}
             </h3>
+
             <p className="text-sm font-secondary text-gray-500 mb-3">
-              {location.street}, {location.city}, {location.state}{" "}
-              {location.zipCode}
+              {location.street}, {location.city}
+              {location.state ? `, ${location.state}` : ""}{" "}
+              {location.zipCode || ""}
             </p>
 
             {location.contactPerson && (
@@ -157,6 +170,7 @@ export default function LocationGridView({
                     />
                   </svg>
                 </button>
+
                 <button
                   onClick={() => onOpenDelete(location)}
                   className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"

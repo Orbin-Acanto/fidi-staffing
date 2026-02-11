@@ -1,4 +1,5 @@
 "use client";
+
 import { SavedLocation } from "@/type";
 import { useState, useEffect } from "react";
 import { AppCheckbox } from "../ui/Checkbox";
@@ -17,43 +18,72 @@ export default function AddEditLocationModal({
   const isEditing = !!location;
 
   const [formData, setFormData] = useState({
+    locationName: "",
     venueName: "",
+
     street: "",
     city: "",
     state: "",
     zipCode: "",
     country: "United States",
+
+    latitude: "" as string,
+    longitude: "" as string,
+    geofenceRadius: "100" as string,
+
     contactPerson: "",
     phoneNumber: "",
+    contactEmail: "",
+
     locationNotes: "",
     isFavorite: false,
+    isActive: true,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    if (location) {
-      setFormData({
-        venueName: location.venueName || "",
-        street: location.street || "",
-        city: location.city || "",
-        state: location.state || "",
-        zipCode: location.zipCode || "",
-        country: location.country || "United States",
-        contactPerson: location.contactPerson || "",
-        phoneNumber: location.phoneNumber || "",
-        locationNotes: location.locationNotes || "",
-        isFavorite: location.isFavorite || false,
-      });
-    }
+    if (!location) return;
+
+    setFormData({
+      locationName: (location as any).locationName || location.venueName || "",
+      venueName: location.venueName || "",
+
+      street: location.street || "",
+      city: location.city || "",
+      state: location.state || "",
+      zipCode: location.zipCode || "",
+      country: location.country || "United States",
+
+      latitude:
+        (location as any).latitude !== null &&
+        (location as any).latitude !== undefined
+          ? String((location as any).latitude)
+          : "",
+      longitude:
+        (location as any).longitude !== null &&
+        (location as any).longitude !== undefined
+          ? String((location as any).longitude)
+          : "",
+      geofenceRadius: String((location as any).geofenceRadius ?? 100),
+
+      contactPerson: location.contactPerson || "",
+      phoneNumber: location.phoneNumber || "",
+      contactEmail: (location as any).contactEmail || "",
+
+      locationNotes: location.locationNotes || "",
+      isFavorite: location.isFavorite || false,
+      isActive: location.isActive ?? true,
+    });
   }, [location]);
 
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
+    >,
   ) => {
     const { name, value, type } = e.target;
+
     setFormData((prev) => ({
       ...prev,
       [name]:
@@ -68,20 +98,35 @@ export default function AddEditLocationModal({
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.venueName.trim()) {
-      newErrors.venueName = "Venue name is required";
-    }
-    if (!formData.street.trim()) {
+    if (!formData.locationName.trim())
+      newErrors.locationName = "Location name is required";
+    if (!formData.street.trim())
       newErrors.street = "Street address is required";
+    if (!formData.city.trim()) newErrors.city = "City is required";
+
+    const lat = formData.latitude.trim();
+    const lng = formData.longitude.trim();
+
+    if ((lat && !lng) || (!lat && lng)) {
+      newErrors.latitude = "Latitude and longitude must be set together";
+      newErrors.longitude = "Latitude and longitude must be set together";
     }
-    if (!formData.city.trim()) {
-      newErrors.city = "City is required";
+
+    if (lat) {
+      const n = Number(lat);
+      if (!Number.isFinite(n) || n < -90 || n > 90)
+        newErrors.latitude = "Latitude must be between -90 and 90";
     }
-    if (!formData.state.trim()) {
-      newErrors.state = "State is required";
+
+    if (lng) {
+      const n = Number(lng);
+      if (!Number.isFinite(n) || n < -180 || n > 180)
+        newErrors.longitude = "Longitude must be between -180 and 180";
     }
-    if (!formData.zipCode.trim()) {
-      newErrors.zipCode = "ZIP code is required";
+
+    const r = Number(formData.geofenceRadius);
+    if (!Number.isFinite(r) || r < 10 || r > 10000) {
+      newErrors.geofenceRadius = "Geofence radius must be 10 to 10,000 meters";
     }
 
     setErrors(newErrors);
@@ -90,17 +135,44 @@ export default function AddEditLocationModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (validateForm()) {
-      const label = `${formData.venueName} — ${formData.city}, ${formData.state}`;
-      onSave({
-        ...formData,
-        label,
-        id: location?.id || `loc_${Date.now()}`,
-      });
-    }
+    if (!validateForm()) return;
+
+    const title = formData.venueName.trim() || formData.locationName.trim();
+    const label = `${title}, ${formData.city}${formData.state ? `, ${formData.state}` : ""}`;
+
+    onSave({
+      id: location?.id,
+      label,
+
+      locationName: formData.locationName.trim(),
+      venueName: formData.venueName.trim(),
+
+      street: formData.street.trim(),
+      city: formData.city.trim(),
+      state: formData.state.trim(),
+      zipCode: formData.zipCode.trim(),
+      country: formData.country || "United States",
+
+      latitude: formData.latitude.trim()
+        ? Number(formData.latitude.trim())
+        : undefined,
+      longitude: formData.longitude.trim()
+        ? Number(formData.longitude.trim())
+        : undefined,
+      geofenceRadius: Number(formData.geofenceRadius),
+
+      contactPerson: formData.contactPerson.trim(),
+      phoneNumber: formData.phoneNumber.trim(),
+      contactEmail: formData.contactEmail.trim(),
+
+      locationNotes: formData.locationNotes.trim(),
+
+      isFavorite: !!formData.isFavorite,
+      isActive: !!formData.isActive,
+    });
   };
 
-  const fullAddress = `${formData.street}, ${formData.city}, ${formData.state} ${formData.zipCode}`;
+  const fullAddress = `${formData.street}, ${formData.city}${formData.state ? `, ${formData.state}` : ""}${formData.zipCode ? ` ${formData.zipCode}` : ""}`;
   const encodedAddress = encodeURIComponent(fullAddress);
 
   return (
@@ -143,6 +215,7 @@ export default function AddEditLocationModal({
                 </p>
               </div>
             </div>
+
             <button
               onClick={onClose}
               className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
@@ -165,29 +238,45 @@ export default function AddEditLocationModal({
 
           <form onSubmit={handleSubmit}>
             <div className="p-6 space-y-6 max-h-[60vh] overflow-y-auto">
-              <div>
-                <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
-                  Venue Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="venueName"
-                  value={formData.venueName}
-                  onChange={handleChange}
-                  placeholder="e.g., The Plaza Hotel"
-                  className={`w-full px-4 py-2 border rounded-lg font-secondary text-sm text-gray-900
-                           placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
-                           transition-all duration-200 ${
-                             errors.venueName
-                               ? "border-red-500"
-                               : "border-gray-300"
-                           }`}
-                />
-                {errors.venueName && (
-                  <p className="mt-1 text-sm text-red-500">
-                    {errors.venueName}
-                  </p>
-                )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
+                    Location Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="locationName"
+                    value={formData.locationName}
+                    onChange={handleChange}
+                    placeholder="e.g., Midtown Warehouse"
+                    className={`w-full px-4 py-2 border rounded-lg font-secondary text-sm text-gray-900
+                    placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
+                    transition-all duration-200 ${
+                      errors.locationName ? "border-red-500" : "border-gray-300"
+                    }`}
+                  />
+                  {errors.locationName && (
+                    <p className="mt-1 text-sm text-red-500">
+                      {errors.locationName}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
+                    Venue Name <span className="text-gray-400">(optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="venueName"
+                    value={formData.venueName}
+                    onChange={handleChange}
+                    placeholder="e.g., The Plaza Hotel"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-sm text-gray-900
+                    placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
+                    transition-all duration-200"
+                  />
+                </div>
               </div>
 
               <div className="space-y-4">
@@ -206,12 +295,8 @@ export default function AddEditLocationModal({
                     onChange={handleChange}
                     placeholder="e.g., 768 5th Ave"
                     className={`w-full px-4 py-2 border rounded-lg font-secondary text-sm text-gray-900
-                             placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
-                             transition-all duration-200 ${
-                               errors.street
-                                 ? "border-red-500"
-                                 : "border-gray-300"
-                             }`}
+                    placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
+                    transition-all duration-200 ${errors.street ? "border-red-500" : "border-gray-300"}`}
                   />
                   {errors.street && (
                     <p className="mt-1 text-sm text-red-500">{errors.street}</p>
@@ -230,12 +315,8 @@ export default function AddEditLocationModal({
                       onChange={handleChange}
                       placeholder="New York"
                       className={`w-full px-4 py-2 border rounded-lg font-secondary text-sm text-gray-900
-                               placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
-                               transition-all duration-200 ${
-                                 errors.city
-                                   ? "border-red-500"
-                                   : "border-gray-300"
-                               }`}
+                      placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
+                      transition-all duration-200 ${errors.city ? "border-red-500" : "border-gray-300"}`}
                     />
                     {errors.city && (
                       <p className="mt-1 text-sm text-red-500">{errors.city}</p>
@@ -244,7 +325,7 @@ export default function AddEditLocationModal({
 
                   <div>
                     <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
-                      State <span className="text-red-500">*</span>
+                      State <span className="text-gray-400">(optional)</span>
                     </label>
                     <input
                       type="text"
@@ -252,24 +333,15 @@ export default function AddEditLocationModal({
                       value={formData.state}
                       onChange={handleChange}
                       placeholder="NY"
-                      className={`w-full px-4 py-2 border rounded-lg font-secondary text-sm text-gray-900
-                               placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
-                               transition-all duration-200 ${
-                                 errors.state
-                                   ? "border-red-500"
-                                   : "border-gray-300"
-                               }`}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-sm text-gray-900
+                      placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
+                      transition-all duration-200"
                     />
-                    {errors.state && (
-                      <p className="mt-1 text-sm text-red-500">
-                        {errors.state}
-                      </p>
-                    )}
                   </div>
 
                   <div>
                     <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
-                      ZIP Code <span className="text-red-500">*</span>
+                      ZIP Code <span className="text-gray-400">(optional)</span>
                     </label>
                     <input
                       type="text"
@@ -277,19 +349,10 @@ export default function AddEditLocationModal({
                       value={formData.zipCode}
                       onChange={handleChange}
                       placeholder="10019"
-                      className={`w-full px-4 py-2 border rounded-lg font-secondary text-sm text-gray-900
-                               placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
-                               transition-all duration-200 ${
-                                 errors.zipCode
-                                   ? "border-red-500"
-                                   : "border-gray-300"
-                               }`}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-sm text-gray-900
+                      placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
+                      transition-all duration-200"
                     />
-                    {errors.zipCode && (
-                      <p className="mt-1 text-sm text-red-500">
-                        {errors.zipCode}
-                      </p>
-                    )}
                   </div>
                 </div>
 
@@ -297,20 +360,18 @@ export default function AddEditLocationModal({
                   <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
                     Country
                   </label>
-
                   <input
                     type="text"
                     name="country"
                     value="United States"
                     disabled
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-sm text-gray-700
-               bg-gray-100 cursor-not-allowed
-               focus:outline-none"
+                    bg-gray-100 cursor-not-allowed focus:outline-none"
                   />
                 </div>
               </div>
 
-              {formData.street && formData.city && formData.state && (
+              {formData.street && formData.city && (
                 <div className="rounded-lg overflow-hidden border border-gray-200">
                   <div className="relative h-32">
                     <iframe
@@ -348,10 +409,85 @@ export default function AddEditLocationModal({
 
               <div className="space-y-4">
                 <h3 className="font-primary font-semibold text-gray-900">
+                  Geofence{" "}
+                  <span className="text-gray-400 text-sm font-secondary">
+                    (optional)
+                  </span>
+                </h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
+                      Latitude
+                    </label>
+                    <input
+                      type="text"
+                      name="latitude"
+                      value={formData.latitude}
+                      onChange={handleChange}
+                      placeholder="40.7614"
+                      className={`w-full px-4 py-2 border rounded-lg font-secondary text-sm text-gray-900
+                      placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
+                      transition-all duration-200 ${errors.latitude ? "border-red-500" : "border-gray-300"}`}
+                    />
+                    {errors.latitude && (
+                      <p className="mt-1 text-sm text-red-500">
+                        {errors.latitude}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
+                      Longitude
+                    </label>
+                    <input
+                      type="text"
+                      name="longitude"
+                      value={formData.longitude}
+                      onChange={handleChange}
+                      placeholder="-73.9776"
+                      className={`w-full px-4 py-2 border rounded-lg font-secondary text-sm text-gray-900
+                      placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
+                      transition-all duration-200 ${errors.longitude ? "border-red-500" : "border-gray-300"}`}
+                    />
+                    {errors.longitude && (
+                      <p className="mt-1 text-sm text-red-500">
+                        {errors.longitude}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
+                      Radius (meters)
+                    </label>
+                    <input
+                      type="number"
+                      name="geofenceRadius"
+                      value={formData.geofenceRadius}
+                      onChange={handleChange}
+                      min={10}
+                      max={10000}
+                      className={`w-full px-4 py-2 border rounded-lg font-secondary text-sm text-gray-900
+                      placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
+                      transition-all duration-200 ${errors.geofenceRadius ? "border-red-500" : "border-gray-300"}`}
+                    />
+                    {errors.geofenceRadius && (
+                      <p className="mt-1 text-sm text-red-500">
+                        {errors.geofenceRadius}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h3 className="font-primary font-semibold text-gray-900">
                   Contact Information
                 </h3>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
                       Contact Person
@@ -363,8 +499,8 @@ export default function AddEditLocationModal({
                       onChange={handleChange}
                       placeholder="e.g., John Smith"
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-sm text-gray-900
-                               placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
-                               transition-all duration-200"
+                      placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
+                      transition-all duration-200"
                     />
                   </div>
 
@@ -379,8 +515,24 @@ export default function AddEditLocationModal({
                       onChange={handleChange}
                       placeholder="e.g., +1 (212) 555-0123"
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-sm text-gray-900
-                               placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
-                               transition-all duration-200"
+                      placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
+                      transition-all duration-200"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
+                      Email
+                    </label>
+                    <input
+                      type="email"
+                      name="contactEmail"
+                      value={formData.contactEmail}
+                      onChange={handleChange}
+                      placeholder="e.g., venue@company.com"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-sm text-gray-900
+                      placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
+                      transition-all duration-200"
                     />
                   </div>
                 </div>
@@ -397,30 +549,37 @@ export default function AddEditLocationModal({
                   rows={3}
                   placeholder="e.g., Parking instructions, security requirements, loading dock access..."
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg font-secondary text-sm text-gray-900
-                           placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
-                           transition-all duration-200 resize-none"
+                  placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
+                  transition-all duration-200 resize-none"
                 />
               </div>
 
-              <div className="flex items-center gap-3">
-                <AppCheckbox
-                  checked={formData.isFavorite}
-                  onCheckedChange={(checked) =>
-                    handleChange({
-                      target: {
-                        name: "isFavorite",
-                        value: checked,
-                      },
-                    } as any)
-                  }
-                />
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center gap-3">
+                  <AppCheckbox
+                    checked={formData.isFavorite}
+                    onCheckedChange={(checked) =>
+                      setFormData((p) => ({ ...p, isFavorite: !!checked }))
+                    }
+                  />
+                  <label className="text-sm font-secondary text-gray-700">
+                    Mark as favorite venue
+                  </label>
+                </div>
 
-                <label
-                  htmlFor="isFavorite"
-                  className="text-sm font-secondary text-gray-700"
-                >
-                  Mark as favorite venue
-                </label>
+                {isEditing && (
+                  <div className="flex items-center gap-3">
+                    <AppCheckbox
+                      checked={formData.isActive}
+                      onCheckedChange={(checked) =>
+                        setFormData((p) => ({ ...p, isActive: !!checked }))
+                      }
+                    />
+                    <label className="text-sm font-secondary text-gray-700">
+                      Active location
+                    </label>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -432,6 +591,7 @@ export default function AddEditLocationModal({
               >
                 Cancel
               </button>
+
               <button
                 type="submit"
                 className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white font-secondary font-medium rounded-lg hover:bg-primary/90 transition-colors"
