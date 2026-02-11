@@ -1,21 +1,50 @@
-import { Event } from "@/type";
-import { getStatusColor, isUnderstaffed } from "@/utils";
+import { EventBackend } from "@/type/events";
 import Link from "next/link";
 
-type EventGridViewProps = {
-  filteredEvents: Event[];
-  onOpenDetail: (event: Event) => void;
-  onOpenDelete: (event: Event) => void;
+interface EventGridViewProps {
+  events: EventBackend[];
+  onOpenDetail: (event: EventBackend) => void;
+  onOpenDelete: (event: EventBackend) => void;
+  onPublish: (eventId: string) => void;
+  onEdit: (eventId: string) => void;
+}
+
+const getStatusColor = (status: string) => {
+  const colors: Record<string, string> = {
+    draft: "bg-gray-100 text-gray-700",
+    published: "bg-blue-100 text-blue-700",
+    in_progress: "bg-yellow-100 text-yellow-700",
+    completed: "bg-green-100 text-green-700",
+    cancelled: "bg-red-100 text-red-700",
+  };
+  return colors[status] || "bg-gray-100 text-gray-700";
+};
+
+const getStatusDisplay = (status: string) => {
+  const displays: Record<string, string> = {
+    draft: "Draft",
+    published: "Published",
+    in_progress: "In Progress",
+    completed: "Completed",
+    cancelled: "Cancelled",
+  };
+  return displays[status] || status;
+};
+
+const isUnderstaffed = (event: EventBackend) => {
+  return event.total_staff_filled < event.total_staff_needed;
 };
 
 export default function EventGridView({
-  filteredEvents,
+  events,
   onOpenDetail,
   onOpenDelete,
+  onPublish,
+  onEdit,
 }: EventGridViewProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {filteredEvents.length === 0 ? (
+      {events.length === 0 ? (
         <div className="col-span-full flex flex-col items-center justify-center py-12">
           <svg
             className="w-12 h-12 text-gray-400 mb-4"
@@ -38,7 +67,7 @@ export default function EventGridView({
           </p>
         </div>
       ) : (
-        filteredEvents.map((event) => (
+        events.map((event) => (
           <div
             key={event.id}
             className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-lg transition-all duration-200 hover:border-primary"
@@ -46,18 +75,19 @@ export default function EventGridView({
             <div className="flex items-start justify-between mb-4">
               <div className="flex-1">
                 <h3 className="text-lg font-primary font-semibold text-gray-900 mb-1">
-                  {event.eventName}
+                  {event.name}
                 </h3>
                 <p className="text-sm text-gray-600 font-secondary">
-                  {event.eventType} • {event.clientName}
+                  {event.event_type_display} •{" "}
+                  {event.client_name || "No client"}
                 </p>
               </div>
               <span
                 className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-secondary font-medium ${getStatusColor(
-                  event.status
+                  event.status,
                 )}`}
               >
-                {event.status}
+                {getStatusDisplay(event.status)}
               </span>
             </div>
 
@@ -77,13 +107,13 @@ export default function EventGridView({
                   />
                 </svg>
                 <div className="text-sm font-secondary text-gray-900">
-                  {new Date(event.eventDate).toLocaleDateString("en-US", {
+                  {new Date(event.event_date).toLocaleDateString("en-US", {
                     weekday: "long",
                     month: "long",
                     day: "numeric",
                   })}
                   <span className="text-gray-500 block">
-                    {event.startTime} - {event.endTime}
+                    {event.start_time} - {event.end_time}
                   </span>
                 </div>
               </div>
@@ -109,10 +139,12 @@ export default function EventGridView({
                   />
                 </svg>
                 <div className="text-sm font-secondary text-gray-900">
-                  {event.location.venueName}
-                  <span className="text-gray-500 block">
-                    {event.location.city}, {event.location.state}
-                  </span>
+                  {event.location_name || "No location"}
+                  {event.location_address && (
+                    <span className="text-gray-500 block">
+                      {event.location_address}
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -131,9 +163,9 @@ export default function EventGridView({
                   />
                 </svg>
                 <span className="text-sm font-secondary text-gray-900">
-                  {event.assignedStaff.length} / {event.requiredStaff} staff
+                  {event.total_staff_filled} / {event.total_staff_needed} staff
                 </span>
-                {isUnderstaffed(event) && (
+                {isUnderstaffed(event) && event.total_staff_needed > 0 && (
                   <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-secondary font-medium bg-red-100 text-red-700">
                     Understaffed
                   </span>
@@ -151,6 +183,7 @@ export default function EventGridView({
               <Link
                 href={`/admin/events/${event.id}/edit`}
                 className="p-2 text-gray-600 hover:text-primary hover:bg-gray-100 rounded-lg transition-colors"
+                title="Edit"
               >
                 <svg
                   className="w-4 h-4"
@@ -166,9 +199,31 @@ export default function EventGridView({
                   />
                 </svg>
               </Link>
+              {event.status === "draft" && (
+                <button
+                  onClick={() => onPublish(event.id)}
+                  className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors cursor-pointer"
+                  title="Publish"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                </button>
+              )}
               <button
                 onClick={() => onOpenDelete(event)}
                 className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                title="Delete"
               >
                 <svg
                   className="w-4 h-4"

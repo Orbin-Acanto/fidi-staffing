@@ -1,16 +1,22 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
+
 import { dressCodes, eventTypes } from "@/data";
 import { AppSelect } from "@/component/ui/Select";
 import { AppDatePicker } from "@/component/ui/AppDatePicker";
 import { AppTimePicker } from "@/component/ui/AppTimePicker";
-import EventStaffingSection from "@/component/event/Eventstaffingsection";
+
 import { apiFetch } from "@/lib/apiFetch";
 import { toastError, toastSuccess } from "@/lib/toast";
-import { EventFormData, EventRoleRequirement } from "@/type/events";
+import {
+  EventBackend,
+  EventFormData,
+  EventRoleRequirement,
+} from "@/type/events";
+import EventStaffingSection from "@/component/event/Eventstaffingsection";
 
 interface Role {
   id: string;
@@ -38,14 +44,19 @@ interface StaffGroup {
   name: string;
 }
 
-export default function CreateEventPage() {
+export default function EditEventPage() {
   const router = useRouter();
+  const params = useParams();
+  const eventId = params.event_id as string;
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
+  const [isLoadingEvent, setIsLoadingEvent] = useState(true);
 
   const [roles, setRoles] = useState<Role[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
   const [groups, setGroups] = useState<StaffGroup[]>([]);
+  const [event, setEvent] = useState<EventBackend | null>(null);
 
   const [selectedLocationId, setSelectedLocationId] =
     useState<string>("custom");
@@ -89,6 +100,12 @@ export default function CreateEventPage() {
     fetchInitialData();
   }, []);
 
+  useEffect(() => {
+    if (eventId) {
+      fetchEvent();
+    }
+  }, [eventId]);
+
   const fetchInitialData = async () => {
     setIsLoadingData(true);
     try {
@@ -110,6 +127,77 @@ export default function CreateEventPage() {
     }
   };
 
+  const fetchEvent = async () => {
+    setIsLoadingEvent(true);
+    try {
+      const eventData: EventBackend = await apiFetch(`/api/events/${eventId}`);
+      setEvent(eventData);
+
+      const useCustomLocation = eventData.use_custom_location;
+      const savedLocationId = eventData.location || "";
+
+      setFormData({
+        eventName: eventData.name,
+        eventType: eventData.event_type,
+        description: eventData.description || "",
+        clientName: eventData.client_name || "",
+        clientEmail: eventData.client_email || "",
+        clientPhone: eventData.client_phone || "",
+        eventDate: eventData.event_date,
+        startTime: eventData.start_time,
+        endTime: eventData.end_time,
+        setupTime: eventData.setup_time || "",
+        breakdownTime: eventData.breakdown_time || "",
+        clockCode: eventData.clock_code || "",
+        useCustomLocation: useCustomLocation,
+        savedLocationId: savedLocationId,
+        venueName: eventData.venue_name || "",
+        street: eventData.address_street || "",
+        city: eventData.address_city || "",
+        state: eventData.address_state || "",
+        zipCode: eventData.address_zip || "",
+        country: eventData.address_country || "United States",
+        locationNotes: eventData.location_notes || "",
+        assignedGroups: [],
+        autoAssign: eventData.auto_assign,
+        dressCode: eventData.dress_code || "",
+        specialInstructions: eventData.special_instructions || "",
+        budget: eventData.budget || "",
+      });
+
+      setSelectedLocationId(useCustomLocation ? "custom" : savedLocationId);
+
+      if (
+        eventData.role_requirements &&
+        eventData.role_requirements.length > 0
+      ) {
+        const requirements: EventRoleRequirement[] =
+          eventData.role_requirements.map((req) => ({
+            id: req.id,
+            roleId: req.role,
+            roleName: req.role_name,
+            roleColor: req.role_color,
+            startTime: req.start_time,
+            endTime: req.end_time,
+            payType: req.pay_type as "hourly" | "fixed",
+            eventRate: parseFloat(req.event_rate),
+            defaultRate: parseFloat(req.event_rate),
+            staffCount: req.staff_count,
+            estimatedHours: parseFloat(req.estimated_hours),
+            estimatedCost: parseFloat(req.estimated_cost),
+            notes: req.notes || "",
+          }));
+        setStaffingRequirements(requirements);
+      }
+    } catch (error) {
+      console.error("Failed to fetch event:", error);
+      toastError("Failed to load event data");
+      router.push("/admin/events");
+    } finally {
+      setIsLoadingEvent(false);
+    }
+  };
+
   const applySavedLocation = (locationId: string) => {
     setSelectedLocationId(locationId);
 
@@ -118,13 +206,6 @@ export default function CreateEventPage() {
         ...prev,
         useCustomLocation: true,
         savedLocationId: "",
-        venueName: "",
-        street: "",
-        city: "",
-        state: "",
-        zipCode: "",
-        country: "United States",
-        locationNotes: "",
       }));
       return;
     }
@@ -240,10 +321,7 @@ export default function CreateEventPage() {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   };
 
-  const handleSubmit = async (
-    e: React.FormEvent,
-    publishStatus: "draft" | "published",
-  ) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!validateForm()) {
@@ -254,17 +332,15 @@ export default function CreateEventPage() {
     setIsSubmitting(true);
 
     try {
-      const roleRequirements = staffingRequirements.map(
-        (req: EventRoleRequirement) => ({
-          role: req.roleId,
-          start_time: req.startTime,
-          end_time: req.endTime,
-          pay_type: req.payType,
-          event_rate: req.eventRate,
-          staff_count: req.staffCount,
-          notes: req.notes || "",
-        }),
-      );
+      const roleRequirements = staffingRequirements.map((req) => ({
+        role: req.roleId,
+        start_time: req.startTime,
+        end_time: req.endTime,
+        pay_type: req.payType,
+        event_rate: req.eventRate,
+        staff_count: req.staffCount,
+        notes: req.notes || "",
+      }));
 
       const payload = {
         name: formData.eventName.trim(),
@@ -303,35 +379,16 @@ export default function CreateEventPage() {
         role_requirements: roleRequirements,
       };
 
-      const response = await apiFetch("/api/events/create", {
-        method: "POST",
+      await apiFetch(`/api/events/${eventId}/update`, {
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
-      const eventId = response.event?.id;
-
-      if (publishStatus === "published" && eventId) {
-        try {
-          await apiFetch(`/api/events/${eventId}/publish`, {
-            method: "POST",
-          });
-          toastSuccess("Event created and published successfully!");
-        } catch (publishError) {
-          console.error("Failed to publish event:", publishError);
-          toastSuccess("Event created as draft (failed to publish)");
-        }
-      } else {
-        toastSuccess(
-          publishStatus === "draft"
-            ? "Event saved as draft successfully!"
-            : "Event created successfully!",
-        );
-      }
-
+      toastSuccess("Event updated successfully!");
       router.push("/admin/events");
     } catch (error: unknown) {
-      console.error("Error creating event:", error);
+      console.error("Error updating event:", error);
 
       if (error && typeof error === "object" && "errors" in error) {
         const apiErrors = error.errors as Record<string, string[] | string>;
@@ -363,14 +420,14 @@ export default function CreateEventPage() {
       if (error && typeof error === "object" && "message" in error) {
         toastError(error.message as string);
       } else {
-        toastError("Failed to create event. Please try again.");
+        toastError("Failed to update event. Please try again.");
       }
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (isLoadingData) {
+  if (isLoadingData || isLoadingEvent) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <svg
@@ -396,15 +453,29 @@ export default function CreateEventPage() {
     );
   }
 
+  if (!event) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen">
+        <p className="text-gray-600 font-secondary mb-4">Event not found</p>
+        <Link
+          href="/admin/events"
+          className="px-4 py-2 bg-primary text-dark-black font-secondary font-semibold rounded-lg hover:bg-primary/80"
+        >
+          Back to Events
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-primary font-semibold text-gray-900">
-            Create Event
+            Edit Event
           </h1>
           <p className="text-sm font-secondary text-gray-600 mt-1">
-            Set up a new event with staffing requirements
+            Update event details and staffing requirements
           </p>
         </div>
         <Link
@@ -428,7 +499,7 @@ export default function CreateEventPage() {
         </Link>
       </div>
 
-      <form className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6">
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <h2 className="text-xl font-primary font-semibold text-gray-900 mb-6">
             Event Details
@@ -909,54 +980,41 @@ export default function CreateEventPage() {
               Cancel
             </Link>
 
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
-              <button
-                type="button"
-                onClick={(e) => handleSubmit(e, "draft")}
-                disabled={isSubmitting}
-                className="w-full sm:w-auto inline-flex justify-center px-6 py-2.5 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 font-secondary font-medium transition-colors
-                   disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSubmitting ? "Saving..." : "Save as Draft"}
-              </button>
-
-              <button
-                type="button"
-                onClick={(e) => handleSubmit(e, "published")}
-                disabled={isSubmitting}
-                className="w-full sm:w-auto inline-flex justify-center px-6 py-2.5 bg-primary text-dark-black font-secondary font-semibold rounded-lg
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full sm:w-auto inline-flex justify-center px-6 py-2.5 bg-primary text-dark-black font-secondary font-semibold rounded-lg
                    hover:bg-[#e0c580] transition-all duration-200
                    disabled:opacity-50 disabled:cursor-not-allowed
                    transform sm:hover:scale-105 active:scale-95"
-              >
-                {isSubmitting ? (
-                  <span className="flex items-center gap-2">
-                    <svg
-                      className="animate-spin h-5 w-5"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      />
-                    </svg>
-                    Publishing...
-                  </span>
-                ) : (
-                  "Publish Event"
-                )}
-              </button>
-            </div>
+            >
+              {isSubmitting ? (
+                <span className="flex items-center gap-2">
+                  <svg
+                    className="animate-spin h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    />
+                  </svg>
+                  Updating...
+                </span>
+              ) : (
+                "Update Event"
+              )}
+            </button>
           </div>
         </div>
       </form>

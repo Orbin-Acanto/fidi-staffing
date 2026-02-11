@@ -1,7 +1,7 @@
-import { Event } from "@/type";
+import { EventBackend } from "@/type/events";
 
 type DeleteEventModalProps = {
-  event: Event;
+  event: EventBackend;
   onCancel: () => void;
   onConfirm: () => void;
 };
@@ -11,6 +11,8 @@ export default function DeleteEventModal({
   onCancel,
   onConfirm,
 }: DeleteEventModalProps) {
+  const staffAssignedCount = event.staff_assignments?.length || 0;
+
   return (
     <div className="fixed inset-0 bg-gray-700/70 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
@@ -35,16 +37,14 @@ export default function DeleteEventModal({
           </h3>
           <p className="text-sm text-gray-600 font-secondary text-center mb-4">
             Are you sure you want to delete{" "}
-            <span className="font-semibold text-gray-900">
-              {event.eventName}
-            </span>
-            ? This action cannot be undone.
+            <span className="font-semibold text-gray-900">{event.name}</span>?
+            This action cannot be undone.
           </p>
-          {event.assignedStaff.length > 0 && (
+          {staffAssignedCount > 0 && (
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-6">
               <p className="text-sm text-yellow-800 font-secondary">
-                <strong>Warning:</strong> This event has{" "}
-                {event.assignedStaff.length} staff members assigned.
+                <strong>Warning:</strong> This event has {staffAssignedCount}{" "}
+                staff member{staffAssignedCount !== 1 ? "s" : ""} assigned.
               </p>
             </div>
           )}

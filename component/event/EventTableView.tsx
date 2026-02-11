@@ -1,18 +1,47 @@
-import { Event } from "@/type";
-import { getStatusColor, isUnderstaffed } from "@/utils";
+import { EventBackend } from "@/type/events";
 import Link from "next/link";
 
-type EventListProps = {
-  filteredEvents: Event[];
-  onOpenDetail: (event: Event) => void;
-  onOpenDelete: (event: Event) => void;
+interface EventTableViewProps {
+  events: EventBackend[];
+  onOpenDetail: (event: EventBackend) => void;
+  onOpenDelete: (event: EventBackend) => void;
+  onPublish: (eventId: string) => void;
+  onEdit: (eventId: string) => void;
+}
+
+const getStatusColor = (status: string) => {
+  const colors: Record<string, string> = {
+    draft: "bg-gray-100 text-gray-700",
+    published: "bg-blue-100 text-blue-700",
+    in_progress: "bg-yellow-100 text-yellow-700",
+    completed: "bg-green-100 text-green-700",
+    cancelled: "bg-red-100 text-red-700",
+  };
+  return colors[status] || "bg-gray-100 text-gray-700";
+};
+
+const getStatusDisplay = (status: string) => {
+  const displays: Record<string, string> = {
+    draft: "Draft",
+    published: "Published",
+    in_progress: "In Progress",
+    completed: "Completed",
+    cancelled: "Cancelled",
+  };
+  return displays[status] || status;
+};
+
+const isUnderstaffed = (event: EventBackend) => {
+  return event.total_staff_filled < event.total_staff_needed;
 };
 
 export default function EventTableView({
-  filteredEvents,
+  events,
   onOpenDetail,
   onOpenDelete,
-}: EventListProps) {
+  onPublish,
+  onEdit,
+}: EventTableViewProps) {
   return (
     <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
       <div className="overflow-x-auto">
@@ -40,7 +69,7 @@ export default function EventTableView({
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {filteredEvents.length === 0 ? (
+            {events.length === 0 ? (
               <tr>
                 <td colSpan={6} className="px-6 py-12 text-center">
                   <div className="flex flex-col items-center justify-center">
@@ -67,7 +96,7 @@ export default function EventTableView({
                 </td>
               </tr>
             ) : (
-              filteredEvents.map((event) => (
+              events.map((event) => (
                 <tr
                   key={event.id}
                   className="hover:bg-gray-50 transition-colors"
@@ -75,35 +104,41 @@ export default function EventTableView({
                   <td className="px-6 py-4">
                     <div>
                       <p className="text-sm font-secondary font-medium text-gray-900">
-                        {event.eventName}
+                        {event.name}
                       </p>
                       <p className="text-xs text-gray-500 font-secondary mt-0.5">
-                        {event.eventType} • {event.clientName}
+                        {event.event_type_display} •{" "}
+                        {event.client_name || "No client"}
                       </p>
                     </div>
                   </td>
                   <td className="px-6 py-4">
                     <div>
                       <p className="text-sm font-secondary text-gray-900">
-                        {new Date(event.eventDate).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                        })}
+                        {new Date(event.event_date).toLocaleDateString(
+                          "en-US",
+                          {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          },
+                        )}
                       </p>
                       <p className="text-xs text-gray-500 font-secondary mt-0.5">
-                        {event.startTime} - {event.endTime}
+                        {event.start_time} - {event.end_time}
                       </p>
                     </div>
                   </td>
                   <td className="px-6 py-4">
                     <div>
                       <p className="text-sm font-secondary text-gray-900">
-                        {event.location.venueName}
+                        {event.location_name || "No location"}
                       </p>
-                      <p className="text-xs text-gray-500 font-secondary mt-0.5">
-                        {event.location.city}, {event.location.state}
-                      </p>
+                      {event.location_address && (
+                        <p className="text-xs text-gray-500 font-secondary mt-0.5">
+                          {event.location_address}
+                        </p>
+                      )}
                     </div>
                   </td>
                   <td className="px-6 py-4">
@@ -123,23 +158,25 @@ export default function EventTableView({
                           />
                         </svg>
                         <span className="text-sm font-secondary text-gray-900">
-                          {event.assignedStaff.length} / {event.requiredStaff}
+                          {event.total_staff_filled} /{" "}
+                          {event.total_staff_needed}
                         </span>
                       </div>
-                      {isUnderstaffed(event) && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-secondary font-medium bg-red-100 text-red-700">
-                          Understaffed
-                        </span>
-                      )}
+                      {isUnderstaffed(event) &&
+                        event.total_staff_needed > 0 && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-secondary font-medium bg-red-100 text-red-700">
+                            Understaffed
+                          </span>
+                        )}
                     </div>
                   </td>
                   <td className="px-6 py-4">
                     <span
                       className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-secondary font-medium ${getStatusColor(
-                        event.status
+                        event.status,
                       )}`}
                     >
-                      {event.status}
+                      {getStatusDisplay(event.status)}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
@@ -188,6 +225,27 @@ export default function EventTableView({
                           />
                         </svg>
                       </Link>
+                      {event.status === "draft" && (
+                        <button
+                          onClick={() => onPublish(event.id)}
+                          className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors cursor-pointer"
+                          title="Publish"
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M5 13l4 4L19 7"
+                            />
+                          </svg>
+                        </button>
+                      )}
                       <button
                         onClick={() => onOpenDelete(event)}
                         className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"

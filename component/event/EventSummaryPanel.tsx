@@ -1,20 +1,21 @@
-type EventSummaryPanelProps = {
+interface EventSummaryPanelProps {
   totalEvents: number;
-  upcomingEvents: number;
+  draftEvents: number;
+  publishedEvents: number;
   inProgressEvents: number;
   completedEvents: number;
-  totalStaffNeeded: number;
   totalStaffAssigned: number;
-  eventTypeDistribution: { type: string; count: number }[];
-};
-
+  totalStaffNeeded: number;
+  eventTypeDistribution: Array<{ type: string; count: number }>;
+}
 export default function EventSummaryPanel({
   totalEvents,
-  upcomingEvents,
+  draftEvents,
+  publishedEvents,
   inProgressEvents,
   completedEvents,
-  totalStaffNeeded,
   totalStaffAssigned,
+  totalStaffNeeded,
   eventTypeDistribution,
 }: EventSummaryPanelProps) {
   const staffUtilization =
@@ -28,8 +29,8 @@ export default function EventSummaryPanel({
         <div className="lg:col-span-2 space-y-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <SummaryStat
-              label="Upcoming"
-              value={upcomingEvents}
+              label="Draft Events"
+              value={draftEvents}
               badgeColor="bg-blue-50 text-blue-700"
             />
             <SummaryStat

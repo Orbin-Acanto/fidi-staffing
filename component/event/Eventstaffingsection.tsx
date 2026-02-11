@@ -1,22 +1,23 @@
 "use client";
 
-import { Role } from "@/type";
 import { useEffect } from "react";
 import { AppCheckbox } from "../ui/Checkbox";
 import { AppTimePicker } from "../ui/AppTimePicker";
+import { EventRoleRequirement } from "@/type/events";
 
-export type EventRoleRequirement = {
-  roleId: string;
-  roleName: string;
-  payType: "hourly" | "fixed";
-  defaultRate: number;
-  eventRate: number;
-  startTime: string;
-  endTime: string;
-  staffCount: number;
-  estimatedHours: number;
-  estimatedCost: number;
-};
+interface Role {
+  id: string;
+  name: string;
+  color: string;
+  default_pay_type: string;
+  hourly_rate: number | null;
+  fixed_rate: number | null;
+}
+
+interface StaffGroup {
+  id: string;
+  name: string;
+}
 
 interface EventStaffingSectionProps {
   roles: Role[];
@@ -27,8 +28,8 @@ interface EventStaffingSectionProps {
   autoAssign: boolean;
   onAutoAssignChange: (value: boolean) => void;
   assignedGroups: string[];
-  availableGroups: string[];
-  onToggleGroup: (group: string) => void;
+  availableGroups: StaffGroup[];
+  onToggleGroup: (groupId: string) => void;
 }
 
 export default function EventStaffingSection({
@@ -43,33 +44,69 @@ export default function EventStaffingSection({
   availableGroups,
   onToggleGroup,
 }: EventStaffingSectionProps) {
-  const activeRoles = roles.filter((r) => r.status === "active");
+  const activeRoles = roles.filter((r) => r);
 
   useEffect(() => {
     if (requirements.length === 0 && activeRoles.length > 0) {
       const initialRequirements: EventRoleRequirement[] = activeRoles.map(
-        (role) => ({
-          roleId: role.id,
-          roleName: role.name,
-          payType: role.payType,
-          defaultRate: role.defaultRate,
-          eventRate: role.defaultRate,
-          startTime: eventStartTime || "",
-          endTime: eventEndTime || "",
-          staffCount: 0,
-          estimatedHours: 0,
-          estimatedCost: 0,
-        })
+        (role) => {
+          const defaultRate =
+            role.default_pay_type === "hourly"
+              ? role.hourly_rate || 0
+              : role.fixed_rate || 0;
+
+          return {
+            id: role.id,
+            roleId: role.id,
+            roleName: role.name,
+            roleColor: role.color,
+            payType: role.default_pay_type as "hourly" | "fixed",
+            defaultRate: defaultRate,
+            eventRate: defaultRate,
+            startTime: eventStartTime || "",
+            endTime: eventEndTime || "",
+            staffCount: 0,
+            estimatedHours: 0,
+            estimatedCost: 0,
+            notes: "",
+          };
+        },
       );
       onRequirementsChange(initialRequirements);
     }
-  }, [
-    activeRoles,
-    requirements.length,
-    eventStartTime,
-    eventEndTime,
-    onRequirementsChange,
-  ]);
+  }, [activeRoles, requirements.length, onRequirementsChange]);
+
+  useEffect(() => {
+    if (requirements.length > 0 && eventStartTime && eventEndTime) {
+      const hasEmptyTimes = requirements.some(
+        (req) => !req.startTime || !req.endTime,
+      );
+
+      if (hasEmptyTimes) {
+        const updated = requirements.map((req) => {
+          if (!req.startTime || !req.endTime) {
+            const hours = calculateHours(eventStartTime, eventEndTime);
+            const estimatedHours = hours * req.staffCount;
+            const estimatedCost =
+              req.payType === "hourly"
+                ? estimatedHours * req.eventRate
+                : req.staffCount * req.eventRate;
+
+            return {
+              ...req,
+              startTime: eventStartTime,
+              endTime: eventEndTime,
+              estimatedHours,
+              estimatedCost,
+            };
+          }
+          return req;
+        });
+
+        onRequirementsChange(updated);
+      }
+    }
+  }, [eventStartTime, eventEndTime]);
 
   const calculateHours = (start: string, end: string): number => {
     if (!start || !end) return 0;
@@ -95,7 +132,7 @@ export default function EventStaffingSection({
   const updateRequirement = (
     roleId: string,
     field: keyof EventRoleRequirement,
-    value: string | number
+    value: string | number,
   ) => {
     const updated = requirements.map((req) => {
       if (req.roleId !== roleId) return req;
@@ -142,9 +179,9 @@ export default function EventStaffingSection({
   };
 
   const resetToDefaultRate = (roleId: string) => {
-    const role = roles.find((r) => r.id === roleId);
-    if (role) {
-      updateRequirement(roleId, "eventRate", role.defaultRate);
+    const req = requirements.find((r) => r.roleId === roleId);
+    if (req) {
+      updateRequirement(roleId, "eventRate", req.defaultRate);
     }
   };
 
@@ -178,7 +215,7 @@ export default function EventStaffingSection({
             <button
               type="button"
               onClick={applyEventTimesToAll}
-              className="text-sm font-secondary text-primary hover:text-primary/80 transition-colors"
+              className="text-sm font-secondary text-primary hover:text-primary/80 transition-colors underline"
             >
               Apply event times to all
             </button>
@@ -197,7 +234,6 @@ export default function EventStaffingSection({
         </div>
       </div>
 
-      {/* Summary Cards */}
       <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="bg-blue-50 rounded-lg p-4">
           <p className="text-xs text-blue-600 font-secondary mb-1">
@@ -225,7 +261,6 @@ export default function EventStaffingSection({
         </div>
       </div>
 
-      {/* Role Requirements */}
       <div className="space-y-4">
         {requirements.map((req) => {
           const role = roles.find((r) => r.id === req.roleId);
@@ -301,7 +336,7 @@ export default function EventStaffingSection({
                             updateRequirement(
                               req.roleId,
                               "eventRate",
-                              parseFloat(e.target.value) || 0
+                              parseFloat(e.target.value) || 0,
                             )
                           }
                           min="0"
@@ -312,14 +347,17 @@ export default function EventStaffingSection({
                                         isModifiedRate
                                           ? "border-orange-300 bg-orange-50"
                                           : "border-gray-300"
-                                      }
-                                    `}
+                                      }`}
                         />
                       </div>
                       {isModifiedRate && (
-                        <p className="text-[10px] text-orange-600 mt-0.5">
-                          Default: {formatCurrency(req.defaultRate)}
-                        </p>
+                        <button
+                          type="button"
+                          onClick={() => resetToDefaultRate(req.roleId)}
+                          className="text-[10px] text-orange-600 hover:text-orange-700 mt-0.5 underline"
+                        >
+                          Reset to {formatCurrency(req.defaultRate)}
+                        </button>
                       )}
                     </div>
 
@@ -334,7 +372,7 @@ export default function EventStaffingSection({
                           updateRequirement(
                             req.roleId,
                             "staffCount",
-                            parseInt(e.target.value) || 0
+                            parseInt(e.target.value) || 0,
                           )
                         }
                         min="0"
@@ -386,7 +424,7 @@ export default function EventStaffingSection({
               strokeLinecap="round"
               strokeLinejoin="round"
               strokeWidth={2}
-              d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z"
+              d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
             />
           </svg>
           <p className="font-secondary">No active roles found.</p>
@@ -433,19 +471,19 @@ export default function EventStaffingSection({
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {availableGroups.map((group) => (
               <label
-                key={group}
+                key={group.id}
                 className={`flex items-center gap-2 p-3 border rounded-lg cursor-pointer transition-colors ${
-                  assignedGroups.includes(group)
+                  assignedGroups.includes(group.id)
                     ? "border-primary bg-primary/5"
                     : "border-gray-200 hover:bg-gray-50"
                 }`}
               >
                 <AppCheckbox
-                  checked={assignedGroups.includes(group)}
-                  onCheckedChange={() => onToggleGroup(group)}
+                  checked={assignedGroups.includes(group.id)}
+                  onCheckedChange={() => onToggleGroup(group.id)}
                 />
                 <span className="text-sm font-secondary text-gray-700">
-                  {group}
+                  {group.name}
                 </span>
               </label>
             ))}

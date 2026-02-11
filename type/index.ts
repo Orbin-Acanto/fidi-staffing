@@ -88,40 +88,6 @@ export type LocationFormData = {
   locationNotes: string;
 };
 
-export interface EventFormData {
-  eventName: string;
-  eventType: string;
-  description: string;
-  clientName: string;
-  clientContact: string;
-
-  eventDate: string;
-  startTime: string;
-  endTime: string;
-  setupTime: string;
-  breakdownTime: string;
-  clockCode: string;
-
-  venueName: string;
-  street: string;
-  city: string;
-  state: string;
-  zipCode: string;
-  country: string;
-  locationNotes: string;
-
-  staffingRequirements: {
-    [key: string]: number;
-  };
-  assignedGroups: string[];
-  autoAssign: boolean;
-
-  dressCode: string;
-  specialInstructions: string;
-  budget: string;
-  status: string;
-}
-
 export type Group = {
   id: string;
   name: string;
