@@ -1,12 +1,18 @@
 "use client";
-import { EventBackend } from "@/type/events";
+
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { EventBackend } from "@/type/events";
+import { apiFetch } from "@/lib/apiFetch";
+import { toastError, toastSuccess } from "@/lib/toast";
+import { StaffTab } from "./StaffTab";
+import { RolesTab } from "./RolesTab";
+import { VendorsTab } from "./VendorsTab";
 
 type EventDetailModalProps = {
-  event: EventBackend;
+  eventId: string;
   onClose: () => void;
-  onRefresh: () => void;
+  onRefresh?: () => void;
 };
 
 const getStatusColor = (status: string) => {
@@ -32,11 +38,44 @@ const getStatusDisplay = (status: string) => {
 };
 
 const isUnderstaffed = (event: EventBackend) => {
-  return event.total_staff_filled < event.total_staff_needed;
+  const filled = Number(event.total_staff_filled ?? 0);
+  const needed = Number(event.total_staff_needed ?? 0);
+  return needed > 0 && filled < needed;
+};
+
+const formatCurrency = (amount: string | number) => {
+  const num = typeof amount === "string" ? parseFloat(amount || "0") : amount;
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+  }).format(Number.isFinite(num) ? num : 0);
+};
+
+const formatTime = (time: string) => {
+  if (!time) return "";
+  const [h, m] = time.split(":");
+  const hour = parseInt(h, 10);
+  if (Number.isNaN(hour)) return time;
+  const ampm = hour >= 12 ? "PM" : "AM";
+  const displayHour = hour % 12 || 12;
+  return `${displayHour}:${m} ${ampm}`;
+};
+
+const safeDateLabel = (iso: string) => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 };
 
 export default function EventDetailModal({
-  event,
+  eventId,
   onClose,
   onRefresh,
 }: EventDetailModalProps) {
@@ -44,26 +83,85 @@ export default function EventDetailModal({
     "overview" | "staff" | "roles" | "vendors"
   >("overview");
 
-  const staffAssignments = event.staff_assignments || [];
-  const roleRequirements = event.role_requirements || [];
-  const vendorAssignments = event.vendor_assignments || [];
+  const [event, setEvent] = useState<EventBackend | null>(null);
+  const [isLoadingEvent, setIsLoadingEvent] = useState(false);
+  const [isMutating, setIsMutating] = useState(false);
 
-  const formatCurrency = (amount: string | number) => {
-    const num = typeof amount === "string" ? parseFloat(amount) : amount;
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      minimumFractionDigits: 2,
-    }).format(num);
+  const staffAssignments = useMemo(
+    () => event?.staff_assignments ?? [],
+    [event],
+  );
+  const roleRequirements = useMemo(
+    () => event?.role_requirements ?? [],
+    [event],
+  );
+  const vendorAssignments = useMemo(
+    () => event?.vendor_assignments ?? [],
+    [event],
+  );
+
+  const fetchEvent = async () => {
+    setIsLoadingEvent(true);
+    try {
+      const eventData: EventBackend = await apiFetch(`/api/events/${eventId}`);
+      setEvent(eventData);
+    } catch (error) {
+      console.error("Failed to fetch event:", error);
+      toastError("Failed to load event data");
+      onClose();
+    } finally {
+      setIsLoadingEvent(false);
+    }
   };
 
-  const formatTime = (time: string) => {
-    if (!time) return "";
-    const [hours, minutes] = time.split(":");
-    const hour = parseInt(hours);
-    const ampm = hour >= 12 ? "PM" : "AM";
-    const displayHour = hour % 12 || 12;
-    return `${displayHour}:${minutes} ${ampm}`;
+  useEffect(() => {
+    fetchEvent();
+  }, [eventId]);
+
+  const handlePublish = async () => {
+    if (!event) return;
+    setIsMutating(true);
+    try {
+      const res = await apiFetch(`/api/events/${event.id}/publish/`, {
+        method: "POST",
+        body: JSON.stringify({}),
+      });
+      if (res?.event) setEvent(res.event as EventBackend);
+      toastSuccess(res?.message || "Event published");
+      onRefresh?.();
+    } catch (error: any) {
+      console.error(error);
+      toastError(
+        error?.message ||
+          "Could not publish. Make sure the event has at least one role requirement.",
+      );
+    } finally {
+      setIsMutating(false);
+    }
+  };
+
+  const handleCancel = async () => {
+    if (!event) return;
+
+    const reason =
+      window.prompt("Cancellation reason")?.trim() ||
+      "Cancelled by admin action";
+
+    setIsMutating(true);
+    try {
+      const res = await apiFetch(`/api/events/${event.id}/cancel/`, {
+        method: "POST",
+        body: JSON.stringify({ cancellation_reason: reason }),
+      });
+      if (res?.event) setEvent(res.event as EventBackend);
+      toastSuccess(res?.message || "Event cancelled");
+      onRefresh?.();
+    } catch (error: any) {
+      console.error(error);
+      toastError(error?.message || "Failed to cancel event");
+    } finally {
+      setIsMutating(false);
+    }
   };
 
   return (
@@ -72,34 +170,43 @@ export default function EventDetailModal({
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex-1">
             <h2 className="text-2xl font-primary font-bold text-gray-900">
-              {event.name}
+              {event?.name || (isLoadingEvent ? "Loading..." : "Event")}
             </h2>
             <p className="text-sm text-gray-600 font-secondary mt-1">
-              {event.event_type_display} • {event.client_name || "No client"}
+              {(event?.event_type_display || "Event") +
+                " • " +
+                (event?.client_name || "No client")}
             </p>
-            <p className="text-xs text-gray-500 font-secondary mt-1">
-              Event #{event.event_number}
-            </p>
+            {event?.event_number && (
+              <p className="text-xs text-gray-500 font-secondary mt-1">
+                Event #{event.event_number}
+              </p>
+            )}
           </div>
 
           <div className="flex items-center gap-3">
-            <span
-              className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-secondary font-medium ${getStatusColor(
-                event.status,
-              )}`}
-            >
-              {getStatusDisplay(event.status)}
-            </span>
-            {isUnderstaffed(event) && event.total_staff_needed > 0 && (
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-secondary font-medium bg-red-100 text-red-700">
-                Understaffed
-              </span>
+            {event && (
+              <>
+                <span
+                  className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-secondary font-medium ${getStatusColor(
+                    event.status,
+                  )}`}
+                >
+                  {getStatusDisplay(event.status)}
+                </span>
+                {isUnderstaffed(event) && (
+                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-secondary font-medium bg-red-100 text-red-700">
+                    Understaffed
+                  </span>
+                )}
+              </>
             )}
           </div>
 
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer ml-4"
+            aria-label="Close modal"
           >
             <svg
               className="w-6 h-6"
@@ -129,6 +236,7 @@ export default function EventDetailModal({
             >
               Overview
             </button>
+
             <button
               onClick={() => setActiveTab("roles")}
               className={`py-3 px-1 border-b-2 font-secondary font-medium text-sm transition-colors cursor-pointer ${
@@ -136,12 +244,14 @@ export default function EventDetailModal({
                   ? "border-primary text-primary"
                   : "border-transparent text-gray-500 hover:text-gray-700"
               }`}
+              disabled={!event}
             >
               Role Requirements
               <span className="ml-2 inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-primary rounded-full">
                 {roleRequirements.length}
               </span>
             </button>
+
             <button
               onClick={() => setActiveTab("staff")}
               className={`py-3 px-1 border-b-2 font-secondary font-medium text-sm transition-colors cursor-pointer ${
@@ -149,12 +259,14 @@ export default function EventDetailModal({
                   ? "border-primary text-primary"
                   : "border-transparent text-gray-500 hover:text-gray-700"
               }`}
+              disabled={!event}
             >
               Assigned Staff
               <span className="ml-2 inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-primary rounded-full">
                 {staffAssignments.length}
               </span>
             </button>
+
             <button
               onClick={() => setActiveTab("vendors")}
               className={`py-3 px-1 border-b-2 font-secondary font-medium text-sm transition-colors cursor-pointer ${
@@ -162,6 +274,7 @@ export default function EventDetailModal({
                   ? "border-primary text-primary"
                   : "border-transparent text-gray-500 hover:text-gray-700"
               }`}
+              disabled={!event}
             >
               Vendors
               <span className="ml-2 inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-primary rounded-full">
@@ -172,7 +285,21 @@ export default function EventDetailModal({
         </div>
 
         <div className="flex-1 overflow-y-auto p-6">
-          {activeTab === "overview" && (
+          {isLoadingEvent && (
+            <div className="space-y-4">
+              <div className="h-5 w-40 bg-gray-100 rounded" />
+              <div className="h-24 w-full bg-gray-100 rounded" />
+              <div className="h-24 w-full bg-gray-100 rounded" />
+            </div>
+          )}
+
+          {!isLoadingEvent && !event && (
+            <div className="py-10 text-center text-gray-600 font-secondary">
+              No event data
+            </div>
+          )}
+
+          {!isLoadingEvent && event && activeTab === "overview" && (
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
@@ -195,17 +322,10 @@ export default function EventDetailModal({
                         />
                       </svg>
                       <span className="text-gray-900 font-secondary">
-                        {new Date(event.event_date).toLocaleDateString(
-                          "en-US",
-                          {
-                            weekday: "long",
-                            year: "numeric",
-                            month: "long",
-                            day: "numeric",
-                          },
-                        )}
+                        {safeDateLabel(event.event_date)}
                       </span>
                     </div>
+
                     <div className="flex items-center gap-2 text-sm">
                       <svg
                         className="w-4 h-4 text-gray-400"
@@ -221,20 +341,19 @@ export default function EventDetailModal({
                         />
                       </svg>
                       <span className="text-gray-900 font-secondary">
-                        {formatTime(event.start_time)} -{" "}
+                        {formatTime(event.start_time)} to{" "}
                         {formatTime(event.end_time)}
                       </span>
                     </div>
+
                     {event.setup_time && (
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <span>Setup: {formatTime(event.setup_time)}</span>
+                      <div className="text-sm text-gray-600">
+                        Setup: {formatTime(event.setup_time)}
                       </div>
                     )}
                     {event.breakdown_time && (
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <span>
-                          Breakdown: {formatTime(event.breakdown_time)}
-                        </span>
+                      <div className="text-sm text-gray-600">
+                        Breakdown: {formatTime(event.breakdown_time)}
                       </div>
                     )}
                   </div>
@@ -264,6 +383,7 @@ export default function EventDetailModal({
                         d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
                       />
                     </svg>
+
                     <div className="text-gray-900 font-secondary">
                       {event.venue_name && <p>{event.venue_name}</p>}
                       <p className="text-gray-600">
@@ -309,6 +429,7 @@ export default function EventDetailModal({
                         </span>
                       </div>
                     )}
+
                     {event.client_email && (
                       <div className="flex items-center gap-2 text-sm">
                         <svg
@@ -329,6 +450,7 @@ export default function EventDetailModal({
                         </span>
                       </div>
                     )}
+
                     {event.client_phone && (
                       <div className="flex items-center gap-2 text-sm">
                         <svg
@@ -363,9 +485,11 @@ export default function EventDetailModal({
                       Assigned Staff
                     </span>
                     <span className="text-sm font-semibold text-gray-900 font-secondary">
-                      {event.total_staff_filled} / {event.total_staff_needed}
+                      {Number(event.total_staff_filled ?? 0)} /{" "}
+                      {Number(event.total_staff_needed ?? 0)}
                     </span>
                   </div>
+
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div
                       className={`h-2 rounded-full transition-all duration-300 ${
@@ -373,9 +497,9 @@ export default function EventDetailModal({
                       }`}
                       style={{
                         width: `${Math.min(
-                          event.total_staff_needed > 0
-                            ? (event.total_staff_filled /
-                                event.total_staff_needed) *
+                          Number(event.total_staff_needed ?? 0) > 0
+                            ? (Number(event.total_staff_filled ?? 0) /
+                                Number(event.total_staff_needed ?? 0)) *
                                 100
                             : 0,
                           100,
@@ -383,6 +507,7 @@ export default function EventDetailModal({
                       }}
                     />
                   </div>
+
                   <div className="mt-3 grid grid-cols-2 gap-4 text-sm">
                     <div>
                       <span className="text-gray-600 font-secondary">
@@ -458,7 +583,7 @@ export default function EventDetailModal({
                   <h4 className="text-sm font-secondary font-semibold text-gray-700 mb-3">
                     Budget & Costs
                   </h4>
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {event.budget && (
                       <div className="bg-blue-50 rounded-lg p-3">
                         <p className="text-xs text-blue-600 font-secondary mb-1">
@@ -469,6 +594,7 @@ export default function EventDetailModal({
                         </p>
                       </div>
                     )}
+
                     <div className="bg-green-50 rounded-lg p-3">
                       <p className="text-xs text-green-600 font-secondary mb-1">
                         Estimated
@@ -477,6 +603,7 @@ export default function EventDetailModal({
                         {formatCurrency(event.estimated_cost || "0")}
                       </p>
                     </div>
+
                     {event.actual_cost && (
                       <div className="bg-purple-50 rounded-lg p-3">
                         <p className="text-xs text-purple-600 font-secondary mb-1">
@@ -490,335 +617,109 @@ export default function EventDetailModal({
                   </div>
                 </div>
               )}
-            </div>
-          )}
 
-          {activeTab === "roles" && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h4 className="text-sm font-secondary font-semibold text-gray-700">
-                  Role Requirements ({roleRequirements.length})
-                </h4>
-              </div>
-
-              {roleRequirements.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12">
-                  <svg
-                    className="w-12 h-12 text-gray-400 mb-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                    />
-                  </svg>
-                  <p className="text-gray-900 font-secondary font-medium mb-1">
-                    No role requirements
+              {event.cancellation_reason && event.status === "cancelled" && (
+                <div className="bg-red-50 border border-red-100 rounded-lg p-4">
+                  <p className="text-sm font-secondary text-red-700">
+                    Cancellation reason: {event.cancellation_reason}
                   </p>
-                  <p className="text-gray-500 font-secondary text-sm">
-                    Edit the event to add role requirements
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {roleRequirements.map((req) => (
-                    <div
-                      key={req.id}
-                      className="border border-gray-200 rounded-lg overflow-hidden"
-                    >
-                      <div
-                        className="h-1"
-                        style={{ backgroundColor: req.role_color || "#6B7280" }}
-                      />
-                      <div className="p-4">
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center gap-3">
-                            <div
-                              className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-primary font-bold"
-                              style={{
-                                backgroundColor: req.role_color || "#6B7280",
-                              }}
-                            >
-                              {req.role_name.charAt(0)}
-                            </div>
-                            <div>
-                              <h5 className="font-secondary font-semibold text-gray-900">
-                                {req.role_name}
-                              </h5>
-                              <p className="text-xs text-gray-500 capitalize">
-                                {req.pay_type} rate
-                              </p>
-                            </div>
-                          </div>
-                          <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-secondary font-medium ${
-                              req.filled_count >= req.staff_count
-                                ? "bg-green-100 text-green-700"
-                                : "bg-yellow-100 text-yellow-700"
-                            }`}
-                          >
-                            {req.filled_count} / {req.staff_count} filled
-                          </span>
-                        </div>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                          <div>
-                            <span className="text-gray-600 font-secondary">
-                              Time:
-                            </span>
-                            <p className="font-medium text-gray-900">
-                              {formatTime(req.start_time)} -{" "}
-                              {formatTime(req.end_time)}
-                            </p>
-                          </div>
-                          <div>
-                            <span className="text-gray-600 font-secondary">
-                              Rate:
-                            </span>
-                            <p className="font-medium text-gray-900">
-                              {formatCurrency(req.event_rate)}
-                              {req.pay_type === "hourly" && "/hr"}
-                            </p>
-                          </div>
-                          <div>
-                            <span className="text-gray-600 font-secondary">
-                              Est. Hours:
-                            </span>
-                            <p className="font-medium text-gray-900">
-                              {parseFloat(req.estimated_hours).toFixed(1)}h
-                            </p>
-                          </div>
-                          <div>
-                            <span className="text-gray-600 font-secondary">
-                              Est. Cost:
-                            </span>
-                            <p className="font-medium text-green-600">
-                              {formatCurrency(req.estimated_cost)}
-                            </p>
-                          </div>
-                        </div>
-                        {req.notes && (
-                          <p className="mt-3 text-sm text-gray-600 font-secondary">
-                            {req.notes}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
                 </div>
               )}
             </div>
           )}
 
-          {activeTab === "staff" && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h4 className="text-sm font-secondary font-semibold text-gray-700">
-                  Staff Members ({staffAssignments.length})
-                </h4>
-              </div>
-
-              {staffAssignments.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12">
-                  <svg
-                    className="w-12 h-12 text-gray-400 mb-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                    />
-                  </svg>
-                  <p className="text-gray-900 font-secondary font-medium mb-1">
-                    No staff assigned
-                  </p>
-                  <p className="text-gray-500 font-secondary text-sm">
-                    Edit the event to assign staff members
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {staffAssignments.map((assignment) => (
-                    <div
-                      key={assignment.id}
-                      className="p-4 border border-gray-200 rounded-lg"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3 flex-1">
-                          <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
-                            {assignment.staff_avatar ? (
-                              <img
-                                src={assignment.staff_avatar}
-                                alt={assignment.staff_name}
-                                className="w-12 h-12 rounded-full object-cover"
-                              />
-                            ) : (
-                              <span className="text-sm font-secondary font-medium text-gray-600">
-                                {assignment.staff_name
-                                  .split(" ")
-                                  .map((n) => n[0])
-                                  .join("")}
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex-1">
-                            <h5 className="font-secondary font-semibold text-gray-900">
-                              {assignment.staff_name}
-                            </h5>
-                            <p className="text-sm text-gray-600 font-secondary">
-                              {assignment.role_name} •{" "}
-                              {formatCurrency(assignment.pay_rate)}
-                              {assignment.pay_type === "hourly" && "/hr"}
-                            </p>
-                            <p className="text-xs text-gray-500 mt-1">
-                              {formatTime(assignment.start_time)} -{" "}
-                              {formatTime(assignment.end_time)}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex flex-col items-end gap-1">
-                          <span
-                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-secondary font-medium ${
-                              assignment.status === "checked_in"
-                                ? "bg-green-100 text-green-700"
-                                : assignment.status === "checked_out"
-                                  ? "bg-purple-100 text-purple-700"
-                                  : assignment.status === "confirmed"
-                                    ? "bg-blue-100 text-blue-700"
-                                    : assignment.status === "declined"
-                                      ? "bg-red-100 text-red-700"
-                                      : "bg-gray-100 text-gray-700"
-                            }`}
-                          >
-                            {assignment.status.replace(/_/g, " ")}
-                          </span>
-                          <span
-                            className={`text-xs font-secondary ${
-                              assignment.confirmation_status === "accepted"
-                                ? "text-green-600"
-                                : assignment.confirmation_status === "declined"
-                                  ? "text-red-600"
-                                  : "text-gray-500"
-                            }`}
-                          >
-                            {assignment.confirmation_status === "pending"
-                              ? "Awaiting confirmation"
-                              : assignment.confirmation_status}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+          {!isLoadingEvent && event && activeTab === "roles" && (
+            <RolesTab
+              eventId={event.id}
+              roleRequirements={roleRequirements}
+              onChanged={async () => {
+                await fetchEvent();
+                onRefresh?.();
+              }}
+              formatCurrency={formatCurrency}
+              formatTime={formatTime}
+            />
           )}
 
-          {activeTab === "vendors" && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h4 className="text-sm font-secondary font-semibold text-gray-700">
-                  Vendors ({vendorAssignments.length})
-                </h4>
-              </div>
+          {!isLoadingEvent && event && activeTab === "staff" && (
+            <StaffTab
+              eventId={event.id}
+              staffAssignments={staffAssignments}
+              onChanged={async () => {
+                await fetchEvent();
+                onRefresh?.();
+              }}
+              formatCurrency={formatCurrency}
+              formatTime={formatTime}
+            />
+          )}
 
-              {vendorAssignments.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12">
-                  <svg
-                    className="w-12 h-12 text-gray-400 mb-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                    />
-                  </svg>
-                  <p className="text-gray-900 font-secondary font-medium mb-1">
-                    No vendors assigned
-                  </p>
-                  <p className="text-gray-500 font-secondary text-sm">
-                    Edit the event to assign vendors
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {vendorAssignments.map((vendor) => (
-                    <div
-                      key={vendor.id}
-                      className="p-4 border border-gray-200 rounded-lg"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <h5 className="font-secondary font-semibold text-gray-900">
-                            {vendor.vendor_name}
-                          </h5>
-                          <p className="text-sm text-gray-600 font-secondary">
-                            {vendor.service_type || vendor.vendor_service_type}
-                          </p>
-                          {vendor.vendor_phone && (
-                            <p className="text-xs text-gray-500 mt-1">
-                              {vendor.vendor_phone}
-                            </p>
-                          )}
-                        </div>
-                        <div className="flex flex-col items-end gap-1">
-                          {vendor.contract_amount && (
-                            <p className="font-semibold text-gray-900">
-                              {formatCurrency(vendor.contract_amount)}
-                            </p>
-                          )}
-                          <span
-                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-secondary font-medium ${
-                              vendor.status === "confirmed"
-                                ? "bg-green-100 text-green-700"
-                                : vendor.status === "cancelled"
-                                  ? "bg-red-100 text-red-700"
-                                  : vendor.status === "completed"
-                                    ? "bg-purple-100 text-purple-700"
-                                    : "bg-gray-100 text-gray-700"
-                            }`}
-                          >
-                            {vendor.status}
-                          </span>
-                        </div>
-                      </div>
-                      {vendor.notes && (
-                        <p className="mt-2 text-sm text-gray-600 font-secondary">
-                          {vendor.notes}
-                        </p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+          {!isLoadingEvent && event && activeTab === "vendors" && (
+            <VendorsTab
+              eventId={event.id}
+              vendorAssignments={vendorAssignments}
+              onChanged={async () => {
+                await fetchEvent();
+                onRefresh?.();
+              }}
+              formatCurrency={formatCurrency}
+            />
           )}
         </div>
 
-        <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 font-secondary font-medium transition-colors cursor-pointer"
-          >
-            Close
-          </button>
-          <Link
-            href={`/admin/events/${event.id}/edit`}
-            className="px-4 py-2 bg-primary text-gray-100 font-secondary font-semibold rounded-lg hover:bg-primary/80 transition-colors"
-          >
-            Edit Event
-          </Link>
+        <div className="flex items-center justify-between gap-3 p-6 border-t border-gray-200 bg-gray-50">
+          <div className="flex items-center gap-2">
+            {/* <button
+              onClick={fetchEvent}
+              disabled={isLoadingEvent || isMutating}
+              className="px-3 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 font-secondary font-medium transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              Refresh
+            </button> */}
+
+            {event?.status === "draft" && (
+              <button
+                onClick={handlePublish}
+                disabled={isMutating}
+                className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-secondary font-semibold transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                title={
+                  roleRequirements.length === 0
+                    ? "Requires at least one role requirement"
+                    : ""
+                }
+              >
+                Publish
+              </button>
+            )}
+
+            {event && event.status !== "cancelled" && (
+              <button
+                onClick={handleCancel}
+                disabled={isMutating}
+                className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-secondary font-semibold transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 font-secondary font-medium transition-colors cursor-pointer"
+            >
+              Close
+            </button>
+
+            {event?.id && (
+              <Link
+                href={`/admin/events/${event.id}/edit`}
+                className="px-4 py-2 bg-primary text-gray-100 font-secondary font-semibold rounded-lg hover:bg-primary/80 transition-colors"
+              >
+                Edit Event
+              </Link>
+            )}
+          </div>
         </div>
       </div>
     </div>

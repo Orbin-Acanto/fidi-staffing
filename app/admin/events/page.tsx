@@ -452,7 +452,7 @@ export default function EventListPage() {
 
       {showDetailModal && selectedEvent && (
         <EventDetailModal
-          event={selectedEvent}
+          eventId={selectedEvent.id}
           onClose={() => {
             setShowDetailModal(false);
             setSelectedEvent(null);
