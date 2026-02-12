@@ -117,6 +117,36 @@ export default function EditEventPage() {
       const useCustomLocation = eventData.use_custom_location;
       const savedLocationId = eventData.location || "";
 
+      const loc = eventData.location_detail;
+
+      const venueName = useCustomLocation
+        ? (eventData.venue_name ?? "")
+        : (loc?.venue_name ?? "");
+
+      const street = useCustomLocation
+        ? (eventData.address_street ?? "")
+        : (loc?.street ?? "");
+
+      const city = useCustomLocation
+        ? (eventData.address_city ?? "")
+        : (loc?.city ?? "");
+
+      const state = useCustomLocation
+        ? (eventData.address_state ?? "")
+        : (loc?.state ?? "");
+
+      const zipCode = useCustomLocation
+        ? (eventData.address_zip ?? "")
+        : (loc?.zip_code ?? "");
+
+      const country = useCustomLocation
+        ? (eventData.address_country ?? "United States")
+        : (loc?.country ?? "United States");
+
+      const locationNotes =
+        (eventData.location_notes ?? "") ||
+        (!useCustomLocation ? (loc?.notes ?? "") : "");
+
       setFormData({
         eventName: eventData.name,
         eventType: eventData.event_type,
@@ -130,16 +160,18 @@ export default function EditEventPage() {
         setupTime: eventData.setup_time || "",
         breakdownTime: eventData.breakdown_time || "",
         clockCode: eventData.clock_code || "",
-        useCustomLocation: useCustomLocation,
-        savedLocationId: savedLocationId,
-        venueName: eventData.venue_name || "",
-        street: eventData.address_street || "",
-        city: eventData.address_city || "",
-        state: eventData.address_state || "",
-        zipCode: eventData.address_zip || "",
-        country: eventData.address_country || "United States",
-        locationNotes: eventData.location_notes || "",
-        assignedGroups: [],
+        useCustomLocation,
+        savedLocationId,
+        venueName,
+        street,
+        city,
+        state,
+        zipCode,
+        country,
+        locationNotes,
+        assignedGroups: (eventData.assigned_groups ?? []).map((g) =>
+          String(g.id),
+        ),
         autoAssign: eventData.auto_assign,
         dressCode: eventData.dress_code || "",
         specialInstructions: eventData.special_instructions || "",
@@ -170,6 +202,8 @@ export default function EditEventPage() {
           }));
         setStaffingRequirements(requirements);
       }
+
+      console.log(formData);
     } catch (error) {
       console.error("Failed to fetch event:", error);
       toastError("Failed to load event data");
@@ -741,7 +775,7 @@ export default function EditEventPage() {
                   { label: "Custom / New location", value: "custom" },
                   ...locations.map((l) => ({
                     label: l.name,
-                    value: l.id,
+                    value: String(l.id),
                   })),
                 ]}
               />

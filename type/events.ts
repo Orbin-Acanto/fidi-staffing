@@ -1,3 +1,11 @@
+export interface AssignedGroupBackend {
+  id: string;
+  name: string;
+  color: string | null;
+  company: string;
+  company_name: string;
+}
+
 export interface EventBackend {
   id: string;
   event_number: string;
@@ -15,7 +23,9 @@ export interface EventBackend {
   breakdown_time: string | null;
   clock_code: string | null;
   use_custom_location: boolean;
+  assigned_groups?: AssignedGroupBackend[];
   location: string | null;
+  location_detail?: LocationMini | null;
   location_name: string | null;
   location_address: string | null;
   venue_name: string | null;
@@ -48,6 +58,18 @@ export interface EventBackend {
   staff_assignments: EventStaffAssignmentBackend[];
   vendor_assignments: EventVendorAssignmentBackend[];
 }
+
+export type LocationMini = {
+  id: string;
+  name: string;
+  venue_name: string | null;
+  street: string | null;
+  city: string | null;
+  state: string | null;
+  zip_code: string | null;
+  country: string | null;
+  notes: string | null;
+};
 
 export interface EventRoleRequirementBackend {
   id: string;
