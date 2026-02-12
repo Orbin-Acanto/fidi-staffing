@@ -117,7 +117,16 @@ export default function AddEditUserModal({
   };
 
   const apiRole = useMemo(() => {
-    return formData.role === "Admin" ? "admin" : "manager";
+    switch (formData.role) {
+      case "Admin":
+        return "admin";
+      case "Manager":
+        return "manager";
+      case "Staff":
+        return "staff";
+      default:
+        return "";
+    }
   }, [formData.role]);
 
   const isActiveForApi = useMemo(() => {
@@ -245,6 +254,21 @@ export default function AddEditUserModal({
     }
   };
 
+  const roleOptions = useMemo(() => {
+    if (isEditing) {
+      return [
+        { label: "Manager", value: "Manager" },
+        { label: "Admin", value: "Admin" },
+        { label: "Staff", value: "Staff" },
+      ];
+    }
+
+    return [
+      { label: "Manager", value: "Manager" },
+      { label: "Admin", value: "Admin" },
+    ];
+  }, [isEditing]);
+
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
@@ -340,10 +364,7 @@ export default function AddEditUserModal({
                         role: value as UserRole,
                       }))
                     }
-                    options={[
-                      { label: "Manager", value: "Manager" },
-                      { label: "Admin", value: "Admin" },
-                    ]}
+                    options={roleOptions}
                     disabled={isSubmitting || (isEditing && !canChangeRole)}
                   />
                 </div>

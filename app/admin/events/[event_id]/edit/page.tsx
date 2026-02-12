@@ -15,29 +15,10 @@ import {
   EventBackend,
   EventFormData,
   EventRoleRequirement,
+  Role,
+  Location,
 } from "@/type/events";
 import EventStaffingSection from "@/component/event/Eventstaffingsection";
-
-interface Role {
-  id: string;
-  name: string;
-  color: string;
-  default_pay_type: string;
-  hourly_rate: number | null;
-  fixed_rate: number | null;
-}
-
-interface Location {
-  id: string;
-  name: string;
-  venue_name: string | null;
-  address_street: string;
-  address_city: string;
-  address_state: string | null;
-  address_zip: string | null;
-  address_country: string;
-  notes: string | null;
-}
 
 interface StaffGroup {
   id: string;
@@ -117,7 +98,7 @@ export default function EditEventPage() {
         ]);
 
       setRoles(rolesResponse.roles || []);
-      setLocations(locationsResponse.locations || []);
+      setLocations(locationsResponse.results || []);
       setGroups(groupsResponse.groups || []);
     } catch (error) {
       console.error("Failed to fetch initial data:", error);
@@ -198,7 +179,7 @@ export default function EditEventPage() {
     }
   };
 
-  const applySavedLocation = (locationId: string) => {
+  const applySavedLocation = (locationId: string): boolean => {
     setSelectedLocationId(locationId);
 
     if (locationId === "custom") {
@@ -207,24 +188,26 @@ export default function EditEventPage() {
         useCustomLocation: true,
         savedLocationId: "",
       }));
-      return;
+      return true;
     }
 
-    const loc = locations.find((l) => l.id === locationId);
-    if (!loc) return;
+    const loc = locations.find((l) => String(l.id) === String(locationId));
+    if (!loc) return false;
 
     setFormData((prev) => ({
       ...prev,
       useCustomLocation: false,
-      savedLocationId: locationId,
-      venueName: loc.venue_name || "",
-      street: loc.address_street,
-      city: loc.address_city,
-      state: loc.address_state || "",
-      zipCode: loc.address_zip || "",
-      country: loc.address_country,
-      locationNotes: loc.notes || "",
+      savedLocationId: String(locationId),
+      venueName: loc.venue_name ?? "",
+      street: loc.street ?? "",
+      city: loc.city ?? "",
+      state: loc.state ?? "",
+      zipCode: loc.zip_code ?? "",
+      country: loc.country ?? "United States",
+      locationNotes: loc.notes ?? "",
     }));
+
+    return true;
   };
 
   const handleInputChange = (
@@ -376,6 +359,7 @@ export default function EditEventPage() {
         special_instructions: formData.specialInstructions.trim() || null,
         budget: formData.budget ? parseFloat(formData.budget) : null,
         auto_assign: formData.autoAssign,
+        assigned_groups: formData.assignedGroups,
         role_requirements: roleRequirements,
       };
 
@@ -975,7 +959,7 @@ export default function EditEventPage() {
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <Link
               href="/admin/events"
-              className="w-full sm:w-auto inline-flex justify-center px-6 py-2.5 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 font-secondary font-medium transition-colors"
+              className="w-full sm:w-auto inline-flex justify-center text-gray-700 bg-gray-200 px-6 py-2.5 cursor-pointer font-secondary font-medium hover:bg-gray-200 rounded-lg transition-colors"
             >
               Cancel
             </Link>
@@ -983,8 +967,8 @@ export default function EditEventPage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full sm:w-auto inline-flex justify-center px-6 py-2.5 bg-primary text-dark-black font-secondary font-semibold rounded-lg
-                   hover:bg-[#e0c580] transition-all duration-200
+              className="w-full sm:w-auto inline-flex justify-center px-6 py-2.5 
+                   bg-primary cursor-pointer text-white font-secondary font-medium rounded-lg hover:bg-primary/90  transition-all duration-200
                    disabled:opacity-50 disabled:cursor-not-allowed
                    transform sm:hover:scale-105 active:scale-95"
             >
@@ -1012,7 +996,22 @@ export default function EditEventPage() {
                   Updating...
                 </span>
               ) : (
-                "Update Event"
+                <div className="inline-flex items-center gap-2">
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                  "Update Event"
+                </div>
               )}
             </button>
           </div>

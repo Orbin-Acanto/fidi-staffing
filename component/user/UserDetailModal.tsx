@@ -20,7 +20,7 @@ export default function UserDetailModal({
 
   const canEdit =
     ["owner", "admin"].includes(normalizeRole(currentUserRole)) &&
-    ["admin", "manager"].includes(normalizeRole(user.role));
+    ["admin", "manager", "staff"].includes(normalizeRole(user.role));
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">

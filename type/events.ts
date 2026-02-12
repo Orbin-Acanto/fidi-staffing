@@ -157,3 +157,18 @@ export interface Role {
   pay_type: string;
   default_rate: string | number;
 }
+
+export interface Location {
+  id: string;
+
+  name: string;
+  venue_name: string | null;
+
+  street: string;
+  city: string;
+  state: string | null;
+  zip_code: string | null;
+  country: string;
+
+  notes: string | null;
+}

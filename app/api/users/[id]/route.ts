@@ -86,7 +86,7 @@ export async function PATCH(
   }
 
   if (body.role !== undefined) {
-    const validRoles = ["admin", "manager"];
+    const validRoles = ["admin", "manager", "staff"];
     if (!validRoles.includes(body.role.toLowerCase())) {
       return NextResponse.json(
         {
