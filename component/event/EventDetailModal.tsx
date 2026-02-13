@@ -8,6 +8,7 @@ import { toastError, toastSuccess } from "@/lib/toast";
 import { StaffTab } from "./StaffTab";
 import { RolesTab } from "./RolesTab";
 import { VendorsTab } from "./VendorsTab";
+import { GroupsTab } from "./GroupsTab";
 
 type EventDetailModalProps = {
   eventId: string;
@@ -80,7 +81,7 @@ export default function EventDetailModal({
   onRefresh,
 }: EventDetailModalProps) {
   const [activeTab, setActiveTab] = useState<
-    "overview" | "staff" | "roles" | "vendors"
+    "overview" | "staff" | "roles" | "vendors" | "groups"
   >("overview");
 
   const [event, setEvent] = useState<EventBackend | null>(null);
@@ -99,6 +100,8 @@ export default function EventDetailModal({
     () => event?.vendor_assignments ?? [],
     [event],
   );
+
+  const groupAssignments = useMemo(() => event?.assigned_groups ?? [], [event]);
 
   const fetchEvent = async () => {
     setIsLoadingEvent(true);
@@ -264,6 +267,20 @@ export default function EventDetailModal({
               Assigned Staff
               <span className="ml-2 inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-primary rounded-full">
                 {staffAssignments.length}
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveTab("groups")}
+              className={`py-3 px-1 border-b-2 font-secondary font-medium text-sm transition-colors cursor-pointer ${
+                activeTab === "groups"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-gray-500 hover:text-gray-700"
+              }`}
+              disabled={!event}
+            >
+              Groups
+              <span className="ml-2 inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-primary rounded-full">
+                {vendorAssignments.length}
               </span>
             </button>
 
@@ -651,6 +668,17 @@ export default function EventDetailModal({
               }}
               formatCurrency={formatCurrency}
               formatTime={formatTime}
+            />
+          )}
+
+          {!isLoadingEvent && event && activeTab === "groups" && (
+            <GroupsTab
+              eventId={event.id}
+              assignedGroups={groupAssignments}
+              onChanged={async () => {
+                await fetchEvent();
+                onRefresh?.();
+              }}
             />
           )}
 

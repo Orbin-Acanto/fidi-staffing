@@ -497,7 +497,7 @@ export default function EventStaffingSection({
         </div>
       )}
 
-      {availableGroups.length > 0 && (
+      {/* {availableGroups.length > 0 && (
         <div className="mt-6 pt-4 border-t border-gray-200">
           <label className="block text-sm font-secondary font-medium text-gray-700 mb-3">
             Assign Groups (Optional)
@@ -523,7 +523,7 @@ export default function EventStaffingSection({
             ))}
           </div>
         </div>
-      )}
+      )} */}
     </div>
   );
 }
