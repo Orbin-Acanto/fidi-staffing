@@ -386,7 +386,7 @@ export default function GroupManagementPage() {
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            {/* <div className="flex items-center gap-3">
               <span className="text-sm font-secondary text-gray-600 whitespace-nowrap">
                 {selectedGroups.length} selected
               </span>
@@ -412,7 +412,7 @@ export default function GroupManagementPage() {
               >
                 Bulk Assign
               </button>
-            </div>
+            </div> */}
           </div>
         </div>
 
@@ -462,12 +462,12 @@ export default function GroupManagementPage() {
 
                 <div className="p-6">
                   <div className="flex items-start gap-3 mb-4">
-                    <div className="mt-1.5">
+                    {/* <div className="mt-1.5">
                       <AppCheckbox
                         checked={selectedGroups.includes(group.id)}
                         onCheckedChange={() => handleSelectGroup(group.id)}
                       />
-                    </div>
+                    </div> */}
 
                     <div className="flex-1">
                       <div className="flex items-start justify-between gap-3">
