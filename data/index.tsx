@@ -1,6 +1,5 @@
 import {
   ActivityLog,
-  AdminProfile,
   AttendanceSettings,
   ClockEntry,
   CostForecast,
@@ -18,16 +17,12 @@ import {
   PayrollSummary,
   ProfileActivityLog,
   ReportSummary,
-  Role,
-  SavedLocation,
   Settings,
-  Staff,
   StaffAttendanceSummary,
   StaffNote,
   StaffPayInfo,
   StaffReview,
   TimeEditRequest,
-  User,
 } from "@/type";
 
 export const navigation: NavSection[] = [
@@ -54,8 +49,97 @@ export const navigation: NavSection[] = [
       },
     ],
   },
+
   {
-    title: "Management",
+    title: "Operations",
+    items: [
+      {
+        name: "Events",
+        href: "/admin/events",
+        icon: (
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+            />
+          </svg>
+        ),
+      },
+      {
+        name: "Locations",
+        href: "/admin/locations",
+        icon: (
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+            />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+            />
+          </svg>
+        ),
+      },
+      {
+        name: "Vendors",
+        href: "/admin/vendors",
+        icon: (
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M3 7h18M5 7v14a2 2 0 002 2h10a2 2 0 002-2V7M9 11h6M9 15h6"
+            />
+          </svg>
+        ),
+      },
+      {
+        name: "Contract",
+        href: "/admin/contract",
+        icon: (
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 12h6m-6 4h6M12 2a2 2 0 012 2v16a2 2 0 01-2 2H6a2 2 0 01-2-2V4a2 2 0 012-2h6zm5 2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2M17 4v16"
+            />
+          </svg>
+        ),
+      },
+    ],
+  },
+
+  {
+    title: "Team",
     items: [
       {
         name: "Staff",
@@ -72,25 +156,6 @@ export const navigation: NavSection[] = [
               strokeLinejoin="round"
               strokeWidth={2}
               d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
-            />
-          </svg>
-        ),
-      },
-      {
-        name: "Events",
-        href: "/admin/events",
-        icon: (
-          <svg
-            className="w-5 h-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
             />
           </svg>
         ),
@@ -133,31 +198,12 @@ export const navigation: NavSection[] = [
           </svg>
         ),
       },
-      {
-        name: "Locations",
-        href: "/admin/locations",
-        icon: (
-          <svg
-            className="w-5 h-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-            />
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-            />
-          </svg>
-        ),
-      },
+    ],
+  },
+
+  {
+    title: "Finance",
+    items: [
       {
         name: "Time & Attendance",
         href: "/admin/time-attendance",
@@ -196,27 +242,9 @@ export const navigation: NavSection[] = [
           </svg>
         ),
       },
-      {
-        name: "Contract",
-        href: "/admin/contract",
-        icon: (
-          <svg
-            className="w-5 h-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M9 12h6m-6 4h6M12 2a2 2 0 012 2v16a2 2 0 01-2 2H6a2 2 0 01-2-2V4a2 2 0 012-2h6zm5 2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2M17 4v16"
-            />
-          </svg>
-        ),
-      },
     ],
   },
+
   {
     title: "System",
     items: [
@@ -619,69 +647,6 @@ export const quickActions = [
   },
 ];
 
-export const staffList: Staff[] = [
-  {
-    id: "1",
-    firstName: "John",
-    lastName: "Doe",
-    email: "john.doe@example.com",
-    phone: "+1 (555) 123-4567",
-    profession: "Waiter",
-    groups: ["Wedding Team A", "Corporate Events"],
-    status: "Active",
-    lastActive: "2 hours ago",
-    wage: 22.5,
-  },
-  {
-    id: "2",
-    firstName: "Sarah",
-    lastName: "Johnson",
-    email: "sarah.j@example.com",
-    phone: "+1 (555) 234-5678",
-    profession: "Bartender",
-    groups: ["Bar Squad"],
-    status: "Active",
-    lastActive: "5 minutes ago",
-    wage: 29.5,
-  },
-  {
-    id: "3",
-    firstName: "Michael",
-    lastName: "Chen",
-    email: "michael.chen@example.com",
-    phone: "+1 (555) 345-6789",
-    profession: "Chef",
-    groups: ["Kitchen Team"],
-    status: "Active",
-    lastActive: "1 day ago",
-    wage: 25.5,
-  },
-  {
-    id: "4",
-    firstName: "Emily",
-    lastName: "Rodriguez",
-    email: "emily.r@example.com",
-    phone: "+1 (555) 456-7890",
-    profession: "Server",
-    groups: ["Wedding Team B"],
-    status: "Inactive",
-    lastActive: "1 week ago",
-    wage: 19,
-  },
-  {
-    id: "5",
-    firstName: "David",
-    lastName: "Williams",
-    email: "david.w@example.com",
-    phone: "+1 (555) 567-8901",
-    profession: "Manager",
-    groups: ["Management", "Corporate Events"],
-    status: "Active",
-    lastActive: "30 minutes ago",
-    wage: 23,
-  },
-];
-
 export const professions = [
   "Waiter",
   "Bartender",
@@ -855,92 +820,6 @@ export const colorOptions = [
   { name: "Purple", value: "#8B5CF6" },
   { name: "Red", value: "#EF4444" },
   { name: "Pink", value: "#EC4899" },
-];
-
-export const savedLocations: SavedLocation[] = [
-  {
-    id: "48wall",
-    label: "48 Wall Street — Financial District, NYC",
-    venueName: "48 Wall Street",
-    street: "48 Wall St, Lobby 1",
-    city: "New York",
-    state: "NY",
-    zipCode: "10005",
-    country: "United States",
-    contactPerson: "Michael Chen",
-    phoneNumber: "+1 (212) 555-0123",
-    locationNotes: "Security desk at lobby; elevators require check-in.",
-    isFavorite: true,
-    eventsCount: 12,
-    createdAt: "2024-01-15",
-  },
-  {
-    id: "plazahotel",
-    label: "The Plaza Hotel — Midtown Manhattan",
-    venueName: "The Plaza Hotel",
-    street: "768 5th Ave",
-    city: "New York",
-    state: "NY",
-    zipCode: "10019",
-    country: "United States",
-    contactPerson: "Sarah Williams",
-    phoneNumber: "+1 (212) 555-0456",
-    locationNotes:
-      "Valet parking available; enter through Fifth Avenue entrance.",
-    isFavorite: true,
-    eventsCount: 8,
-    createdAt: "2024-02-20",
-  },
-  {
-    id: "brooklynwinery",
-    label: "Brooklyn Winery — Williamsburg",
-    venueName: "Brooklyn Winery",
-    street: "213 N 8th St",
-    city: "Brooklyn",
-    state: "NY",
-    zipCode: "11211",
-    country: "United States",
-    contactPerson: "James Rodriguez",
-    phoneNumber: "+1 (718) 555-0789",
-    locationNotes: "Loading access via rear alley; limited street parking.",
-    isFavorite: false,
-    eventsCount: 5,
-    createdAt: "2024-03-10",
-  },
-  {
-    id: "pier60",
-    label: "Pier Sixty — Chelsea Piers",
-    venueName: "Pier Sixty",
-    street: "Chelsea Piers, Pier 60",
-    city: "New York",
-    state: "NY",
-    zipCode: "10011",
-    country: "United States",
-    contactPerson: "Emily Thompson",
-    phoneNumber: "+1 (212) 555-0321",
-    locationNotes:
-      "Large freight elevator available; check dock schedule in advance.",
-    isFavorite: false,
-    eventsCount: 3,
-    createdAt: "2024-04-05",
-  },
-  {
-    id: "metmuseum",
-    label: "The Metropolitan Museum of Art — Upper East Side",
-    venueName: "The Metropolitan Museum of Art",
-    street: "1000 5th Ave",
-    city: "New York",
-    state: "NY",
-    zipCode: "10028",
-    country: "United States",
-    contactPerson: "David Park",
-    phoneNumber: "+1 (212) 555-0654",
-    locationNotes:
-      "After-hours events only; security clearance required for staff.",
-    isFavorite: true,
-    eventsCount: 2,
-    createdAt: "2024-05-12",
-  },
 ];
 
 export const activityLogs: ActivityLog[] = [
@@ -2635,113 +2514,6 @@ export const costMetrics: CostMetrics = {
     { year: "2024", cost: 268000, overtime: 35800 },
   ],
 };
-
-export const roles: Role[] = [
-  {
-    id: "role_1",
-    name: "Server",
-    description: "Food and beverage service at events",
-    payType: "hourly",
-    defaultRate: 22,
-    overtimeMultiplier: 1.5,
-    color: "#3B82F6",
-    status: "active",
-    staffCount: 24,
-    createdAt: "2024-01-15T10:00:00",
-    updatedAt: "2024-12-01T14:30:00",
-  },
-  {
-    id: "role_2",
-    name: "Bartender",
-    description: "Bar service and drink preparation",
-    payType: "hourly",
-    defaultRate: 28,
-    overtimeMultiplier: 1.5,
-    color: "#8B5CF6",
-    status: "active",
-    staffCount: 12,
-    createdAt: "2024-01-15T10:00:00",
-    updatedAt: "2024-11-20T09:15:00",
-  },
-  {
-    id: "role_3",
-    name: "Event Captain",
-    description: "Lead staff and coordinate event operations",
-    payType: "fixed",
-    defaultRate: 250,
-    overtimeMultiplier: 1.5,
-    color: "#F59E0B",
-    status: "active",
-    staffCount: 6,
-    createdAt: "2024-02-01T10:00:00",
-    updatedAt: "2024-12-10T16:45:00",
-  },
-  {
-    id: "role_4",
-    name: "Busser",
-    description: "Table clearing and setup assistance",
-    payType: "hourly",
-    defaultRate: 18,
-    overtimeMultiplier: 1.5,
-    color: "#10B981",
-    status: "active",
-    staffCount: 18,
-    createdAt: "2024-01-20T10:00:00",
-    updatedAt: "2024-11-15T11:20:00",
-  },
-  {
-    id: "role_5",
-    name: "Coat Check",
-    description: "Guest coat and belongings management",
-    payType: "fixed",
-    defaultRate: 150,
-    overtimeMultiplier: 1.5,
-    color: "#EC4899",
-    status: "active",
-    staffCount: 4,
-    createdAt: "2024-03-10T10:00:00",
-    updatedAt: "2024-10-25T13:00:00",
-  },
-  {
-    id: "role_6",
-    name: "Valet",
-    description: "Vehicle parking and retrieval",
-    payType: "hourly",
-    defaultRate: 20,
-    overtimeMultiplier: 1.5,
-    color: "#6366F1",
-    status: "active",
-    staffCount: 8,
-    createdAt: "2024-04-05T10:00:00",
-    updatedAt: "2024-12-05T10:30:00",
-  },
-  {
-    id: "role_7",
-    name: "Kitchen Staff",
-    description: "Food preparation and kitchen support",
-    payType: "hourly",
-    defaultRate: 24,
-    overtimeMultiplier: 1.5,
-    color: "#EF4444",
-    status: "active",
-    staffCount: 10,
-    createdAt: "2024-02-15T10:00:00",
-    updatedAt: "2024-11-28T15:10:00",
-  },
-  {
-    id: "role_8",
-    name: "Setup Crew",
-    description: "Event setup and breakdown",
-    payType: "hourly",
-    defaultRate: 20,
-    overtimeMultiplier: 1.5,
-    color: "#14B8A6",
-    status: "inactive",
-    staffCount: 0,
-    createdAt: "2024-05-01T10:00:00",
-    updatedAt: "2024-09-15T08:45:00",
-  },
-];
 
 export const roleColors = [
   "#3B82F6",
