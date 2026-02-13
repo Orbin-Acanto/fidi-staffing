@@ -2,12 +2,25 @@
 
 import { SavedLocation } from "@/type";
 import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 
 interface LocationDetailModalProps {
   location: SavedLocation;
   onClose: () => void;
   onEdit: () => void;
 }
+
+type LocationEventMini = {
+  id: string;
+  event_number?: string | null;
+  name: string;
+  event_date: string;
+  start_time: string;
+  end_time: string;
+  status?: string;
+  status_display?: string;
+  event_type_display?: string;
+};
 
 export default function LocationDetailModal({
   location,
@@ -16,6 +29,54 @@ export default function LocationDetailModal({
 }: LocationDetailModalProps) {
   const fullAddress = `${location.street}, ${location.city}${location.state ? `, ${location.state}` : ""}${location.zipCode ? ` ${location.zipCode}` : ""}, ${location.country || "United States"}`;
   const encodedAddress = encodeURIComponent(fullAddress);
+
+  const [locationEvents, setLocationEvents] = useState<LocationEventMini[]>([]);
+  const [eventsLoading, setEventsLoading] = useState(false);
+  const [eventsError, setEventsError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+
+    async function load() {
+      try {
+        setEventsLoading(true);
+        setEventsError(null);
+
+        const res = await fetch(`/api/locations/${location.id}/events`, {
+          method: "GET",
+          cache: "no-store",
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data?.message || "Failed to load events.");
+        }
+
+        const results = Array.isArray(data?.results)
+          ? data.results
+          : Array.isArray(data)
+            ? data
+            : [];
+        if (alive) setLocationEvents(results);
+      } catch (e: any) {
+        if (alive) setEventsError(e?.message || "Failed to load events.");
+      } finally {
+        if (alive) setEventsLoading(false);
+      }
+    }
+
+    if (location?.id) load();
+
+    return () => {
+      alive = false;
+    };
+  }, [location?.id]);
+
+  const eventsCount = useMemo(
+    () => location.eventsCount ?? locationEvents.length ?? 0,
+    [location.eventsCount, locationEvents.length],
+  );
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
@@ -326,17 +387,61 @@ export default function LocationDetailModal({
                   Events at this Location
                 </h3>
                 <span className="text-sm font-secondary text-gray-500">
-                  {location.eventsCount || 0} total events
+                  {eventsCount} total events
                 </span>
               </div>
 
-              <div className="bg-gray-50 rounded-lg p-6 text-center">
-                <p className="text-sm font-secondary text-gray-600">
-                  Events are not loaded on this screen yet.
-                </p>
-                <p className="text-xs font-secondary text-gray-500 mt-1">
-                  You can view events in the Events page.
-                </p>
+              <div className="bg-gray-50 rounded-lg p-4">
+                {eventsLoading ? (
+                  <p className="text-sm font-secondary text-gray-600">
+                    Loading events...
+                  </p>
+                ) : eventsError ? (
+                  <p className="text-sm font-secondary text-red-600">
+                    {eventsError}
+                  </p>
+                ) : locationEvents.length === 0 ? (
+                  <p className="text-sm font-secondary text-gray-600">
+                    No events found for this location.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {locationEvents.slice(0, 5).map((ev) => (
+                      <Link
+                        key={ev.id}
+                        href={`/admin/events/${ev.id}/edit`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block bg-white rounded-lg border border-gray-200 p-4 hover:border-gray-300 transition-colors"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="font-secondary font-medium text-gray-900">
+                              {ev.name}
+                            </p>
+                            <p className="text-xs font-secondary text-gray-500 mt-1">
+                              {ev.event_date} • {ev.start_time} to {ev.end_time}
+                            </p>
+                            <p className="text-xs font-secondary text-gray-500">
+                              {ev.event_type_display || "Event"}{" "}
+                              {ev.event_number ? `• ${ev.event_number}` : ""}
+                            </p>
+                          </div>
+
+                          <span className="text-xs font-secondary px-2 py-1 rounded-full bg-gray-100 text-gray-700">
+                            {ev.status_display || ev.status || "Unknown"}
+                          </span>
+                        </div>
+                      </Link>
+                    ))}
+
+                    {locationEvents.length > 5 && (
+                      <p className="text-xs font-secondary text-gray-500 text-center">
+                        Showing 5 of {locationEvents.length}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
 
               <Link href="/admin/events">
