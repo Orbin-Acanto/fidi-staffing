@@ -6,6 +6,8 @@ import { apiFetch } from "@/lib/apiFetch";
 import { toastError } from "@/lib/toast";
 import Link from "next/link";
 import VendorDocumentsSection from "./VendorDocumentsSection";
+import VendorMediaSection from "./VendorMediaSection";
+import VendorReviewsSection from "./VendorReviewsSection";
 
 interface VendorDetailModalProps {
   vendorId: string;
@@ -406,189 +408,21 @@ export default function VendorDetailModal({
           )}
 
           {activeTab === "media" && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h4 className="text-sm font-secondary font-semibold text-gray-700">
-                  Media ({vendor.media.length})
-                </h4>
-              </div>
-
-              {vendor.media.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12">
-                  <svg
-                    className="w-12 h-12 text-gray-400 mb-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                    />
-                  </svg>
-                  <p className="text-gray-900 font-secondary font-medium mb-1">
-                    No media uploaded
-                  </p>
-                  <p className="text-gray-500 font-secondary text-sm">
-                    Upload photos or videos to get started
-                  </p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {vendor.media.map((media) => (
-                    <div
-                      key={media.id}
-                      className="border border-gray-200 rounded-lg overflow-hidden hover:border-primary transition-colors"
-                    >
-                      {media.file_url && media.media_type === "image" ? (
-                        <img
-                          src={media.file_url}
-                          alt={media.title || "Vendor media"}
-                          className="w-full h-48 object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-48 bg-gray-100 flex items-center justify-center">
-                          <svg
-                            className="w-12 h-12 text-gray-400"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
-                            />
-                          </svg>
-                        </div>
-                      )}
-                      <div className="p-3">
-                        {media.title && (
-                          <p className="text-sm font-secondary font-medium text-gray-900 truncate">
-                            {media.title}
-                          </p>
-                        )}
-                        <div className="flex items-center justify-between mt-1">
-                          <span className="text-xs text-gray-500 font-secondary capitalize">
-                            {media.media_type}
-                          </span>
-                          {media.is_featured && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-secondary font-medium bg-amber-100 text-amber-700">
-                              Featured
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            <VendorMediaSection
+              vendorId={vendor.id}
+              media={vendor.media}
+              onRefresh={fetchVendorDetail}
+            />
           )}
 
           {activeTab === "reviews" && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h4 className="text-sm font-secondary font-semibold text-gray-700">
-                  Reviews ({vendor.reviews.length})
-                </h4>
-                {vendor.total_reviews > 0 && (
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center">
-                      {[...Array(5)].map((_, i) => (
-                        <svg
-                          key={i}
-                          className={`w-5 h-5 ${
-                            i < Math.floor(parseFloat(vendor.rating))
-                              ? "text-amber-400"
-                              : "text-gray-300"
-                          }`}
-                          fill="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
-                        </svg>
-                      ))}
-                    </div>
-                    <span className="text-sm font-secondary font-semibold text-gray-900">
-                      {parseFloat(vendor.rating).toFixed(1)} / 5.0
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {vendor.reviews.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12">
-                  <svg
-                    className="w-12 h-12 text-gray-400 mb-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
-                    />
-                  </svg>
-                  <p className="text-gray-900 font-secondary font-medium mb-1">
-                    No reviews yet
-                  </p>
-                  <p className="text-gray-500 font-secondary text-sm">
-                    Be the first to review this vendor
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {vendor.reviews.map((review) => (
-                    <div
-                      key={review.id}
-                      className="border border-gray-200 rounded-lg p-4"
-                    >
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <div className="flex items-center">
-                              {[...Array(5)].map((_, i) => (
-                                <svg
-                                  key={i}
-                                  className={`w-4 h-4 ${
-                                    i < Math.floor(parseFloat(review.rating))
-                                      ? "text-amber-400"
-                                      : "text-gray-300"
-                                  }`}
-                                  fill="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
-                                </svg>
-                              ))}
-                            </div>
-                            <span className="text-sm font-secondary font-semibold text-gray-900">
-                              {parseFloat(review.rating).toFixed(1)}
-                            </span>
-                          </div>
-                          <p className="text-xs text-gray-500 font-secondary">
-                            By {review.created_by_name || "Unknown"} on{" "}
-                            {new Date(review.created_at).toLocaleDateString()}
-                            {review.event_name && ` • ${review.event_name}`}
-                          </p>
-                        </div>
-                      </div>
-                      {review.notes && (
-                        <p className="text-sm font-secondary text-gray-900 mt-2">
-                          {review.notes}
-                        </p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            <VendorReviewsSection
+              vendorId={vendor.id}
+              reviews={vendor.reviews}
+              averageRating={vendor.rating}
+              totalReviews={vendor.total_reviews}
+              onRefresh={fetchVendorDetail}
+            />
           )}
         </div>
 
