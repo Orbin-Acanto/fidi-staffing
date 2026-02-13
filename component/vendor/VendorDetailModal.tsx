@@ -601,7 +601,7 @@ export default function VendorDetailModal({
           </button>
           <Link
             href={`/admin/vendors/${vendor.id}/edit`}
-            className="px-4 py-2 bg-primary text-dark-black font-secondary font-semibold rounded-lg hover:bg-primary/80 transition-colors"
+            className="px-4 py-2 bg-primary text-white font-secondary font-semibold rounded-lg hover:bg-primary/80 transition-colors"
           >
             Edit Vendor
           </Link>
