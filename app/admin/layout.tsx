@@ -1,5 +1,6 @@
 import AdminLayout from "@/component/admin/AdminLayout";
 import { AuthProvider } from "@/component/auth/AuthProvider";
+import { CompanyProvider } from "@/component/context/CompanyContext";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -33,7 +34,9 @@ export default async function Layout({
 
   return (
     <AuthProvider me={me}>
-      <AdminLayout>{children}</AdminLayout>
+      <CompanyProvider initialCompanyId={me?.current_company?.id ?? ""}>
+        <AdminLayout>{children}</AdminLayout>
+      </CompanyProvider>
     </AuthProvider>
   );
 }

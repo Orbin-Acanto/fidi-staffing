@@ -1,5 +1,6 @@
 "use client";
 
+import { useCompany } from "@/component/context/CompanyContext";
 import RoleCard from "@/component/role/RoleCard";
 import RoleModal from "@/component/role/RoleModal";
 import { apiFetch } from "@/lib/apiFetch";
@@ -70,6 +71,7 @@ function mapRoleFormToPayload(data: RoleFormData) {
 }
 
 export default function RolesPage() {
+  const { companyVersion } = useCompany();
   const [roles, setRoles] = useState<Role[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -115,7 +117,7 @@ export default function RolesPage() {
       fetchRoles();
     }, 250);
     return () => clearTimeout(t);
-  }, [fetchRoles]);
+  }, [fetchRoles, companyVersion]);
 
   const activeRoles = roles.filter((r) => r.status === "active").length;
   const hourlyRoles = roles.filter((r) => r.payType === "hourly").length;

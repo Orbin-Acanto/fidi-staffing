@@ -13,8 +13,10 @@ import ExportModal from "@/component/staff/ExportModal";
 import StaffDetailModal from "@/component/staff/StaffDetailModal";
 import BulkStatusUpdateModal from "@/component/staff/BulkStatusUpdateModal";
 import { StaffListResponse, StaffMemberBackend } from "@/type/staff";
+import { useCompany } from "@/component/context/CompanyContext";
 
 export default function StaffListPage() {
+  const { companyVersion } = useCompany();
   const [staffData, setStaffData] = useState<StaffListResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -48,6 +50,7 @@ export default function StaffListPage() {
     filterGroup,
     filterAvailability,
     currentPage,
+    companyVersion,
   ]);
 
   const fetchStaff = async () => {

@@ -26,8 +26,10 @@ import {
   timeAgo,
 } from "@/utils";
 import { AppSelect } from "@/component/ui/Select";
+import { useCompany } from "@/component/context/CompanyContext";
 
 export default function AdminDashboard() {
+  const { companyVersion } = useCompany();
   const [loading, setLoading] = useState(false);
 
   const [staffCount, setStaffCount] = useState(0);
@@ -154,6 +156,10 @@ export default function AdminDashboard() {
     loadDashboard();
     loadAuditLogs("all");
   }, []);
+
+  useEffect(() => {
+    loadDashboard();
+  }, [companyVersion]);
 
   useEffect(() => {
     loadAuditLogs(auditFilter);

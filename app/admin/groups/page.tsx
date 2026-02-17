@@ -1,7 +1,7 @@
 "use client";
 import BulkAssignModal from "@/component/admin/BulkAssignModal";
 import GroupFormModal from "@/component/admin/GroupModal";
-import { AppCheckbox } from "@/component/ui/Checkbox";
+import { useCompany } from "@/component/context/CompanyContext";
 import { apiFetch } from "@/lib/apiFetch";
 import { toastSuccess, toastError } from "@/lib/toast";
 import { BackendGroup, ListGroupsResponse, UiGroup } from "@/type/group";
@@ -16,6 +16,7 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 export default function GroupManagementPage() {
+  const { companyVersion } = useCompany();
   const [groups, setGroups] = useState<UiGroup[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -44,8 +45,6 @@ export default function GroupManagementPage() {
   const [staffPage, setStaffPage] = useState(1);
   const [staffPageSize] = useState(20);
   const [isStaffLoading, setIsStaffLoading] = useState(false);
-
-  const canBulkAssign = selectedGroups.length >= 2;
 
   const fetchGroups = useCallback(async () => {
     setIsLoading(true);
@@ -100,11 +99,11 @@ export default function GroupManagementPage() {
   useEffect(() => {
     const t = setTimeout(() => fetchGroups(), 250);
     return () => clearTimeout(t);
-  }, [fetchGroups]);
+  }, [fetchGroups, companyVersion]);
 
   useEffect(() => {
     fetchStaff();
-  }, [fetchStaff]);
+  }, [fetchStaff, companyVersion]);
 
   const stats = useMemo(() => {
     const active = groups.filter((g) => g.isActive);
@@ -140,12 +139,6 @@ export default function GroupManagementPage() {
       return matchesSearch && matchesArchive;
     });
   }, [groups, searchTerm, archiveFilter]);
-
-  const handleSelectGroup = (id: string) => {
-    setSelectedGroups((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
-    );
-  };
 
   const openEdit = (g: UiGroup) => {
     setSelectedGroup(g);
@@ -327,9 +320,6 @@ export default function GroupManagementPage() {
         <div className="bg-white rounded-xl border border-gray-200 px-4 py-3">
           <div className="flex flex-col gap-4 lg:flex-row items-end lg:items-center md:justify-between">
             <div className="w-full md:flex-1">
-              <label className="block text-sm font-secondary font-medium text-gray-700 mb-1.5">
-                Search Groups
-              </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <svg
@@ -385,34 +375,6 @@ export default function GroupManagementPage() {
                 ))}
               </div>
             </div>
-
-            {/* <div className="flex items-center gap-3">
-              <span className="text-sm font-secondary text-gray-600 whitespace-nowrap">
-                {selectedGroups.length} selected
-              </span>
-
-              <button
-                type="button"
-                onClick={() => {
-                  if (!canBulkAssign) return;
-                  setShowBulkAssignModal(true);
-                }}
-                disabled={!canBulkAssign}
-                className={`h-10 px-3 rounded-lg text-sm font-secondary font-medium transition
-                ${
-                  canBulkAssign
-                    ? "bg-primary text-white hover:opacity-90 cursor-pointer"
-                    : "bg-gray-200 text-gray-400 cursor-not-allowed"
-                }`}
-                title={
-                  canBulkAssign
-                    ? "Bulk assign staff to selected groups"
-                    : "Select at least 2 groups to bulk assign"
-                }
-              >
-                Bulk Assign
-              </button>
-            </div> */}
           </div>
         </div>
 
@@ -462,13 +424,6 @@ export default function GroupManagementPage() {
 
                 <div className="p-6">
                   <div className="flex items-start gap-3 mb-4">
-                    {/* <div className="mt-1.5">
-                      <AppCheckbox
-                        checked={selectedGroups.includes(group.id)}
-                        onCheckedChange={() => handleSelectGroup(group.id)}
-                      />
-                    </div> */}
-
                     <div className="flex-1">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
