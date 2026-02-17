@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { dressCodes, eventTypes } from "@/data";
+import { dressCodes, EVENT_TYPE_VALUE_MAP, eventTypes } from "@/data";
 import { AppSelect } from "@/component/ui/Select";
 import { AppDatePicker } from "@/component/ui/AppDatePicker";
 import { AppTimePicker } from "@/component/ui/AppTimePicker";
@@ -461,7 +461,7 @@ export default function CreateEventPage() {
                 placeholder="Select event type"
                 options={eventTypes.map((type) => ({
                   label: type,
-                  value: type.toLowerCase().replace(/ /g, "_"),
+                  value: EVENT_TYPE_VALUE_MAP[type],
                 }))}
               />
               {errors.eventType && (

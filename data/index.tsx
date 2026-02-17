@@ -769,11 +769,28 @@ export const eventsList: Event[] = [
 export const eventTypes = [
   "Wedding",
   "Corporate",
-  "Party",
-  "Festival",
+  "Gala",
+  "Birthday Party",
   "Conference",
+  "Fundraiser",
+  "Cocktail Party",
+  "Dinner Party",
+  "Holiday Party",
   "Other",
 ];
+
+export const EVENT_TYPE_VALUE_MAP: Record<string, string> = {
+  Wedding: "wedding",
+  Corporate: "corporate",
+  Gala: "gala",
+  "Birthday Party": "birthday",
+  Conference: "conference",
+  Fundraiser: "fundraiser",
+  "Cocktail Party": "cocktail",
+  "Dinner Party": "dinner",
+  "Holiday Party": "holiday",
+  Other: "other",
+};
 
 export const dressCodes = [
   "Casual",
@@ -2527,3 +2544,70 @@ export const roleColors = [
   "#F97316",
   "#84CC16",
 ];
+
+export const AUDIT_FILTERS = [
+  {
+    value: "all",
+    label: "All",
+    params: {},
+  },
+  {
+    value: "staff",
+    label: "Staff",
+    params: { object_type: "Staff" },
+  },
+  {
+    value: "events",
+    label: "Events",
+    params: { object_type: "Event" },
+  },
+  {
+    value: "vendors",
+    label: "Vendors",
+    params: { object_type: "Vendor" },
+  },
+  {
+    value: "companies",
+    label: "Companies",
+    params: {
+      action__in: "company_created,company_updated,company_disabled",
+    },
+  },
+  {
+    value: "security",
+    label: "Security",
+    params: { severity__in: "warning,error,critical" },
+  },
+] as const;
+
+export const severityColor: Record<string, string> = {
+  info: "bg-blue-100 text-blue-600",
+  warning: "bg-amber-100 text-amber-600",
+  error: "bg-red-100 text-red-600",
+  critical: "bg-red-200 text-red-800",
+};
+
+export const actionIcon: Record<string, string> = {
+  create: "M12 4v16m8-8H4",
+  update:
+    "M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z",
+  delete:
+    "M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16",
+  staff_assigned:
+    "M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z",
+  staff_unassigned:
+    "M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6zM21 12h-6",
+  event_published: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z",
+  event_cancelled:
+    "M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z",
+  company_created:
+    "M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4",
+  clock_in:
+    "M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1",
+  clock_out:
+    "M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1",
+  contract_created:
+    "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z",
+  payroll_created:
+    "M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z",
+};

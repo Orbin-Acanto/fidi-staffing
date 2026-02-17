@@ -1,5 +1,6 @@
-import { staffNotes, staffReviews } from "@/data";
+import { actionIcon, staffNotes, staffReviews } from "@/data";
 import { Event, StaffPerformance } from "@/type";
+import { EventItem } from "@/type/dashboard";
 import { BackendGroup, UiGroup } from "@/type/group";
 import { StaffMemberBackend, UiStaff } from "@/type/staff";
 
@@ -190,3 +191,57 @@ export const ToggleIcon = ({ active }: { active: boolean }) =>
       />
     </svg>
   );
+
+export const formatDate = (dateStr: string) => {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return dateStr;
+  return d.toLocaleDateString("en-US", {
+    weekday: "short",
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+};
+
+export const formatTime = (time: string) => {
+  if (!time) return "";
+  const t = time.slice(0, 5);
+  const [hh, mm] = t.split(":");
+  const h = parseInt(hh, 10);
+  if (!Number.isFinite(h)) return t;
+  const ampm = h >= 12 ? "PM" : "AM";
+  const hour12 = h % 12 || 12;
+  return `${hour12}:${mm} ${ampm}`;
+};
+
+export const readinessLabel = (e: EventItem) => {
+  const needed = Number(e.total_staff_needed || 0);
+  const filled = Number(e.total_staff_filled || 0);
+  if (needed <= 0) return { label: "Ready", ok: true };
+  if (filled >= needed) return { label: "Ready", ok: true };
+  return { label: "Understaffed", ok: false };
+};
+
+export const timeAgo = (dateStr: string) => {
+  if (!dateStr) return "";
+  const now = Date.now();
+  const then = new Date(dateStr).getTime();
+  if (Number.isNaN(then)) return dateStr;
+  const diff = now - then;
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "Just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return `${days}d ago`;
+  return formatDate(dateStr);
+};
+
+export const getActionIconPath = (action: string) => {
+  return (
+    actionIcon[action] ||
+    "M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+  );
+};
