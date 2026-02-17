@@ -5,115 +5,14 @@ import Link from "next/link";
 import { AppSelect } from "@/component/ui/Select";
 import { apiFetch } from "@/lib/apiFetch";
 import { toastError } from "@/lib/toast";
-
-type ContractListItem = {
-  id: string;
-  contract_number?: string | null;
-  status: string;
-
-  event?: string | null;
-  event_name?: string | null;
-  event_date?: string | null;
-
-  staff?: string | null;
-  staff_name?: string | null;
-  staff_email?: string | null;
-
-  vendor?: string | null;
-  vendor_name?: string | null;
-  vendor_email?: string | null;
-
-  role_name?: string | null;
-
-  pay_type?: "hourly" | "fixed" | string | null;
-  pay_rate?: string | number | null;
-
-  created_at?: string | null;
-  updated_at?: string | null;
-};
-
-type ContractDetail = {
-  id: string;
-  contract_number?: string | null;
-  status: string;
-
-  event?: string | null;
-  event_name?: string | null;
-  event_date?: string | null;
-  event_start_time?: string | null;
-  event_end_time?: string | null;
-  event_location?: string | null;
-  event_location_address?: string | null;
-
-  staff?: string | null;
-  staff_name?: string | null;
-  staff_email?: string | null;
-  staff_phone?: string | null;
-  staff_address?: string | null;
-
-  vendor?: string | null;
-  vendor_name?: string | null;
-  vendor_email?: string | null;
-  vendor_phone?: string | null;
-  vendor_address?: string | null;
-
-  role_name?: string | null;
-
-  pay_type?: "hourly" | "fixed" | string | null;
-  pay_rate?: string | number | null;
-
-  dress_code?: string | null;
-  job_description?: string | null;
-  additional_details?: string | null;
-
-  terms_and_conditions?: string | null;
-  contract_file?: string | null;
-
-  created_at?: string | null;
-  updated_at?: string | null;
-};
-
-type OptionItem = { label: string; value: string };
-
-type PreviewForm = {
-  contractId: string;
-
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-
-  eventName: string;
-  eventDate: string;
-  eventTimes: string;
-
-  location: string;
-  locationAddress: string;
-
-  payType: "hourly" | "fixed";
-  rate: number;
-
-  dressCode: string;
-  jobDescription: string;
-  additionalDetails: string;
-};
-
-function safeStr(v: any) {
-  return v === null || v === undefined ? "" : String(v);
-}
-
-function toNumber(v: any) {
-  const n = Number(v);
-  return Number.isFinite(n) ? n : 0;
-}
-
-function splitName(full: string) {
-  const name = safeStr(full).trim();
-  if (!name) return { firstName: "", lastName: "" };
-  const parts = name.split(/\s+/);
-  if (parts.length === 1) return { firstName: parts[0], lastName: "" };
-  return { firstName: parts[0], lastName: parts.slice(1).join(" ") };
-}
+import {
+  ContractDetail,
+  ContractListItem,
+  OptionItem,
+  PreviewForm,
+} from "@/type/contracts";
+import { safeStr, splitName, toNumber } from "@/lib/utils";
+import { AppDatePicker } from "@/component/ui/AppDatePicker";
 
 export default function ContractsPage() {
   const [contracts, setContracts] = useState<ContractListItem[]>([]);
@@ -211,19 +110,24 @@ export default function ContractsPage() {
     params.set("page_size", "200");
 
     if (statusFilter !== "all") params.set("status", statusFilter);
-
     if (selectedEvent !== "all") params.set("event", selectedEvent);
 
     if (selectedPersonKey !== "all") {
-      const [kind, id] = selectedPersonKey.split(":");
-      if (kind === "staff") params.set("staff", id);
-      if (kind === "vendor") params.set("vendor", id);
+      if (selectedPersonKey === "staff") {
+        params.set("party_type", "staff");
+      } else if (selectedPersonKey === "vendor") {
+        params.set("party_type", "vendor");
+      } else {
+        const [kind, id] = selectedPersonKey.split(":");
+        if (kind === "staff" && id) params.set("staff", id);
+        if (kind === "vendor" && id) params.set("vendor", id);
+      }
     }
 
     if (dateFrom) params.set("date_from", dateFrom);
     if (dateTo) params.set("date_to", dateTo);
 
-    if (query.trim()) params.set("q", query.trim());
+    if (query.trim()) params.set("search", query.trim());
 
     return params;
   };
@@ -241,7 +145,6 @@ export default function ContractsPage() {
 
       setContracts(list);
 
-      // if filters change and selected contract no longer in list, clear preview
       if (selectedContractId) {
         const stillThere = list.some(
           (c) => safeStr(c.id) === selectedContractId,
@@ -325,13 +228,10 @@ export default function ContractsPage() {
 
   useEffect(() => {
     loadContracts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Auto reload list when filters change
   useEffect(() => {
     loadContracts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter, selectedEvent, selectedPersonKey, dateFrom, dateTo, query]);
 
   const statusOptions: OptionItem[] = useMemo(() => {
@@ -368,6 +268,8 @@ export default function ContractsPage() {
     const seen = new Set<string>();
     const out: OptionItem[] = [
       { value: "all", label: "All staff and vendors" },
+      { value: "staff", label: "Staff" },
+      { value: "vendor", label: "Vendor" },
     ];
 
     for (const c of contracts) {
@@ -449,9 +351,7 @@ export default function ContractsPage() {
             Contracts
           </h1>
           <p className="text-sm font-secondary text-gray-600 mt-1">
-            List from <span className="font-semibold">/api/contracts</span> and
-            details from{" "}
-            <span className="font-semibold">/api/contracts/:id</span>
+            View your contacts
           </p>
         </div>
 
@@ -531,26 +431,18 @@ export default function ContractsPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
-                <label className="block text-sm font-secondary font-medium text-gray-700 mb-1.5">
-                  From
-                </label>
-                <input
-                  type="date"
+                <AppDatePicker
+                  label="From"
                   value={dateFrom}
-                  onChange={(e) => setDateFrom(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg font-secondary text-sm focus:outline-none focus:ring-2 focus:ring-primary text-gray-900"
+                  onChange={(ymd) => setDateFrom(ymd)}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-secondary font-medium text-gray-700 mb-1.5">
-                  To
-                </label>
-                <input
-                  type="date"
+                <AppDatePicker
+                  label="To"
                   value={dateTo}
-                  onChange={(e) => setDateTo(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg font-secondary text-sm focus:outline-none focus:ring-2 focus:ring-primary text-gray-900"
+                  onChange={(ymd) => setDateTo(ymd)}
                 />
               </div>
 
@@ -591,7 +483,7 @@ export default function ContractsPage() {
                 Contracts
               </h2>
               <div className="text-xs text-gray-500 font-secondary">
-                Click the eye icon to load details
+                Click the view icon to load details
               </div>
             </div>
 
