@@ -1,7 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
 import { AppSelect } from "@/component/ui/Select";
-import { activityLogs } from "@/data";
 import { CompaniesResponse, User, UserRole } from "@/type";
 import UserHeader from "@/component/user/UserHeader";
 import UserSummaryPanel from "@/component/user/UserSummaryPanel";
@@ -14,6 +13,7 @@ import ResetPasswordModal from "@/component/user/ResetPasswordModal";
 import { apiFetch } from "@/lib/apiFetch";
 import { toastError } from "@/lib/toast";
 import { useMe } from "@/hooks/useMe";
+import { useCompany } from "@/component/context/CompanyContext";
 
 type UsersResponse = {
   count: number;
@@ -42,6 +42,7 @@ type UsersResponse = {
 };
 
 export default function UserManagementPage() {
+  const { companyVersion } = useCompany();
   const { data: me, isLoading } = useMe();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterRole, setFilterRole] = useState<string>("all");
@@ -58,6 +59,9 @@ export default function UserManagementPage() {
   const [showSuspendModal, setShowSuspendModal] = useState(false);
   const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+
+  const [activityLogs, setActivityLogs] = useState([]);
+  const [logsLoading, setLogsLoading] = useState(true);
 
   const totalUsers = users.length;
   const adminCount = users.filter((u) => u.role === "Admin").length;
@@ -155,6 +159,23 @@ export default function UserManagementPage() {
     setSelectedUser(null);
     fetchUsers();
   };
+
+  useEffect(() => {
+    async function fetchUserActivity() {
+      setLogsLoading(true);
+      try {
+        const res = await apiFetch(
+          "/api/audit-logs?action__in=login,logout,login_failed,password_change,password_reset,password_changed,password_reset_requested,avatar_updated,create,update,delete,role_change,permission_grant,permission_revoke,invite_sent,invite_accepted&page_size=20",
+        );
+        setActivityLogs(res?.results || []);
+      } catch {
+        setActivityLogs([]);
+      } finally {
+        setLogsLoading(false);
+      }
+    }
+    fetchUserActivity();
+  }, [companyVersion]);
 
   if (isLoading) {
     return (
@@ -290,7 +311,7 @@ export default function UserManagementPage() {
         </div>
 
         <div className="lg:col-span-1">
-          <ActivityLogPanel logs={activityLogs} />
+          <ActivityLogPanel logs={activityLogs} loading={logsLoading} />
         </div>
       </div>
 

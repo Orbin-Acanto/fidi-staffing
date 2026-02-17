@@ -1,7 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 
-import { profileActivityLogs } from "@/data";
 import { AdminProfile } from "@/type";
 import ProfileHeader from "@/component/profile/ProfileHeader";
 import PersonalInfoCard from "@/component/profile/PersonalInfoCard";
@@ -10,6 +9,7 @@ import ProfileActivityLogCard from "@/component/profile/ProfileActivityLogCard";
 import UploadPhotoModal from "@/component/profile/UploadPhotoModal";
 import { userMeToAdminProfile } from "@/lib/mappers/adminProfile";
 import { useMe } from "@/hooks/useMe";
+import { apiFetch } from "@/lib/apiFetch";
 
 export default function ProfilePage() {
   const { data: me, isLoading, mutate } = useMe();
@@ -20,13 +20,12 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<AdminProfile | null>(null);
   const [showPhotoModal, setShowPhotoModal] = useState(false);
 
+  const [activityLogs, setActivityLogs] = useState([]);
+  const [logsLoading, setLogsLoading] = useState(true);
+
   useEffect(() => {
     if (mappedProfile) setProfile(mappedProfile);
   }, [mappedProfile]);
-
-  if (isLoading || !profile) {
-    return null;
-  }
 
   const handleUpdateProfile = (data: Partial<AdminProfile>) => {
     setProfile((prev) => (prev ? { ...prev, ...data } : prev));
@@ -38,53 +37,29 @@ export default function ProfilePage() {
     mutate();
   };
 
-  // const handleUpdateNotifications = (preferences: NotificationPreferences) => {
-  //   setProfile((prev) =>
-  //     prev ? { ...prev, notificationPreferences: preferences } : prev,
-  //   );
-  // };
+  useEffect(() => {
+    if (!me?.id) return;
 
-  // const handleEnable2FA = (method: "authenticator" | "sms" | "email") => {
-  //   setProfile((prev) =>
-  //     prev
-  //       ? {
-  //           ...prev,
-  //           twoFactorAuth: {
-  //             enabled: true,
-  //             method,
-  //             lastUpdated: new Date().toISOString(),
-  //             backupCodesRemaining: 10,
-  //           },
-  //         }
-  //       : prev,
-  //   );
-  // };
+    async function fetchLogs() {
+      setLogsLoading(true);
+      try {
+        const res = await apiFetch(
+          `/api/audit-logs?user=${me?.id}&page_size=20`,
+        );
+        setActivityLogs(res?.results || []);
+      } catch {
+        setActivityLogs([]);
+      } finally {
+        setLogsLoading(false);
+      }
+    }
 
-  // const handleDisable2FA = () => {
-  //   setProfile((prev) =>
-  //     prev
-  //       ? {
-  //           ...prev,
-  //           twoFactorAuth: { enabled: false, method: null },
-  //         }
-  //       : prev,
-  //   );
-  // };
+    fetchLogs();
+  }, [me?.id]);
 
-  // const handleRegenerateBackupCodes = () => {
-  //   setProfile((prev) =>
-  //     prev
-  //       ? {
-  //           ...prev,
-  //           twoFactorAuth: {
-  //             ...prev.twoFactorAuth,
-  //             backupCodesRemaining: 10,
-  //             lastUpdated: new Date().toISOString(),
-  //           },
-  //         }
-  //       : prev,
-  //   );
-  // };
+  if (isLoading || !profile) {
+    return null;
+  }
 
   return (
     <div className="space-y-6">
@@ -107,22 +82,10 @@ export default function ProfilePage() {
           <PersonalInfoCard profile={profile} onSave={handleUpdateProfile} />
 
           <ChangePasswordCard lastPasswordChange={profile.lastPasswordChange} />
-
-          {/* <TwoFactorAuthCard
-            twoFactorAuth={profile.twoFactorAuth}
-            onEnable={handleEnable2FA}
-            onDisable={handleDisable2FA}
-            onRegenerateBackupCodes={handleRegenerateBackupCodes}
-          />
-
-          <NotificationPreferencesCard
-            preferences={profile.notificationPreferences}
-            onUpdate={handleUpdateNotifications}
-          /> */}
         </div>
 
         <div className="lg:col-span-1">
-          <ProfileActivityLogCard logs={profileActivityLogs} />
+          <ProfileActivityLogCard logs={activityLogs} loading={logsLoading} />
         </div>
       </div>
 
