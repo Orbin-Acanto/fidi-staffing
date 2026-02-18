@@ -10,13 +10,8 @@ import PhoneNumberInput, {
 } from "@/component/shared/PhoneNumberInput";
 import LoadingSpinner from "@/component/shared/LoadingSpinner";
 import { EventType, StaffType, CheckInSession } from "@/type";
-import {
-  validateStaffCredentials,
-  sendForgotPIN,
-  getStaffCheckInStatus,
-} from "@/services/api";
+import { verifyStaffPhoneAttendance } from "@/services/attendance-api";
 import NetworkOfflineIndicator from "@/component/shared/NetworkOfflineIndicator";
-import PINInput from "@/component/shared/PINInput";
 import SessionTimer from "@/component/shared/SessionTimer";
 
 interface StaffCheckInPageProps {
@@ -43,31 +38,28 @@ export default function StaffCheckInPage({
   onAlreadyCheckedIn,
 }: StaffCheckInPageProps) {
   const [phone, setPhone] = useState("");
-  const [pin, setPin] = useState("");
+  const [clockCode, setClockCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isSendingPIN, setIsSendingPIN] = useState(false);
 
   const resetForm = useCallback(() => {
     setPhone("");
-    setPin("");
+    setClockCode("");
   }, []);
 
-  const validateForm = (pinValue?: string): string | null => {
-    const pinToCheck = pinValue || pin;
+  const validateForm = (): string | null => {
     if (!phone) return "Please enter your phone number.";
     if (!isValidPhoneNumber(phone))
       return "Please enter a valid 10-digit phone number.";
-    if (!pinToCheck) return "Please enter your PIN.";
-    if (pinToCheck.length !== 6) return "PIN must be 6 digits.";
+    if (!clockCode) return "Please enter the event clock code.";
+    if (clockCode.length < 3)
+      return "Clock code must be at least 3 characters.";
     return null;
   };
 
-  const handleSubmit = async (e?: FormEvent, pinValue?: string) => {
+  const handleSubmit = async (e?: FormEvent) => {
     e?.preventDefault();
 
-    const pinToValidate = pinValue || pin;
-
-    const error = validateForm(pinToValidate);
+    const error = validateForm();
 
     if (error) {
       toast.error(error, { toastId: error });
@@ -77,42 +69,67 @@ export default function StaffCheckInPage({
     setIsLoading(true);
 
     try {
-      const credResponse = await validateStaffCredentials(phone, pinToValidate);
+      const response = await verifyStaffPhoneAttendance(
+        phone,
+        clockCode,
+        event.id,
+      );
 
-      if (!credResponse.success || !credResponse.data) {
-        toastError(credResponse.error, "Invalid phone number or PIN.");
-        setPin("");
+      if (!response.success || !response.data) {
+        toastError(
+          response.error,
+          "Invalid phone number or clock code. Please try again.",
+        );
+        setClockCode("");
         return;
       }
 
-      const staff = credResponse.data;
+      const staffData = response.data;
 
-      const statusResponse = await getStaffCheckInStatus(staff.id, session.id);
+      if (staffData.check_in_status === "already_checked_in") {
+        const mappedStaff: StaffType = {
+          id: staffData.staff_id,
+          firstName: staffData.staff_name.split(" ")[0] || "",
+          lastName: staffData.staff_name.split(" ").slice(1).join(" ") || "",
+          phone: phone,
+          email: "",
+          photoUrl: staffData.staff_avatar || "",
+          position: staffData.role,
+        };
 
-      if (statusResponse.success && statusResponse.data?.checkedIn) {
-        onAlreadyCheckedIn(staff, statusResponse.data.checkInTime || "");
+        onAlreadyCheckedIn(
+          mappedStaff,
+          new Date().toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+        );
         resetForm();
         return;
       }
 
+      const staff: StaffType = {
+        id: staffData.staff_id,
+        firstName: staffData.staff_name.split(" ")[0] || "",
+        lastName: staffData.staff_name.split(" ").slice(1).join(" ") || "",
+        phone: phone,
+        email: "",
+        photoUrl: staffData.staff_avatar || "",
+        position: staffData.role,
+        notes: `Assignment ID: ${staffData.assignment_id}`,
+      };
+
       onStaffValidated(staff);
       resetForm();
     } catch (err) {
-      toastError(err, "Check-in failed. Please try again.");
-      setPin("");
+      toastError(err, "Verification failed. Please try again.");
+      setClockCode("");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handlePINComplete = (value: string) => {
-    setPin(value);
-    if (phone && isValidPhoneNumber(phone) && value.length === 6) {
-      handleSubmit(undefined, value);
-    }
-  };
-
-  const handleForgotPIN = async () => {
+  const handleForgotCode = () => {
     if (!phone) {
       toast.error("Please enter your phone number first.", {
         toastId: "phone-required",
@@ -127,20 +144,7 @@ export default function StaffCheckInPage({
       return;
     }
 
-    setIsSendingPIN(true);
-    try {
-      const response = await sendForgotPIN(phone);
-      if (response.success) {
-        toast.success("PIN sent to your phone!", { toastId: "pin-sent" });
-        onForgotPIN(phone);
-      } else {
-        toastError(response.error, "Failed to send PIN. Please try again.");
-      }
-    } catch (err) {
-      toastError(err, "Failed to send PIN. Please try again.");
-    } finally {
-      setIsSendingPIN(false);
-    }
+    onForgotPIN(phone);
   };
 
   return (
@@ -150,7 +154,6 @@ export default function StaffCheckInPage({
       <header className="bg-white border-b border-gray-200">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="py-3 sm:py-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            {/* Left: Brand + Event */}
             <div className="flex items-start gap-3 min-w-0">
               <div className="relative shrink-0">
                 <div className="absolute -inset-1 rounded-2xl bg-primary/15" />
@@ -190,9 +193,7 @@ export default function StaffCheckInPage({
               </div>
             </div>
 
-            {/* Right: Compact Actions + Metrics */}
             <div className="flex flex-wrap items-center gap-2 lg:justify-end">
-              {/* Compact Timer chip */}
               <div className="rounded-xl border border-gray-200 bg-white shadow-sm px-3 py-2">
                 <SessionTimer
                   startTime={session.startedAt}
@@ -204,7 +205,6 @@ export default function StaffCheckInPage({
                 />
               </div>
 
-              {/* Counts chips */}
               <div className="flex items-center rounded-xl border border-primary/20 bg-primary/5 shadow-sm overflow-hidden">
                 <div className="px-3 py-2 text-center">
                   <p className="text-xl font-primary font-bold text-primary leading-none">
@@ -225,7 +225,6 @@ export default function StaffCheckInPage({
                 </div>
               </div>
 
-              {/* End Session button (kept) */}
               <button
                 type="button"
                 onClick={onEndSession}
@@ -270,7 +269,7 @@ export default function StaffCheckInPage({
                 Staff Check-In
               </h2>
               <p className="text-gray-600 font-secondary text-sm">
-                Enter your phone number and PIN to check in
+                Enter your phone number and event clock code
               </p>
             </div>
 
@@ -286,34 +285,40 @@ export default function StaffCheckInPage({
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-sm font-secondary font-medium text-gray-700">
-                    6-Digit PIN
+                    Event Clock Code
                   </label>
                   <button
                     type="button"
-                    onClick={handleForgotPIN}
-                    disabled={isSendingPIN || isLoading}
+                    onClick={handleForgotCode}
+                    disabled={isLoading}
                     className={cn(
                       "text-xs text-primary font-secondary",
                       "hover:underline transition-all",
                       "disabled:text-gray-400 disabled:no-underline",
                     )}
                   >
-                    {isSendingPIN ? "Sending..." : "Forgot PIN?"}
+                    Forgot Code?
                   </button>
                 </div>
-                <PINInput
-                  length={6}
-                  value={pin}
-                  onChange={setPin}
-                  onComplete={handlePINComplete}
+                <input
+                  type="text"
+                  value={clockCode}
+                  onChange={(e) => setClockCode(e.target.value.toUpperCase())}
                   disabled={isLoading}
-                  autoFocus={false}
+                  placeholder="Enter clock code"
+                  className={cn(
+                    "w-full px-4 py-3 bg-white border border-gray-300 rounded-lg",
+                    "text-dark-black font-secondary placeholder-gray-400",
+                    "focus:outline-none focus:ring-0 focus:border-primary/90",
+                    "transition-all duration-200 uppercase",
+                    "disabled:bg-gray-100 disabled:cursor-not-allowed",
+                  )}
                 />
               </div>
 
               <button
                 type="submit"
-                disabled={isLoading || !phone || pin.length !== 6}
+                disabled={isLoading || !phone || !clockCode}
                 className={cn(
                   "w-full py-4 px-4 rounded-lg font-secondary font-semibold text-lg",
                   "bg-primary text-white",

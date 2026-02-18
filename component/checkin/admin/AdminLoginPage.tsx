@@ -6,11 +6,12 @@ import { toast } from "react-toastify";
 import { toastError, toastSuccess } from "@/lib/toast";
 
 import LoadingSpinner from "@/component/shared/LoadingSpinner";
-import { adminLogin } from "@/services/api";
+import { adminClockLogin } from "@/services/attendance-api";
 import { cn } from "@/lib/utils";
 import PhoneNumberInput, {
   isValidPhoneNumber,
 } from "@/component/shared/PhoneNumberInput";
+import OtpPassword from "@/component/admin/OtpPassword";
 
 interface AdminLoginPageProps {
   onLoginSuccess: (adminId: string, adminName: string) => void;
@@ -44,11 +45,11 @@ export default function AdminLoginPage({
     setIsLoading(true);
 
     try {
-      const response = await adminLogin(phone, password);
+      const response = await adminClockLogin(phone, password);
 
       if (response.success && response.data) {
         toastSuccess("Signed in successfully!");
-        onLoginSuccess(response.data.admin.id, response.data.admin.name);
+        onLoginSuccess(phone, response.data.admin_name);
       } else {
         toastError(response.error, "Invalid phone number or password.");
       }
@@ -65,7 +66,6 @@ export default function AdminLoginPage({
   return (
     <div className="min-h-screen flex items-center justify-center bg-whitesmoke px-4">
       <div className="w-full max-w-md">
-        {/* Logo */}
         <div className="flex justify-center mb-8">
           <Image
             src="/logo.png"
@@ -77,19 +77,17 @@ export default function AdminLoginPage({
           />
         </div>
 
-        {/* Login Card */}
         <div className="bg-white rounded-xl shadow-2xl p-8 border border-gray-200">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-primary text-dark-black mb-2">
               Event Check-In
             </h1>
             <p className="text-gray-600 font-secondary text-sm">
-              Admin login to start check-in session
+              Login to start check-in session
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Phone Input */}
             <PhoneNumberInput
               label="Phone Number"
               value={phone}
@@ -97,32 +95,10 @@ export default function AdminLoginPage({
               autoFocus
             />
 
-            {/* Password Input */}
             <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-secondary font-medium text-gray-700 mb-2"
-              >
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className={cn(
-                  "w-full px-4 py-3 bg-white border border-gray-300 rounded-lg",
-                  "text-dark-black font-secondary placeholder-gray-400",
-                  "focus:outline-none focus:ring-0 focus:border-primary/90",
-                  "transition-all duration-200",
-                )}
-                placeholder="Enter your password"
-              />
+              <OtpPassword password={password} setPassword={setPassword} />
             </div>
 
-            {/* Submit Button */}
             <button
               type="submit"
               disabled={isLoading}
@@ -147,7 +123,6 @@ export default function AdminLoginPage({
             </button>
           </form>
 
-          {/* Help Text */}
           <div className="mt-6 text-center">
             <p className="text-xs text-gray-500 font-secondary">
               Contact your administrator if you need access

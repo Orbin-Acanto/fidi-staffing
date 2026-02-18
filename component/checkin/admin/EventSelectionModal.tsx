@@ -4,7 +4,10 @@ import { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import { toastError, toastSuccess } from "@/lib/toast";
 import { cn } from "@/lib/utils";
-import { getTodayEvents, startCheckInSession } from "@/services/api";
+import {
+  getTodayEventsAttendance,
+  startCheckInSessionAttendance,
+} from "@/services/attendance-api";
 import LoadingSpinner from "@/component/shared/LoadingSpinner";
 import { EventType } from "@/type";
 
@@ -35,10 +38,23 @@ export default function EventSelectionModal({
   const fetchEvents = async () => {
     setIsLoading(true);
     try {
-      const response = await getTodayEvents();
+      const response = await getTodayEventsAttendance();
       if (response.success && response.data) {
-        setEvents(response.data);
-        if (response.data.length === 0) {
+        const mappedEvents: EventType[] = response.data.map((event: any) => ({
+          id: event.id,
+          name: event.name,
+          date: event.event_date,
+          startTime: event.start_time,
+          endTime: event.end_time,
+          location: event.address || event.location,
+          expectedStaffCount: event.total_staff || 0,
+          checkedInCount: event.checked_in || 0,
+          status: event.status || "upcoming",
+        }));
+
+        setEvents(mappedEvents);
+
+        if (mappedEvents.length === 0) {
           toast.info("No events scheduled for today.");
         }
       } else {
@@ -59,7 +75,11 @@ export default function EventSelectionModal({
 
     setIsStarting(true);
     try {
-      const response = await startCheckInSession(selectedEvent.id, adminId);
+      const response = await startCheckInSessionAttendance(
+        selectedEvent.id,
+        adminId,
+      );
+
       if (response.success && response.data) {
         toastSuccess(`Check-in started for ${selectedEvent.name}`);
         onSessionStart(response.data.id, selectedEvent);

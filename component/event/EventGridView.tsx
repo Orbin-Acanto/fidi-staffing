@@ -107,11 +107,14 @@ export default function EventGridView({
                   />
                 </svg>
                 <div className="text-sm font-secondary text-gray-900">
-                  {new Date(event.event_date).toLocaleDateString("en-US", {
-                    weekday: "long",
-                    month: "long",
-                    day: "numeric",
-                  })}
+                  {new Date(event.event_date + "T00:00:00").toLocaleDateString(
+                    "en-US",
+                    {
+                      weekday: "long",
+                      day: "numeric",
+                      month: "long",
+                    },
+                  )}
                   <span className="text-gray-500 block">
                     {event.start_time} - {event.end_time}
                   </span>

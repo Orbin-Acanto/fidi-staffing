@@ -6,6 +6,52 @@ export interface AssignedGroupBackend {
   company_name: string;
 }
 
+export type RoleRequirement = {
+  id: string;
+  role: string;
+  role_name: string;
+  role_color: string;
+  start_time: string;
+  end_time: string;
+  pay_type: "hourly" | "fixed" | string | null;
+  event_rate: string;
+  staff_count: number;
+  filled_count: number;
+  estimated_hours: string;
+  estimated_cost: string;
+  notes?: string | null;
+};
+
+export type StaffAssignment = {
+  id: string;
+  staff: string;
+  staff_name: string;
+  staff_avatar?: string | null;
+  role?: string | null;
+  role_name?: string | null;
+  pay_type?: "hourly" | "fixed" | string | null;
+  pay_rate?: string | number | null;
+  start_time?: string | null;
+  end_time?: string | null;
+  status?: string | null;
+  confirmation_status?: string | null;
+  notes?: string | null;
+};
+
+export type StaffListItem = {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email?: string | null;
+  phone?: string | null;
+  avatar?: string | null;
+  is_available?: boolean;
+  status?: string;
+  primary_role?: { id: string; name: string; color?: string | null } | null;
+  hourly_rate?: string | null;
+  fixed_rate?: string | null;
+};
+
 export interface EventBackend {
   id: string;
   event_number: string;

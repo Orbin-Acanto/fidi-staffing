@@ -12,12 +12,11 @@ import {
   StaffType,
 } from "@/type";
 
-// Admin Components
 import AdminLoginPage from "@/component/checkin/admin/AdminLoginPage";
 import EventSelectionModal from "@/component/checkin/admin/EventSelectionModal";
 import EndCheckInModal from "@/component/checkin/admin/EndCheckInModal";
+import EndCheckOutModal from "@/component/checkin/admin/EndCheckOutModal";
 
-// Staff Components
 import StaffPhotoConfirmation from "@/component/checkin/Staff/StaffPhotoConfirmation";
 import CameraPreviewScreen from "@/component/checkin/Staff/CameraPreviewScreen";
 import FaceVerificationProcessing from "@/component/checkin/Staff/FaceVerificationProcessing";
@@ -25,7 +24,6 @@ import ForgotPINFlow from "@/component/checkin/Staff/ForgotPINFlow";
 import StaffCheckOutPage from "@/component/checkin/Staff/StaffCheckOutPage";
 import StaffCheckInPage from "@/component/checkin/Staff/StaffCheckInPage";
 
-// Screen Components
 import CheckInSuccessScreen from "@/component/shared/CheckInSuccessScreen";
 import CheckInErrorScreen from "@/component/shared/CheckInErrorScreen";
 import AlreadyCheckedInScreen from "@/component/shared/AlreadyCheckedInScreen";
@@ -36,16 +34,11 @@ import CheckInSessionEndedScreen from "@/component/shared/CheckInSessionEndedScr
 import CheckInCompleteTransition from "@/component/shared/CheckInCompleteTransition";
 import CheckOutSuccessScreen from "@/component/shared/CheckOutSuccessScreen";
 
-// Services
 import {
-  verifyFace,
-  submitCheckIn,
-  requestAdminHelp,
-  adminSendOTP,
-  startCheckOutSession,
-} from "@/services/api";
-import DemoCredentials from "@/demo/Democredentials";
-import EndCheckOutModal from "@/component/checkin/admin/EndCheckOutModal";
+  staffCheckInAttendance,
+  verifyFacePhotoAttendance,
+  startCheckOutSessionAttendance,
+} from "@/services/attendance-api";
 
 type AppStep =
   | "adminLogin"
@@ -93,8 +86,8 @@ interface AppState {
   showEndSessionModal: boolean;
   showEventSelectionModal: boolean;
 
-  otpAction: string;
-  maskedAdminPhone: string;
+  clockEntryId: string | null;
+  assignmentId: string | null;
 }
 
 const initialState: AppState = {
@@ -115,8 +108,8 @@ const initialState: AppState = {
   offlineQueueCount: 0,
   showEndSessionModal: false,
   showEventSelectionModal: false,
-  otpAction: "",
-  maskedAdminPhone: "",
+  clockEntryId: null,
+  assignmentId: null,
 };
 
 export default function CheckInApp() {
@@ -174,6 +167,8 @@ export default function CheckInApp() {
 
   const handleStaffValidated = useCallback(
     (staff: StaffType) => {
+      const assignmentId = staff.notes?.split("Assignment ID: ")[1] || "";
+
       const eventStartTime = state.currentEvent?.startTime;
       if (eventStartTime) {
         const now = new Date();
@@ -189,6 +184,7 @@ export default function CheckInApp() {
           setState((prev) => ({
             ...prev,
             currentStaff: staff,
+            assignmentId,
             minutesLate: diffMinutes,
             step: "lateArrival",
           }));
@@ -199,20 +195,46 @@ export default function CheckInApp() {
       setState((prev) => ({
         ...prev,
         currentStaff: staff,
+        assignmentId,
         step: "photoConfirmation",
       }));
     },
     [state.currentEvent],
   );
 
-  const handlePhotoConfirm = useCallback(() => {
-    setState((prev) => ({ ...prev, step: "camera" }));
-  }, []);
+  const handlePhotoConfirm = useCallback(async () => {
+    if (!state.currentStaff || !state.currentEvent || !state.assignmentId) {
+      toast.error("Missing required information");
+      return;
+    }
+
+    try {
+      const response = await staffCheckInAttendance(
+        state.currentStaff.id,
+        state.currentEvent.id,
+        state.assignmentId,
+      );
+
+      if (response.success && response.data) {
+        setState((prev) => ({
+          ...prev,
+          clockEntryId: response.data!.clock_entry_id,
+          step: "camera",
+        }));
+      } else {
+        toastError(response.error, "Failed to initiate check-in");
+      }
+    } catch (err) {
+      toastError(err, "Failed to initiate check-in");
+    }
+  }, [state.currentStaff, state.currentEvent, state.assignmentId]);
 
   const handlePhotoReject = useCallback(() => {
     setState((prev) => ({
       ...prev,
       currentStaff: null,
+      assignmentId: null,
+      clockEntryId: null,
       step: "staffCheckIn",
     }));
   }, []);
@@ -225,32 +247,35 @@ export default function CheckInApp() {
         step: "faceVerification",
       }));
 
+      if (!state.clockEntryId) {
+        toast.error("No clock entry found");
+        return;
+      }
+
       try {
-        const response = await verifyFace(state.currentStaff!.id, imageData);
+        const response = await fetch(imageData);
+        const blob = await response.blob();
 
-        if (response.success && response.data?.verified) {
-          const checkInResponse = await submitCheckIn(
-            state.checkInSession!.id,
-            state.currentStaff!.id,
-            imageData,
-            "face",
-          );
+        const verifyResponse = await verifyFacePhotoAttendance(
+          state.clockEntryId,
+          blob,
+        );
 
-          if (checkInResponse.success && checkInResponse.data) {
-            setState((prev) => ({
-              ...prev,
-              lastCheckInRecord: checkInResponse.data!,
-              checkInSession: prev.checkInSession
-                ? {
-                    ...prev.checkInSession,
-                    totalCheckedIn: prev.checkInSession.totalCheckedIn + 1,
-                  }
-                : null,
-              step: "checkInSuccess",
-            }));
-          } else {
-            throw new Error(checkInResponse.error || "Check-in failed");
-          }
+        if (verifyResponse.success && verifyResponse.data?.verified) {
+          setState((prev) => ({
+            ...prev,
+            lastCheckInRecord: {
+              id: state.clockEntryId!,
+              checkInTime: new Date().toISOString(),
+            } as CheckInRecord,
+            checkInSession: prev.checkInSession
+              ? {
+                  ...prev.checkInSession,
+                  totalCheckedIn: prev.checkInSession.totalCheckedIn + 1,
+                }
+              : null,
+            step: "checkInSuccess",
+          }));
         } else {
           setState((prev) => ({
             ...prev,
@@ -271,7 +296,7 @@ export default function CheckInApp() {
         }));
       }
     },
-    [state.currentStaff, state.checkInSession],
+    [state.clockEntryId],
   );
 
   const handleCameraError = useCallback(() => {
@@ -288,6 +313,8 @@ export default function CheckInApp() {
       capturedPhoto: null,
       errorType: null,
       errorMessage: null,
+      clockEntryId: null,
+      assignmentId: null,
       step: "staffCheckIn",
     }));
   }, []);
@@ -301,24 +328,15 @@ export default function CheckInApp() {
   }, []);
 
   const handleGetHelp = useCallback(async () => {
-    if (!state.currentStaff || !state.checkInSession) return;
-
-    try {
-      await requestAdminHelp(
-        state.checkInSession.id,
-        state.currentStaff.id,
-        "Verification assistance needed",
-      );
-      setState((prev) => ({ ...prev, step: "adminHelp" }));
-    } catch (err) {
-      toastError(err, "Failed to request help");
-    }
-  }, [state.currentStaff, state.checkInSession]);
+    setState((prev) => ({ ...prev, step: "adminHelp" }));
+  }, []);
 
   const handleAdminHelpCancel = useCallback(() => {
     setState((prev) => ({
       ...prev,
       currentStaff: null,
+      clockEntryId: null,
+      assignmentId: null,
       step: "staffCheckIn",
     }));
   }, []);
@@ -328,6 +346,8 @@ export default function CheckInApp() {
     setState((prev) => ({
       ...prev,
       currentStaff: null,
+      clockEntryId: null,
+      assignmentId: null,
       step: "staffCheckIn",
     }));
   }, []);
@@ -350,25 +370,18 @@ export default function CheckInApp() {
       currentStaff: null,
       capturedPhoto: null,
       lastCheckInRecord: null,
+      clockEntryId: null,
+      assignmentId: null,
       step: "staffCheckIn",
     }));
   }, []);
 
   const handleEndSession = useCallback(async () => {
-    if (!state.adminId) return;
-
-    try {
-      const response = await adminSendOTP(state.adminId, "end_session");
-      if (response.success && response.data) {
-        setState((prev) => ({
-          ...prev,
-          showEndSessionModal: true,
-        }));
-      }
-    } catch (err) {
-      toastError(err, "Failed to initiate session end");
-    }
-  }, [state.adminId]);
+    setState((prev) => ({
+      ...prev,
+      showEndSessionModal: true,
+    }));
+  }, []);
 
   const handleSessionEnded = useCallback(() => {
     setState((prev) => ({
@@ -382,7 +395,7 @@ export default function CheckInApp() {
     if (!state.currentEvent || !state.adminId) return;
 
     try {
-      const response = await startCheckOutSession(
+      const response = await startCheckOutSessionAttendance(
         state.currentEvent.id,
         state.adminId,
       );
@@ -390,7 +403,15 @@ export default function CheckInApp() {
         setState((prev) => ({
           ...prev,
           mode: "checkout",
-          checkOutSession: response.data || null,
+          checkOutSession: {
+            id: response.data!.id,
+            eventId: state.currentEvent!.id,
+            event: state.currentEvent!,
+            startedAt: response.data!.started_at,
+            startedBy: state.adminId!,
+            status: "active",
+            totalCheckedOut: 0,
+          },
           step: "staffCheckOut",
         }));
       } else {
@@ -444,22 +465,8 @@ export default function CheckInApp() {
   }, []);
 
   const handleContactAdmin = useCallback(async () => {
-    if (!state.checkInSession) {
-      toast.info("Please contact the event administrator directly.");
-      return;
-    }
-
-    try {
-      await requestAdminHelp(
-        state.checkInSession.id,
-        state.currentStaff?.id || "unknown",
-        "General assistance requested",
-      );
-      setState((prev) => ({ ...prev, step: "adminHelp" }));
-    } catch (err) {
-      toastError(err, "Failed to contact admin");
-    }
-  }, [state.checkInSession, state.currentStaff]);
+    toast.info("Please contact the event administrator directly.");
+  }, []);
 
   const renderCurrentStep = () => {
     switch (state.step) {
@@ -673,10 +680,5 @@ export default function CheckInApp() {
     }
   };
 
-  return (
-    <div className="min-h-screen">
-      {renderCurrentStep()}
-      <DemoCredentials />
-    </div>
-  );
+  return <div className="min-h-screen">{renderCurrentStep()}</div>;
 }

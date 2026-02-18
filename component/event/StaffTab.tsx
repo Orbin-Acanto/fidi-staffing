@@ -2,86 +2,13 @@ import { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "@/lib/apiFetch";
 import { toastError, toastSuccess } from "@/lib/toast";
 import { toMediaProxyUrl } from "@/lib/mediaUrl";
-
-type StaffAssignment = {
-  id: string;
-  staff: string;
-  staff_name: string;
-  staff_avatar?: string | null;
-  role?: string | null;
-  role_name?: string | null;
-  pay_type?: "hourly" | "fixed" | string | null;
-  pay_rate?: string | number | null;
-  start_time?: string | null;
-  end_time?: string | null;
-  status?: string | null;
-  confirmation_status?: string | null;
-  notes?: string | null;
-};
-
-type StaffListItem = {
-  id: string;
-  first_name: string;
-  last_name: string;
-  email?: string | null;
-  phone?: string | null;
-  avatar?: string | null;
-  is_available?: boolean;
-  status?: string;
-  primary_role?: { id: string; name: string; color?: string | null } | null;
-  hourly_rate?: string | null;
-  fixed_rate?: string | null;
-};
-
-function initials(name: string) {
-  return String(name || "S")
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase();
-}
-
-function PlusIcon() {
-  return (
-    <svg
-      className="w-5 h-5"
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M12 5v14M5 12h14"
-      />
-    </svg>
-  );
-}
-
-function XIcon() {
-  return (
-    <svg
-      className="w-4 h-4"
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M6 18L18 6M6 6l12 12"
-      />
-    </svg>
-  );
-}
+import { RoleRequirement, StaffAssignment, StaffListItem } from "@/type/events";
+import { initials, PlusIcon, XIcon } from "@/utils";
 
 type StaffTabProps = {
   eventId: string;
   staffAssignments: StaffAssignment[];
+  roleRequirements: RoleRequirement[];
   onChanged: () => void;
   formatCurrency: (amount: string | number) => string;
   formatTime: (time: string) => string;
@@ -90,13 +17,17 @@ type StaffTabProps = {
 export function StaffTab({
   eventId,
   staffAssignments,
+  roleRequirements,
   onChanged,
   formatCurrency,
   formatTime,
 }: StaffTabProps) {
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [isBusy, setIsBusy] = useState(false);
-
+  const [selectedStaff, setSelectedStaff] = useState<StaffListItem | null>(
+    null,
+  );
+  const [selectedRoleReq, setSelectedRoleReq] = useState<string>("");
   const [search, setSearch] = useState("");
   const [staffResults, setStaffResults] = useState<StaffListItem[]>([]);
   const [staffLoading, setStaffLoading] = useState(false);
@@ -108,6 +39,8 @@ export function StaffTab({
     }
     return s;
   }, [staffAssignments]);
+
+  console.log(staffAssignments);
 
   const fetchStaffList = async (q: string) => {
     setStaffLoading(true);
@@ -156,9 +89,11 @@ export function StaffTab({
     }
   };
 
-  const assignStaff = async (staff: StaffListItem) => {
-    if (!staff.primary_role?.id) {
-      toastError("This staff member has no primary role set");
+  const assignStaff = async (staff: StaffListItem, roleReqId: string) => {
+    const roleReq = roleRequirements.find((r) => r.id === roleReqId);
+
+    if (!roleReq) {
+      toastError("Please select a role requirement");
       return;
     }
 
@@ -166,13 +101,10 @@ export function StaffTab({
     try {
       const body = {
         staff: staff.id,
-        role: staff.primary_role.id,
-        start_time: (staffAssignments?.[0]?.start_time || "18:00").slice(0, 5),
-        end_time: (staffAssignments?.[0]?.end_time || "23:00").slice(0, 5),
-        pay_type: staff.hourly_rate ? "hourly" : "fixed",
-        pay_rate: staff.hourly_rate
-          ? Number(staff.hourly_rate)
-          : Number(staff.fixed_rate || 0),
+        role: roleReq.role,
+        role_requirement: roleReq.id,
+        pay_type: roleReq.pay_type,
+        pay_rate: Number(roleReq.event_rate),
         notes: "",
       };
 
@@ -182,6 +114,8 @@ export function StaffTab({
       });
 
       toastSuccess(res?.message || "Staff assigned");
+      setSelectedStaff(null);
+      setSelectedRoleReq("");
       await onChanged();
     } catch (e: any) {
       console.error(e);
@@ -191,21 +125,26 @@ export function StaffTab({
     }
   };
 
-  const toggleStaff = async (staff: StaffListItem) => {
+  const handleStaffClick = (staff: StaffListItem) => {
     const isAssigned = assignedStaffIdSet.has(String(staff.id));
-    if (!isAssigned) {
-      await assignStaff(staff);
-      return;
-    }
 
-    const assignment = staffAssignments.find(
-      (a) => String(a.staff) === String(staff.id),
-    );
-    if (!assignment?.id) {
-      toastError("Could not find assignment id for this staff member");
-      return;
+    if (isAssigned) {
+      const assignment = staffAssignments.find(
+        (a) => String(a.staff) === String(staff.id),
+      );
+      if (assignment?.id) {
+        removeStaff(assignment.id);
+      }
+    } else {
+      setSelectedStaff(staff);
+      setSelectedRoleReq("");
     }
-    await removeStaff(assignment.id);
+  };
+
+  const handleRoleSelection = () => {
+    if (selectedStaff && selectedRoleReq) {
+      assignStaff(selectedStaff, selectedRoleReq);
+    }
   };
 
   return (
@@ -344,12 +283,16 @@ export function StaffTab({
                   Add or remove staff
                 </p>
                 <p className="text-xs text-gray-500">
-                  Tick to assign. Untick to remove.
+                  Click staff to assign or remove
                 </p>
               </div>
 
               <button
-                onClick={() => setIsPickerOpen(false)}
+                onClick={() => {
+                  setIsPickerOpen(false);
+                  setSelectedStaff(null);
+                  setSelectedRoleReq("");
+                }}
                 className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 cursor-pointer"
                 aria-label="Close"
               >
@@ -379,51 +322,144 @@ export function StaffTab({
                 <ul className="divide-y divide-gray-200">
                   {staffResults.map((s) => {
                     const checked = assignedStaffIdSet.has(String(s.id));
+                    const isSelected = selectedStaff?.id === s.id;
+
                     return (
-                      <li key={s.id} className="p-4 flex items-center gap-3">
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => toggleStaff(s)}
+                      <li key={s.id}>
+                        <button
+                          onClick={() => handleStaffClick(s)}
                           disabled={isBusy}
-                          className="w-4 h-4"
-                        />
+                          className={`w-full p-4 flex items-center gap-3 text-left hover:bg-gray-50 transition-colors ${
+                            isSelected ? "bg-blue-50" : ""
+                          }`}
+                        >
+                          <div
+                            className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
+                              checked
+                                ? "bg-primary border-primary"
+                                : "border-gray-300"
+                            }`}
+                          >
+                            {checked && (
+                              <svg
+                                className="w-3 h-3 text-white"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={3}
+                                  d="M5 13l4 4L19 7"
+                                />
+                              </svg>
+                            )}
+                          </div>
 
-                        <div className="w-10 h-10 bg-gray-100 rounded-full overflow-hidden flex items-center justify-center">
-                          {s.avatar ? (
-                            <img
-                              src={toMediaProxyUrl(s.avatar) || "./male.png"}
-                              alt={`${s.first_name} ${s.last_name}`}
-                              className="w-10 h-10 object-cover"
-                            />
-                          ) : (
-                            <span className="text-xs font-secondary font-medium text-gray-600">
-                              {initials(`${s.first_name} ${s.last_name}`)}
-                            </span>
-                          )}
-                        </div>
+                          <div className="w-10 h-10 bg-gray-100 rounded-full overflow-hidden flex items-center justify-center">
+                            {s.avatar ? (
+                              <img
+                                src={toMediaProxyUrl(s.avatar) || "./male.png"}
+                                alt={`${s.first_name} ${s.last_name}`}
+                                className="w-10 h-10 object-cover"
+                              />
+                            ) : (
+                              <span className="text-xs font-secondary font-medium text-gray-600">
+                                {initials(`${s.first_name} ${s.last_name}`)}
+                              </span>
+                            )}
+                          </div>
 
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-secondary font-semibold text-gray-900 truncate">
-                            {s.first_name} {s.last_name}
-                          </p>
-                          <p className="text-xs text-gray-500 truncate">
-                            {s.email || s.phone || "No contact info"}
-                          </p>
-                        </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-secondary font-semibold text-gray-900 truncate">
+                              {s.first_name} {s.last_name}
+                            </p>
+                            <p className="text-xs text-gray-500 truncate">
+                              {s.email || s.phone || "No contact info"}
+                            </p>
+                          </div>
 
-                        <div className="text-right">
-                          <p className="text-xs text-gray-600">
-                            {s.primary_role?.name || "No primary role"}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            {s.hourly_rate
-                              ? `${formatCurrency(Number(s.hourly_rate))} per hour`
-                              : s.fixed_rate
-                                ? `${formatCurrency(Number(s.fixed_rate))} fixed`
-                                : ""}
-                          </p>
-                        </div>
+                          <div className="text-right">
+                            <p className="text-xs text-gray-600">
+                              {s.primary_role?.name || "No primary role"}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {s.hourly_rate
+                                ? `${formatCurrency(Number(s.hourly_rate))} per hour`
+                                : s.fixed_rate
+                                  ? `${formatCurrency(Number(s.fixed_rate))} fixed`
+                                  : ""}
+                            </p>
+                          </div>
+                        </button>
+
+                        {isSelected && (
+                          <div className="p-4 bg-blue-50 border-t border-blue-100">
+                            <p className="text-sm font-secondary font-semibold text-gray-900 mb-3">
+                              Select role for {s.first_name}
+                            </p>
+
+                            <div className="space-y-2">
+                              {roleRequirements.map((roleReq) => (
+                                <button
+                                  key={roleReq.id}
+                                  onClick={() => setSelectedRoleReq(roleReq.id)}
+                                  className={`w-full p-3 text-left rounded-lg border-2 transition-all ${
+                                    selectedRoleReq === roleReq.id
+                                      ? "border-primary bg-white shadow-sm"
+                                      : "border-gray-200 bg-white hover:border-gray-300"
+                                  }`}
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex-1">
+                                      <p className="text-sm font-secondary font-semibold text-gray-900">
+                                        {roleReq.role_name}
+                                      </p>
+                                      <p className="text-xs text-gray-600 mt-1">
+                                        {formatTime(roleReq.start_time)} -{" "}
+                                        {formatTime(roleReq.end_time)}
+                                      </p>
+                                      <p className="text-xs text-gray-500 mt-1">
+                                        {formatCurrency(
+                                          Number(roleReq.event_rate),
+                                        )}
+                                        {roleReq.pay_type === "hourly"
+                                          ? " per hour"
+                                          : " fixed"}
+                                      </p>
+                                    </div>
+                                    <div className="text-right">
+                                      <p className="text-xs text-gray-500">
+                                        {roleReq.filled_count}/
+                                        {roleReq.staff_count} filled
+                                      </p>
+                                    </div>
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+
+                            <div className="flex gap-2 mt-3">
+                              <button
+                                onClick={() => {
+                                  setSelectedStaff(null);
+                                  setSelectedRoleReq("");
+                                }}
+                                className="flex-1 px-3 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-secondary font-medium text-sm"
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                onClick={handleRoleSelection}
+                                disabled={!selectedRoleReq || isBusy}
+                                className="flex-1 px-3 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 font-secondary font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                Assign
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </li>
                     );
                   })}
@@ -433,7 +469,11 @@ export function StaffTab({
 
             <div className="p-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-2">
               <button
-                onClick={() => setIsPickerOpen(false)}
+                onClick={() => {
+                  setIsPickerOpen(false);
+                  setSelectedStaff(null);
+                  setSelectedRoleReq("");
+                }}
                 className="px-4 py-2 bg-white border text-gray-700 border-gray-300 rounded-lg hover:bg-gray-50 font-secondary font-medium"
               >
                 Done

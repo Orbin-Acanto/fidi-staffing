@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { StaffType } from "@/type";
+import { toMediaProxyUrl } from "@/lib/mediaUrl";
 
 interface StaffPhotoConfirmationProps {
   staff: StaffType;
@@ -31,7 +32,7 @@ export default function StaffPhotoConfirmation({
           <div className="flex justify-center mb-6">
             <div className="relative w-48 h-48 rounded-xl overflow-hidden border-4 border-primary/20 shadow-lg">
               <Image
-                src={staff.photoUrl}
+                src={toMediaProxyUrl(staff.photoUrl) || "./male.png"}
                 alt={`${staff.firstName} ${staff.lastName}`}
                 fill
                 className="object-cover"

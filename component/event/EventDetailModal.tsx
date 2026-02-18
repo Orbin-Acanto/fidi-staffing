@@ -63,18 +63,6 @@ const formatTime = (time: string) => {
   return `${displayHour}:${m} ${ampm}`;
 };
 
-const safeDateLabel = (iso: string) => {
-  if (!iso) return "";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString("en-US", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-};
-
 export default function EventDetailModal({
   eventId,
   onClose,
@@ -339,7 +327,13 @@ export default function EventDetailModal({
                         />
                       </svg>
                       <span className="text-gray-900 font-secondary">
-                        {safeDateLabel(event.event_date)}
+                        {new Date(
+                          event.event_date + "T00:00:00",
+                        ).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })}
                       </span>
                     </div>
 
@@ -662,6 +656,7 @@ export default function EventDetailModal({
             <StaffTab
               eventId={event.id}
               staffAssignments={staffAssignments}
+              roleRequirements={roleRequirements}
               onChanged={async () => {
                 await fetchEvent();
                 onRefresh?.();

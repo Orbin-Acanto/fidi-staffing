@@ -115,14 +115,13 @@ export default function EventTableView({
                   <td className="px-6 py-4">
                     <div>
                       <p className="text-sm font-secondary text-gray-900">
-                        {new Date(event.event_date).toLocaleDateString(
-                          "en-US",
-                          {
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric",
-                          },
-                        )}
+                        {new Date(
+                          event.event_date + "T00:00:00",
+                        ).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })}
                       </p>
                       <p className="text-xs text-gray-500 font-secondary mt-0.5">
                         {event.start_time} - {event.end_time}

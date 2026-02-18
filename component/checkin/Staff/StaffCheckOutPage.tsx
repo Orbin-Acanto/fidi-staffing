@@ -10,8 +10,10 @@ import PhoneNumberInput, {
 } from "@/component/shared/PhoneNumberInput";
 import LoadingSpinner from "@/component/shared/LoadingSpinner";
 import { EventType, StaffType, CheckOutSession, CheckInRecord } from "@/type";
-import { validateStaffCredentials, submitCheckOut } from "@/services/api";
-import PINInput from "@/component/shared/PINInput";
+import {
+  verifyStaffPhoneAttendance,
+  staffCheckOutAttendance,
+} from "@/services/attendance-api";
 import NetworkOfflineIndicator from "@/component/shared/NetworkOfflineIndicator";
 
 interface StaffCheckOutPageProps {
@@ -34,30 +36,28 @@ export default function StaffCheckOutPage({
   isOnline,
 }: StaffCheckOutPageProps) {
   const [phone, setPhone] = useState("");
-  const [pin, setPin] = useState("");
+  const [clockCode, setClockCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const resetForm = useCallback(() => {
     setPhone("");
-    setPin("");
+    setClockCode("");
   }, []);
 
-  const validateForm = (pinValue?: string): string | null => {
-    const pinToCheck = pinValue || pin;
+  const validateForm = (): string | null => {
     if (!phone) return "Please enter your phone number.";
     if (!isValidPhoneNumber(phone))
       return "Please enter a valid 10-digit phone number.";
-    if (!pinToCheck) return "Please enter your PIN.";
-    if (pinToCheck.length !== 6) return "PIN must be 6 digits.";
+    if (!clockCode) return "Please enter the event clock code.";
+    if (clockCode.length < 3)
+      return "Clock code must be at least 3 characters.";
     return null;
   };
 
-  const handleSubmit = async (e?: FormEvent, pinValue?: string) => {
+  const handleSubmit = async (e?: FormEvent) => {
     e?.preventDefault();
 
-    const pinToValidate = pinValue || pin;
-
-    const error = validateForm(pinToValidate);
+    const error = validateForm();
     if (error) {
       toast.error(error, { toastId: error });
       return;
@@ -66,21 +66,66 @@ export default function StaffCheckOutPage({
     setIsLoading(true);
 
     try {
-      const credResponse = await validateStaffCredentials(phone, pinToValidate);
+      const verifyResponse = await verifyStaffPhoneAttendance(
+        phone,
+        clockCode,
+        event.id,
+      );
 
-      if (!credResponse.success || !credResponse.data) {
-        toastError(credResponse.error, "Invalid phone number or PIN.");
-        setPin("");
+      if (!verifyResponse.success || !verifyResponse.data) {
+        toastError(
+          verifyResponse.error,
+          "Invalid phone number or clock code. Please try again.",
+        );
+        setClockCode("");
         return;
       }
 
-      const staff = credResponse.data;
+      const staffData = verifyResponse.data;
 
-      const checkOutResponse = await submitCheckOut(session.id, staff.id);
+      if (staffData.check_out_status === "already_checked_out") {
+        toast.warning("You have already checked out from this event.");
+        resetForm();
+        return;
+      }
+
+      if (staffData.check_in_status !== "already_checked_in") {
+        toast.error("You must check in first before checking out.");
+        resetForm();
+        return;
+      }
+
+      const checkOutResponse = await staffCheckOutAttendance(
+        staffData.staff_id,
+        event.id,
+      );
 
       if (checkOutResponse.success && checkOutResponse.data) {
-        toastSuccess(`Goodbye, ${staff.firstName}!`);
-        onCheckOutSuccess(staff, checkOutResponse.data);
+        const staff: StaffType = {
+          id: staffData.staff_id,
+          firstName: staffData.staff_name.split(" ")[0] || "",
+          lastName: staffData.staff_name.split(" ").slice(1).join(" ") || "",
+          phone: phone,
+          email: "",
+          photoUrl: staffData.staff_avatar || "",
+          position: staffData.role,
+        };
+
+        const record: CheckInRecord = {
+          id: checkOutResponse.data.clock_entry_id,
+          staffId: staffData.staff_id,
+          staff: staff,
+          sessionId: session.id,
+          checkInTime: new Date().toISOString(),
+          checkOutTime: new Date().toISOString(),
+          verificationMethod: "pin",
+          isLate: false,
+        };
+
+        toastSuccess(
+          `Goodbye, ${staff.firstName}! You worked ${checkOutResponse.data.actual_hours.toFixed(1)} hours.`,
+        );
+        onCheckOutSuccess(staff, record);
         resetForm();
       } else {
         toastError(
@@ -90,16 +135,9 @@ export default function StaffCheckOutPage({
       }
     } catch (err) {
       toastError(err, "Check-out failed. Please try again.");
-      setPin("");
+      setClockCode("");
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handlePINComplete = (value: string) => {
-    setPin(value);
-    if (phone && isValidPhoneNumber(phone) && value.length === 6) {
-      handleSubmit(undefined, value);
     }
   };
 
@@ -196,7 +234,7 @@ export default function StaffCheckOutPage({
                 Staff Check-Out
               </h2>
               <p className="text-gray-600 font-secondary text-sm">
-                Enter your phone number and PIN to check out
+                Enter your phone number and event clock code
               </p>
             </div>
 
@@ -211,21 +249,27 @@ export default function StaffCheckOutPage({
 
               <div>
                 <label className="block text-sm font-secondary font-medium text-gray-700 mb-2">
-                  6-Digit PIN
+                  Event Clock Code
                 </label>
-                <PINInput
-                  length={6}
-                  value={pin}
-                  onChange={setPin}
-                  onComplete={handlePINComplete}
+                <input
+                  type="text"
+                  value={clockCode}
+                  onChange={(e) => setClockCode(e.target.value.toUpperCase())}
                   disabled={isLoading}
-                  autoFocus={false}
+                  placeholder="Enter clock code"
+                  className={cn(
+                    "w-full px-4 py-3 bg-white border border-gray-300 rounded-lg",
+                    "text-dark-black font-secondary placeholder-gray-400",
+                    "focus:outline-none focus:ring-0 focus:border-primary/90",
+                    "transition-all duration-200 uppercase",
+                    "disabled:bg-gray-100 disabled:cursor-not-allowed",
+                  )}
                 />
               </div>
 
               <button
                 type="submit"
-                disabled={isLoading || !phone || pin.length !== 6}
+                disabled={isLoading || !phone || !clockCode}
                 className={cn(
                   "w-full py-4 px-4 rounded-lg font-secondary font-semibold text-lg",
                   "bg-primary text-white",
