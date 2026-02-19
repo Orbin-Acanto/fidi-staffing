@@ -333,56 +333,6 @@ export type StaffPerformance = {
   notes: StaffNote[];
 };
 
-export type ClockEntry = {
-  id: string;
-  staffId: string;
-  staffName: string;
-  staffAvatar?: string;
-  eventId?: string;
-  eventName?: string;
-  date: string;
-  scheduledStart: string;
-  scheduledEnd: string;
-  clockIn?: string;
-  clockOut?: string;
-  status: "clocked-in" | "clocked-out" | "not-started" | "no-show" | "pending";
-  punctuality: "on-time" | "early" | "late" | "no-show";
-  lateMinutes?: number;
-  earlyMinutes?: number;
-  totalHours?: number;
-  overtimeHours?: number;
-  location?: {
-    clockInLocation?: string;
-    clockOutLocation?: string;
-    isWithinGeofence: boolean;
-  };
-  notes?: string;
-  isApproved: boolean;
-  approvedBy?: string;
-  approvedAt?: string;
-};
-
-export type TimeEditRequest = {
-  id: string;
-  staffId: string;
-  staffName: string;
-  staffAvatar?: string;
-  clockEntryId: string;
-  eventName: string;
-  date: string;
-  originalClockIn?: string;
-  originalClockOut?: string;
-  requestedClockIn?: string;
-  requestedClockOut?: string;
-  reason: string;
-  requestType: "missed-punch" | "time-correction" | "forgot-clock-out";
-  status: "pending" | "approved" | "rejected";
-  requestedAt: string;
-  reviewedBy?: string;
-  reviewedAt?: string;
-  rejectionReason?: string;
-};
-
 export type JobWithdrawal = {
   id: string;
   staffId: string;
@@ -410,58 +360,6 @@ export type OvertimeAlert = {
   projectedOvertime: number;
   alertType: "approaching" | "exceeded" | "critical";
   isAcknowledged: boolean;
-};
-
-export type AttendanceSettings = {
-  clockInGracePeriod: number;
-  clockOutGracePeriod: number;
-  autoClockOutEnabled: boolean;
-  autoClockOutAfter: number;
-
-  gpsRestrictionEnabled: boolean;
-  geofenceRadius: number;
-  requirePhotoVerification: boolean;
-
-  lateThresholdMinutes: number;
-  earlyClockInAllowed: boolean;
-  earlyClockInMinutes: number;
-  missedPunchAutoFlag: boolean;
-
-  manualTimeEditRequiresApproval: boolean;
-  overtimeRequiresApproval: boolean;
-  overtimeThresholdHours: number;
-
-  noShowAfterMinutes: number;
-  autoFlagNoShow: boolean;
-};
-
-export type StaffAttendanceSummary = {
-  staffId: string;
-  staffName: string;
-  staffAvatar?: string;
-  period: "day" | "week" | "month";
-  totalShifts: number;
-  attendedShifts: number;
-  noShows: number;
-  lateArrivals: number;
-  earlyDepartures: number;
-  totalHoursWorked: number;
-  overtimeHours: number;
-  attendanceRate: number;
-  reliabilityScore: number;
-  pendingRequests: number;
-};
-
-export type DailyOverview = {
-  date: string;
-  totalScheduled: number;
-  clockedIn: number;
-  clockedOut: number;
-  notStarted: number;
-  late: number;
-  noShows: number;
-  pendingApprovals: number;
-  overtimeAlerts: number;
 };
 
 export type PayType = "hourly" | "fixed";
@@ -934,6 +832,7 @@ export interface ApiResponse<T> {
   data?: T;
   error?: string;
   errorType?: ErrorType;
+  message?: string;
 }
 
 export type SessionMode = "checkin" | "checkout";

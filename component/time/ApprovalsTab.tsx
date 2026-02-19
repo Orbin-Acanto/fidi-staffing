@@ -1,19 +1,23 @@
 "use client";
 
-import { TimeEditRequest } from "@/type";
-import { useState } from "react";
+import { TimeEditRequest } from "@/type/attendance";
+import { useState, useEffect } from "react";
+import {
+  getTimeEditRequests,
+  approveTimeEditRequest,
+  rejectTimeEditRequest,
+} from "@/services/dashboard-api";
+import { toast } from "react-toastify";
+import { toastError } from "@/lib/toast";
+import LoadingSpinner from "@/component/shared/LoadingSpinner";
 
 interface ApprovalsTabProps {
-  requests: TimeEditRequest[];
-  onApprove: (requestId: string) => void;
-  onReject: (requestId: string, reason: string) => void;
+  dateRange: { date_from: string; date_to: string };
 }
 
-export default function ApprovalsTab({
-  requests,
-  onApprove,
-  onReject,
-}: ApprovalsTabProps) {
+export default function ApprovalsTab({ dateRange }: ApprovalsTabProps) {
+  const [requests, setRequests] = useState<TimeEditRequest[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState<
     "pending" | "approved" | "rejected" | "all"
   >("pending");
@@ -21,21 +25,115 @@ export default function ApprovalsTab({
     useState<TimeEditRequest | null>(null);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  useEffect(() => {
+    fetchRequests();
+    const interval = setInterval(() => {
+      if (filter === "pending") {
+        fetchRequests();
+      }
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [filter, dateRange]);
+
+  const fetchRequests = async () => {
+    setIsLoading(true);
+    try {
+      const response = await getTimeEditRequests({
+        status: filter === "all" ? undefined : filter,
+        date_from: dateRange.date_from,
+        date_to: dateRange.date_to,
+        page_size: 100,
+      });
+
+      if (response.success && response.data) {
+        setRequests(response.data);
+      } else {
+        toastError(response.error, "Failed to load time edit requests");
+      }
+    } catch (err) {
+      toastError(err, "Failed to load time edit requests");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleApprove = async (requestId: string) => {
+    setIsProcessing(true);
+    try {
+      const response = await approveTimeEditRequest(requestId);
+      if (response.success) {
+        toast.success("Request approved successfully!");
+        setRequests((prev) =>
+          prev.map((r) =>
+            r.id === requestId ? { ...r, status: "approved" as const } : r,
+          ),
+        );
+      } else {
+        toastError(response.error, "Failed to approve request");
+      }
+    } catch (err) {
+      toastError(err, "Failed to approve request");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!selectedRequest || !rejectionReason.trim()) {
+      toast.error("Please provide a rejection reason");
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const response = await rejectTimeEditRequest(
+        selectedRequest.id,
+        rejectionReason,
+      );
+      if (response.success) {
+        toast.success("Request rejected successfully!");
+        setRequests((prev) =>
+          prev.map((r) =>
+            r.id === selectedRequest.id
+              ? {
+                  ...r,
+                  status: "rejected" as const,
+                  review_notes: rejectionReason,
+                }
+              : r,
+          ),
+        );
+        setShowRejectModal(false);
+        setSelectedRequest(null);
+        setRejectionReason("");
+      } else {
+        toastError(response.error, "Failed to reject request");
+      }
+    } catch (err) {
+      toastError(err, "Failed to reject request");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   const filteredRequests = requests.filter((req) =>
-    filter === "all" ? true : req.status === filter
+    filter === "all" ? true : req.status === filter,
   );
 
   const pendingCount = requests.filter((r) => r.status === "pending").length;
 
   const getRequestTypeBadge = (type: string) => {
     switch (type) {
-      case "missed-punch":
+      case "missed_check_in":
         return "bg-red-100 text-red-700";
-      case "time-correction":
+      case "missed_check_out":
+        return "bg-orange-100 text-orange-700";
+      case "both_missed":
+        return "bg-purple-100 text-purple-700";
+      case "time_correction":
         return "bg-blue-100 text-blue-700";
-      case "forgot-clock-out":
-        return "bg-yellow-100 text-yellow-700";
       default:
         return "bg-gray-100 text-gray-700";
     }
@@ -43,12 +141,14 @@ export default function ApprovalsTab({
 
   const getRequestTypeLabel = (type: string) => {
     switch (type) {
-      case "missed-punch":
-        return "Missed Punch";
-      case "time-correction":
+      case "missed_check_in":
+        return "Missed Check-In";
+      case "missed_check_out":
+        return "Missed Check-Out";
+      case "both_missed":
+        return "Both Missed";
+      case "time_correction":
         return "Time Correction";
-      case "forgot-clock-out":
-        return "Forgot Clock Out";
       default:
         return type;
     }
@@ -67,15 +167,6 @@ export default function ApprovalsTab({
     }
   };
 
-  const handleReject = () => {
-    if (selectedRequest && rejectionReason.trim()) {
-      onReject(selectedRequest.id, rejectionReason);
-      setShowRejectModal(false);
-      setSelectedRequest(null);
-      setRejectionReason("");
-    }
-  };
-
   const formatDateTime = (dateString: string) => {
     return new Date(dateString).toLocaleString("en-US", {
       month: "short",
@@ -85,9 +176,24 @@ export default function ApprovalsTab({
     });
   };
 
+  const formatTime = (datetime: string | null) => {
+    if (!datetime) return "—";
+    return new Date(datetime).toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <LoadingSpinner size="lg" text="Loading time edit requests..." />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      {/* Summary */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-white rounded-lg border border-gray-200 p-4">
           <div className="flex items-center justify-between">
@@ -193,7 +299,6 @@ export default function ApprovalsTab({
         </div>
       </div>
 
-      {/* Filter Tabs */}
       <div className="flex items-center gap-2">
         {[
           {
@@ -227,7 +332,6 @@ export default function ApprovalsTab({
         ))}
       </div>
 
-      {/* Requests List */}
       <div className="space-y-4">
         {filteredRequests.length === 0 ? (
           <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
@@ -259,33 +363,29 @@ export default function ApprovalsTab({
               }`}
             >
               <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                {/* Left Side - Request Info */}
                 <div className="flex items-start gap-4 flex-1">
                   <img
-                    src={
-                      request.staffAvatar ||
-                      `https://avatar.iran.liara.run/public?username=${encodeURIComponent(
-                        request.staffName
-                      )}`
-                    }
-                    alt={request.staffName}
+                    src={`https://avatar.iran.liara.run/public?username=${encodeURIComponent(
+                      request.staff_name,
+                    )}`}
+                    alt={request.staff_name}
                     className="w-12 h-12 rounded-full"
                   />
                   <div className="flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h4 className="font-secondary font-semibold text-gray-900">
-                        {request.staffName}
+                        {request.staff_name}
                       </h4>
                       <span
                         className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-secondary font-medium ${getRequestTypeBadge(
-                          request.requestType
+                          request.request_type,
                         )}`}
                       >
-                        {getRequestTypeLabel(request.requestType)}
+                        {getRequestTypeLabel(request.request_type)}
                       </span>
                       <span
                         className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-secondary font-medium ${getStatusBadge(
-                          request.status
+                          request.status,
                         )}`}
                       >
                         {request.status.charAt(0).toUpperCase() +
@@ -293,34 +393,33 @@ export default function ApprovalsTab({
                       </span>
                     </div>
                     <p className="text-sm text-gray-600 font-secondary mt-1">
-                      {request.eventName} • {request.date}
+                      {request.event_name} • {request.staff_phone}
                     </p>
 
-                    {/* Time Details */}
                     <div className="mt-3 p-3 bg-gray-50 rounded-lg">
                       <div className="grid grid-cols-2 gap-4 text-sm">
                         <div>
-                          <p className="text-gray-500 font-secondary">
-                            Original
+                          <p className="text-gray-500 font-secondary mb-1">
+                            Requested Times
                           </p>
-                          <p className="font-secondary font-medium text-gray-900">
-                            {request.originalClockIn || "—"} →{" "}
-                            {request.originalClockOut || "—"}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-gray-500 font-secondary">
-                            Requested
-                          </p>
-                          <p className="font-secondary font-medium text-primary">
-                            {request.requestedClockIn || "—"} →{" "}
-                            {request.requestedClockOut || "—"}
-                          </p>
+                          <div className="space-y-0.5">
+                            <p className="font-secondary font-medium text-primary">
+                              <span className="text-xs text-gray-500">
+                                In:{" "}
+                              </span>
+                              {formatTime(request.requested_clock_in)}
+                            </p>
+                            <p className="font-secondary font-medium text-primary">
+                              <span className="text-xs text-gray-500">
+                                Out:{" "}
+                              </span>
+                              {formatTime(request.requested_clock_out)}
+                            </p>
+                          </div>
                         </div>
                       </div>
                     </div>
 
-                    {/* Reason */}
                     <div className="mt-3">
                       <p className="text-sm text-gray-500 font-secondary">
                         Reason:
@@ -330,44 +429,47 @@ export default function ApprovalsTab({
                       </p>
                     </div>
 
-                    {/* Rejection Reason */}
-                    {request.status === "rejected" &&
-                      request.rejectionReason && (
-                        <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
-                          <p className="text-sm text-red-700 font-secondary">
-                            <strong>Rejection Reason:</strong>{" "}
-                            {request.rejectionReason}
-                          </p>
-                        </div>
-                      )}
+                    {request.status === "rejected" && request.review_notes && (
+                      <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                        <p className="text-sm text-red-700 font-secondary">
+                          <strong>Rejection Reason:</strong>{" "}
+                          {request.review_notes}
+                        </p>
+                      </div>
+                    )}
 
-                    {/* Meta Info */}
                     <div className="mt-3 flex items-center gap-4 text-xs text-gray-400 font-secondary">
                       <span>
-                        Requested: {formatDateTime(request.requestedAt)}
+                        Requested: {formatDateTime(request.created_at)}
                       </span>
-                      {request.reviewedBy && (
-                        <span>Reviewed by {request.reviewedBy}</span>
+                      {request.reviewed_at && (
+                        <>
+                          <span>•</span>
+                          <span>
+                            Reviewed: {formatDateTime(request.reviewed_at)}
+                          </span>
+                        </>
                       )}
                     </div>
                   </div>
                 </div>
 
-                {/* Right Side - Actions */}
                 {request.status === "pending" && (
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => onApprove(request.id)}
-                      className="px-4 py-2 text-sm font-secondary font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
+                      onClick={() => handleApprove(request.id)}
+                      disabled={isProcessing}
+                      className="px-4 py-2 text-sm font-secondary font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      Approve
+                      {isProcessing ? "Processing..." : "Approve"}
                     </button>
                     <button
                       onClick={() => {
                         setSelectedRequest(request);
                         setShowRejectModal(true);
                       }}
-                      className="px-4 py-2 text-sm font-secondary font-medium text-red-600 bg-white border border-red-300 rounded-lg hover:bg-red-50 transition-colors"
+                      disabled={isProcessing}
+                      className="px-4 py-2 text-sm font-secondary font-medium text-red-600 bg-white border border-red-300 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Reject
                     </button>
@@ -379,7 +481,6 @@ export default function ApprovalsTab({
         )}
       </div>
 
-      {/* Reject Modal */}
       {showRejectModal && selectedRequest && (
         <div className="fixed inset-0 bg-gray-700/70 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
@@ -389,7 +490,7 @@ export default function ApprovalsTab({
               </h3>
               <p className="text-sm text-gray-600 font-secondary mt-1">
                 Rejecting time correction request from{" "}
-                {selectedRequest.staffName}
+                {selectedRequest.staff_name}
               </p>
             </div>
             <div className="p-6">
@@ -411,20 +512,21 @@ export default function ApprovalsTab({
                   setSelectedRequest(null);
                   setRejectionReason("");
                 }}
-                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 font-secondary font-medium"
+                disabled={isProcessing}
+                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 font-secondary font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
               <button
                 onClick={handleReject}
-                disabled={!rejectionReason.trim()}
+                disabled={!rejectionReason.trim() || isProcessing}
                 className={`px-4 py-2 rounded-lg font-secondary font-medium transition-colors ${
-                  rejectionReason.trim()
+                  rejectionReason.trim() && !isProcessing
                     ? "bg-red-600 text-white hover:bg-red-700"
                     : "bg-gray-300 text-gray-500 cursor-not-allowed"
                 }`}
               >
-                Reject Request
+                {isProcessing ? "Rejecting..." : "Reject Request"}
               </button>
             </div>
           </div>

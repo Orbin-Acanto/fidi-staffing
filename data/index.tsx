@@ -1,10 +1,6 @@
 import {
-  ActivityLog,
-  AttendanceSettings,
-  ClockEntry,
   CostForecast,
   CostMetrics,
-  DailyOverview,
   Event,
   EventCostBreakdown,
   JobWithdrawal,
@@ -18,11 +14,9 @@ import {
   ProfileActivityLog,
   ReportSummary,
   Settings,
-  StaffAttendanceSummary,
   StaffNote,
   StaffPayInfo,
   StaffReview,
-  TimeEditRequest,
 } from "@/type";
 
 export const navigation: NavSection[] = [
@@ -223,25 +217,25 @@ export const navigation: NavSection[] = [
           </svg>
         ),
       },
-      {
-        name: "Payroll",
-        href: "/admin/payroll",
-        icon: (
-          <svg
-            className="w-5 h-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
-        ),
-      },
+      // {
+      //   name: "Payroll",
+      //   href: "/admin/payroll",
+      //   icon: (
+      //     <svg
+      //       className="w-5 h-5"
+      //       fill="none"
+      //       stroke="currentColor"
+      //       viewBox="0 0 24 24"
+      //     >
+      //       <path
+      //         strokeLinecap="round"
+      //         strokeLinejoin="round"
+      //         strokeWidth={2}
+      //         d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+      //       />
+      //     </svg>
+      //   ),
+      // },
     ],
   },
 
@@ -1302,253 +1296,6 @@ export const staffNotes: StaffNote[] = [
 
 const today = new Date().toISOString().split("T")[0];
 
-export const attendanceSettings: AttendanceSettings = {
-  clockInGracePeriod: 15,
-  clockOutGracePeriod: 15,
-  autoClockOutEnabled: true,
-  autoClockOutAfter: 6,
-  gpsRestrictionEnabled: true,
-  geofenceRadius: 250,
-  requirePhotoVerification: false,
-  lateThresholdMinutes: 15,
-  earlyClockInAllowed: true,
-  earlyClockInMinutes: 45,
-  missedPunchAutoFlag: true,
-  manualTimeEditRequiresApproval: true,
-  overtimeRequiresApproval: true,
-  overtimeThresholdHours: 40,
-  noShowAfterMinutes: 45,
-  autoFlagNoShow: true,
-};
-
-export const todayClockEntries: ClockEntry[] = [
-  {
-    id: "clock_1",
-    staffId: "staff_1",
-    staffName: "Michael Rodriguez",
-    eventId: "evt_1",
-    eventName: "Corporate Gala",
-    date: today,
-    scheduledStart: "09:00",
-    scheduledEnd: "17:00",
-    clockIn: "08:55",
-    status: "clocked-in",
-    punctuality: "on-time",
-    totalHours: 5.5,
-    location: {
-      clockInLocation: "48 Wall St, New York",
-      isWithinGeofence: true,
-    },
-    isApproved: true,
-  },
-  {
-    id: "clock_2",
-    staffId: "staff_2",
-    staffName: "Sarah Chen",
-    eventId: "evt_1",
-    eventName: "Corporate Gala",
-    date: today,
-    scheduledStart: "09:00",
-    scheduledEnd: "17:00",
-    clockIn: "09:12",
-    status: "clocked-in",
-    punctuality: "late",
-    lateMinutes: 12,
-    totalHours: 5.2,
-    location: {
-      clockInLocation: "48 Wall St, New York",
-      isWithinGeofence: true,
-    },
-    isApproved: false,
-  },
-  {
-    id: "clock_3",
-    staffId: "staff_3",
-    staffName: "David Park",
-    eventId: "evt_2",
-    eventName: "Wedding Reception",
-    date: today,
-    scheduledStart: "10:00",
-    scheduledEnd: "18:00",
-    clockIn: "09:45",
-    clockOut: "14:30",
-    status: "clocked-out",
-    punctuality: "early",
-    earlyMinutes: 15,
-    totalHours: 4.75,
-    location: {
-      clockInLocation: "The Plaza Hotel",
-      clockOutLocation: "The Plaza Hotel",
-      isWithinGeofence: true,
-    },
-    isApproved: true,
-  },
-  {
-    id: "clock_4",
-    staffId: "staff_4",
-    staffName: "Emily Thompson",
-    eventId: "evt_1",
-    eventName: "Corporate Gala",
-    date: today,
-    scheduledStart: "09:00",
-    scheduledEnd: "17:00",
-    status: "not-started",
-    punctuality: "on-time",
-    isApproved: false,
-  },
-  {
-    id: "clock_5",
-    staffId: "staff_5",
-    staffName: "James Wilson",
-    eventId: "evt_2",
-    eventName: "Wedding Reception",
-    date: today,
-    scheduledStart: "10:00",
-    scheduledEnd: "18:00",
-    status: "no-show",
-    punctuality: "no-show",
-    isApproved: false,
-    notes: "No contact received. First no-show incident.",
-  },
-  {
-    id: "clock_6",
-    staffId: "staff_6",
-    staffName: "Amanda Foster",
-    eventId: "evt_3",
-    eventName: "Tech Conference",
-    date: today,
-    scheduledStart: "08:00",
-    scheduledEnd: "16:00",
-    clockIn: "07:50",
-    clockOut: "16:15",
-    status: "clocked-out",
-    punctuality: "on-time",
-    totalHours: 8.42,
-    overtimeHours: 0.42,
-    location: {
-      clockInLocation: "Javits Center",
-      clockOutLocation: "Javits Center",
-      isWithinGeofence: true,
-    },
-    isApproved: true,
-  },
-  {
-    id: "clock_7",
-    staffId: "staff_7",
-    staffName: "Robert Kim",
-    eventId: "evt_3",
-    eventName: "Tech Conference",
-    date: today,
-    scheduledStart: "08:00",
-    scheduledEnd: "16:00",
-    clockIn: "08:25",
-    status: "clocked-in",
-    punctuality: "late",
-    lateMinutes: 25,
-    totalHours: 6.1,
-    location: {
-      clockInLocation: "Unknown Location",
-      isWithinGeofence: false,
-    },
-    isApproved: false,
-    notes: "Clocked in outside geofence. Needs verification.",
-  },
-  {
-    id: "clock_8",
-    staffId: "staff_8",
-    staffName: "Jessica Williams",
-    eventId: "evt_4",
-    eventName: "Private Party",
-    date: today,
-    scheduledStart: "18:00",
-    scheduledEnd: "23:00",
-    status: "not-started",
-    punctuality: "on-time",
-    isApproved: false,
-  },
-];
-
-export const timeEditRequests: TimeEditRequest[] = [
-  {
-    id: "req_1",
-    staffId: "staff_2",
-    staffName: "Sarah Chen",
-    clockEntryId: "clock_2",
-    eventName: "Corporate Gala",
-    date: today,
-    originalClockIn: "09:12",
-    requestedClockIn: "08:58",
-    reason:
-      "Traffic delay caused late scan, but I arrived at 8:58 AM. Security can verify.",
-    requestType: "time-correction",
-    status: "pending",
-    requestedAt: "2025-01-02T09:30:00",
-  },
-  {
-    id: "req_2",
-    staffId: "staff_9",
-    staffName: "Daniel Brown",
-    clockEntryId: "clock_prev_1",
-    eventName: "Holiday Party",
-    date: "2025-01-01",
-    originalClockOut: undefined,
-    requestedClockOut: "22:30",
-    reason: "Forgot to clock out. Left at 10:30 PM with supervisor Maria.",
-    requestType: "forgot-clock-out",
-    status: "pending",
-    requestedAt: "2025-01-02T08:00:00",
-  },
-  {
-    id: "req_3",
-    staffId: "staff_10",
-    staffName: "Lisa Martinez",
-    clockEntryId: "clock_prev_2",
-    eventName: "New Year Gala",
-    date: "2024-12-31",
-    originalClockIn: undefined,
-    originalClockOut: undefined,
-    requestedClockIn: "19:00",
-    requestedClockOut: "02:00",
-    reason: "Phone died, couldn't clock in/out. Worked full shift.",
-    requestType: "missed-punch",
-    status: "pending",
-    requestedAt: "2025-01-01T10:00:00",
-  },
-  {
-    id: "req_4",
-    staffId: "staff_3",
-    staffName: "David Park",
-    clockEntryId: "clock_prev_3",
-    eventName: "Corporate Lunch",
-    date: "2024-12-30",
-    originalClockIn: "11:45",
-    requestedClockIn: "11:30",
-    reason: "App crashed during clock-in. Arrived at 11:30.",
-    requestType: "time-correction",
-    status: "approved",
-    requestedAt: "2024-12-30T12:00:00",
-    reviewedBy: "John Mitchell",
-    reviewedAt: "2024-12-30T14:00:00",
-  },
-  {
-    id: "req_5",
-    staffId: "staff_11",
-    staffName: "Kevin O'Brien",
-    clockEntryId: "clock_prev_4",
-    eventName: "Charity Dinner",
-    date: "2024-12-28",
-    originalClockIn: "17:15",
-    requestedClockIn: "17:00",
-    reason: "Was helping with setup before clocking in.",
-    requestType: "time-correction",
-    status: "rejected",
-    requestedAt: "2024-12-28T22:00:00",
-    reviewedBy: "Sarah Chen",
-    reviewedAt: "2024-12-29T09:00:00",
-    rejectionReason: "No supervisor verification of early arrival.",
-  },
-];
-
 export const jobWithdrawals: JobWithdrawal[] = [
   {
     id: "withdraw_1",
@@ -1637,103 +1384,13 @@ export const overtimeAlerts: OvertimeAlert[] = [
   },
 ];
 
-export const staffAttendanceSummaries: StaffAttendanceSummary[] = [
-  {
-    staffId: "staff_1",
-    staffName: "Michael Rodriguez",
-    period: "month",
-    totalShifts: 22,
-    attendedShifts: 22,
-    noShows: 0,
-    lateArrivals: 1,
-    earlyDepartures: 0,
-    totalHoursWorked: 186,
-    overtimeHours: 18,
-    attendanceRate: 100,
-    reliabilityScore: 98,
-    pendingRequests: 0,
-  },
-  {
-    staffId: "staff_2",
-    staffName: "Sarah Chen",
-    period: "month",
-    totalShifts: 20,
-    attendedShifts: 20,
-    noShows: 0,
-    lateArrivals: 3,
-    earlyDepartures: 1,
-    totalHoursWorked: 165,
-    overtimeHours: 8,
-    attendanceRate: 100,
-    reliabilityScore: 92,
-    pendingRequests: 1,
-  },
-  {
-    staffId: "staff_3",
-    staffName: "David Park",
-    period: "month",
-    totalShifts: 18,
-    attendedShifts: 17,
-    noShows: 1,
-    lateArrivals: 2,
-    earlyDepartures: 2,
-    totalHoursWorked: 142,
-    overtimeHours: 12,
-    attendanceRate: 94,
-    reliabilityScore: 85,
-    pendingRequests: 0,
-  },
-  {
-    staffId: "staff_5",
-    staffName: "James Wilson",
-    period: "month",
-    totalShifts: 15,
-    attendedShifts: 12,
-    noShows: 3,
-    lateArrivals: 4,
-    earlyDepartures: 1,
-    totalHoursWorked: 95,
-    overtimeHours: 0,
-    attendanceRate: 80,
-    reliabilityScore: 65,
-    pendingRequests: 0,
-  },
-  {
-    staffId: "staff_6",
-    staffName: "Amanda Foster",
-    period: "month",
-    totalShifts: 19,
-    attendedShifts: 19,
-    noShows: 0,
-    lateArrivals: 0,
-    earlyDepartures: 0,
-    totalHoursWorked: 158,
-    overtimeHours: 6,
-    attendanceRate: 100,
-    reliabilityScore: 100,
-    pendingRequests: 0,
-  },
-];
-
-export const dailyOverview: DailyOverview = {
-  date: today,
-  totalScheduled: 8,
-  clockedIn: 4,
-  clockedOut: 2,
-  notStarted: 2,
-  late: 2,
-  noShows: 1,
-  pendingApprovals: 5,
-  overtimeAlerts: 3,
-};
-
 export const payrollSettings: PayrollSettings = {
   defaultOvertimeMultiplier: 1.5,
   overtimeThresholdDaily: 8,
   overtimeThresholdWeekly: 40,
   defaultTaxRate: 15,
   payPeriod: "bi-weekly",
-  payDayOfWeek: 5, // Friday
+  payDayOfWeek: 5,
   payDayOfMonth: 15,
   autoApproveThreshold: 500,
   requireApprovalForOvertime: true,

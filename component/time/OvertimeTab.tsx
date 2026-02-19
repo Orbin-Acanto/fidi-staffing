@@ -1,110 +1,183 @@
 "use client";
 
-import { OvertimeAlert } from "@/type";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import {
+  getClockEntries,
+  getAttendanceStatistics,
+} from "@/services/dashboard-api";
+import { toastError } from "@/lib/toast";
+import LoadingSpinner from "@/component/shared/LoadingSpinner";
+import { AttendanceStatistics, ClockEntry } from "@/type/attendance";
 
-interface OvertimeTabProps {
-  alerts: OvertimeAlert[];
-  onAcknowledge: (alertId: string) => void;
+interface OverviewTabProps {
+  dateRange: { date_from: string; date_to: string };
+  selectedCompany?: string;
+  selectedEvent?: string;
 }
 
-export default function OvertimeTab({
-  alerts,
-  onAcknowledge,
-}: OvertimeTabProps) {
-  const [filter, setFilter] = useState<
-    "all" | "approaching" | "exceeded" | "critical"
-  >("all");
+interface StaffSummary {
+  staff_id: string;
+  staff_name: string;
+  staff_avatar: string | null;
+  total_shifts: number;
+  attended_shifts: number;
+  no_shows: number;
+  late_arrivals: number;
+  total_hours: number;
+  reliability_score: number;
+}
 
-  const filteredAlerts = alerts.filter((alert) =>
-    filter === "all" ? true : alert.alertType === filter
+export default function OverviewTab({
+  dateRange,
+  selectedCompany,
+  selectedEvent,
+}: OverviewTabProps) {
+  const [statistics, setStatistics] = useState<AttendanceStatistics | null>(
+    null,
   );
+  const [clockEntries, setClockEntries] = useState<ClockEntry[]>([]);
+  const [staffSummaries, setStaffSummaries] = useState<StaffSummary[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const getAlertBadge = (type: string) => {
-    switch (type) {
-      case "approaching":
-        return "bg-yellow-100 text-yellow-700 border-yellow-200";
-      case "exceeded":
-        return "bg-orange-100 text-orange-700 border-orange-200";
-      case "critical":
-        return "bg-red-100 text-red-700 border-red-200";
-      default:
-        return "bg-gray-100 text-gray-700 border-gray-200";
+  useEffect(() => {
+    fetchOverviewData();
+    const interval = setInterval(fetchOverviewData, 60000);
+    return () => clearInterval(interval);
+  }, [dateRange, selectedCompany, selectedEvent]);
+
+  const fetchOverviewData = async () => {
+    setIsLoading(true);
+    try {
+      const statsResponse = await getAttendanceStatistics({
+        date_from: dateRange.date_from,
+        date_to: dateRange.date_to,
+        company_id: selectedCompany,
+      });
+
+      if (statsResponse.success && statsResponse.data) {
+        setStatistics(statsResponse.data);
+      }
+
+      const entriesResponse = await getClockEntries({
+        date_from: dateRange.date_from,
+        date_to: dateRange.date_to,
+        company_id: selectedCompany,
+        event_id: selectedEvent,
+        page_size: 1000,
+      });
+
+      if (entriesResponse.success && entriesResponse.data) {
+        setClockEntries(entriesResponse.data.results);
+        calculateStaffSummaries(entriesResponse.data.results);
+      }
+    } catch (err) {
+      toastError(err, "Failed to load overview data");
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const getAlertIcon = (type: string) => {
-    switch (type) {
-      case "approaching":
-        return (
-          <svg
-            className="w-5 h-5 text-yellow-500"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-            />
-          </svg>
+  const calculateStaffSummaries = (entries: ClockEntry[]) => {
+    const staffMap = new Map<string, StaffSummary>();
+
+    entries.forEach((entry) => {
+      const staffId = entry.staff.id;
+
+      if (!staffMap.has(staffId)) {
+        staffMap.set(staffId, {
+          staff_id: staffId,
+          staff_name: entry.staff.name,
+          staff_avatar: entry.staff.avatar,
+          total_shifts: 0,
+          attended_shifts: 0,
+          no_shows: 0,
+          late_arrivals: 0,
+          total_hours: 0,
+          reliability_score: 0,
+        });
+      }
+
+      const summary = staffMap.get(staffId)!;
+      summary.total_shifts++;
+
+      if (entry.status === "checked_in" || entry.status === "checked_out") {
+        summary.attended_shifts++;
+        summary.total_hours += entry.total_hours;
+      }
+
+      if (entry.status === "no_show") {
+        summary.no_shows++;
+      }
+
+      if (entry.punctuality === "late") {
+        summary.late_arrivals++;
+      }
+    });
+
+    staffMap.forEach((summary) => {
+      if (summary.total_shifts > 0) {
+        const attendanceRate =
+          (summary.attended_shifts / summary.total_shifts) * 100;
+        const punctualityRate =
+          summary.attended_shifts > 0
+            ? ((summary.attended_shifts - summary.late_arrivals) /
+                summary.attended_shifts) *
+              100
+            : 100;
+        summary.reliability_score = Math.round(
+          attendanceRate * 0.7 + punctualityRate * 0.3,
         );
-      case "exceeded":
-        return (
-          <svg
-            className="w-5 h-5 text-orange-500"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
-        );
-      case "critical":
-        return (
-          <svg
-            className="w-5 h-5 text-red-500"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-            />
-          </svg>
-        );
-      default:
-        return null;
-    }
+      }
+    });
+
+    const summariesArray = Array.from(staffMap.values());
+    summariesArray.sort((a, b) => b.reliability_score - a.reliability_score);
+    setStaffSummaries(summariesArray);
   };
+
+  const lateStaff = clockEntries.filter((e) => e.punctuality === "late");
+  const noShowStaff = clockEntries.filter((e) => e.status === "no_show");
+  const clockedInStaff = clockEntries.filter((e) => e.status === "checked_in");
+
+  const getReliabilityColor = (score: number) => {
+    if (score >= 95) return "text-green-600 bg-green-50";
+    if (score >= 85) return "text-yellow-600 bg-yellow-50";
+    if (score >= 70) return "text-orange-600 bg-orange-50";
+    return "text-red-600 bg-red-50";
+  };
+
+  const formatTime = (datetime: string | null) => {
+    if (!datetime) return "—";
+    return new Date(datetime).toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <LoadingSpinner size="lg" text="Loading overview..." />
+      </div>
+    );
+  }
+
+  if (!statistics) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-gray-500 font-secondary">No data available</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
         <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-secondary text-gray-500">
-                Total Alerts
-              </p>
-              <p className="text-2xl font-primary font-bold text-gray-900">
-                {alerts.length}
-              </p>
-            </div>
-            <div className="p-2 bg-gray-100 rounded-lg">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="p-1.5 bg-blue-50 rounded-lg">
               <svg
-                className="w-6 h-6 text-gray-600"
+                className="w-4 h-4 text-blue-600"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -113,25 +186,22 @@ export default function OvertimeTab({
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
                 />
               </svg>
             </div>
           </div>
+          <p className="text-2xl font-primary font-bold text-gray-900">
+            {statistics.overview.total_entries}
+          </p>
+          <p className="text-xs font-secondary text-gray-500">Total Entries</p>
         </div>
-        <div className="bg-white rounded-lg border border-yellow-200 p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-secondary text-gray-500">
-                Approaching
-              </p>
-              <p className="text-2xl font-primary font-bold text-yellow-600">
-                {alerts.filter((a) => a.alertType === "approaching").length}
-              </p>
-            </div>
-            <div className="p-2 bg-yellow-50 rounded-lg">
+
+        <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="p-1.5 bg-green-50 rounded-lg">
               <svg
-                className="w-6 h-6 text-yellow-600"
+                className="w-4 h-4 text-green-600"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -140,23 +210,46 @@ export default function OvertimeTab({
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                 />
               </svg>
             </div>
           </div>
+          <p className="text-2xl font-primary font-bold text-green-600">
+            {statistics.overview.checked_in}
+          </p>
+          <p className="text-xs font-secondary text-gray-500">Clocked In</p>
         </div>
-        <div className="bg-white rounded-lg border border-orange-200 p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-secondary text-gray-500">Exceeded</p>
-              <p className="text-2xl font-primary font-bold text-orange-600">
-                {alerts.filter((a) => a.alertType === "exceeded").length}
-              </p>
-            </div>
-            <div className="p-2 bg-orange-50 rounded-lg">
+
+        <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="p-1.5 bg-gray-100 rounded-lg">
               <svg
-                className="w-6 h-6 text-orange-600"
+                className="w-4 h-4 text-gray-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                />
+              </svg>
+            </div>
+          </div>
+          <p className="text-2xl font-primary font-bold text-gray-600">
+            {statistics.overview.checked_out}
+          </p>
+          <p className="text-xs font-secondary text-gray-500">Clocked Out</p>
+        </div>
+
+        <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="p-1.5 bg-purple-50 rounded-lg">
+              <svg
+                className="w-4 h-4 text-purple-600"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -170,18 +263,17 @@ export default function OvertimeTab({
               </svg>
             </div>
           </div>
+          <p className="text-2xl font-primary font-bold text-purple-600">
+            {statistics.overview.not_started}
+          </p>
+          <p className="text-xs font-secondary text-gray-500">Not Started</p>
         </div>
-        <div className="bg-white rounded-lg border border-red-200 p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-secondary text-gray-500">Critical</p>
-              <p className="text-2xl font-primary font-bold text-red-600">
-                {alerts.filter((a) => a.alertType === "critical").length}
-              </p>
-            </div>
-            <div className="p-2 bg-red-50 rounded-lg">
+
+        <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="p-1.5 bg-yellow-50 rounded-lg">
               <svg
-                className="w-6 h-6 text-red-600"
+                className="w-4 h-4 text-yellow-600"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -190,223 +282,442 @@ export default function OvertimeTab({
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
                 />
               </svg>
             </div>
           </div>
+          <p className="text-2xl font-primary font-bold text-yellow-600">
+            {statistics.punctuality.late}
+          </p>
+          <p className="text-xs font-secondary text-gray-500">Late</p>
+        </div>
+
+        <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="p-1.5 bg-red-50 rounded-lg">
+              <svg
+                className="w-4 h-4 text-red-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            </div>
+          </div>
+          <p className="text-2xl font-primary font-bold text-red-600">
+            {statistics.overview.no_shows}
+          </p>
+          <p className="text-xs font-secondary text-gray-500">No Shows</p>
+        </div>
+
+        <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="p-1.5 bg-orange-50 rounded-lg">
+              <svg
+                className="w-4 h-4 text-orange-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                />
+              </svg>
+            </div>
+          </div>
+          <p className="text-2xl font-primary font-bold text-orange-600">
+            {statistics.approvals.pending_approval}
+          </p>
+          <p className="text-xs font-secondary text-gray-500">Pending</p>
+        </div>
+
+        <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="p-1.5 bg-indigo-50 rounded-lg">
+              <svg
+                className="w-4 h-4 text-indigo-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            </div>
+          </div>
+          <p className="text-2xl font-primary font-bold text-indigo-600">
+            {statistics.hours.total_hours.toFixed(1)}h
+          </p>
+          <p className="text-xs font-secondary text-gray-500">Total Hours</p>
         </div>
       </div>
 
-      {/* Filter */}
-      <div className="flex items-center gap-2">
-        {[
-          { value: "all", label: "All Alerts" },
-          { value: "critical", label: "Critical" },
-          { value: "exceeded", label: "Exceeded" },
-          { value: "approaching", label: "Approaching" },
-        ].map((option) => (
-          <button
-            key={option.value}
-            onClick={() => setFilter(option.value as any)}
-            className={`px-4 py-2 text-sm font-secondary font-medium rounded-lg transition-colors ${
-              filter === option.value
-                ? "bg-primary text-white"
-                : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
-            }`}
-          >
-            {option.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Alerts List */}
-      <div className="space-y-4">
-        {filteredAlerts.length === 0 ? (
-          <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
-            <svg
-              className="w-12 h-12 text-green-300 mx-auto mb-3"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            <p className="text-gray-500 font-secondary">No overtime alerts</p>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white rounded-lg border border-gray-200">
+          <div className="p-4 border-b border-gray-200">
+            <h3 className="font-primary font-semibold text-gray-900 flex items-center gap-2">
+              <svg
+                className="w-5 h-5 text-yellow-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              Late Arrivals ({lateStaff.length})
+            </h3>
           </div>
-        ) : (
-          filteredAlerts.map((alert) => (
-            <div
-              key={alert.id}
-              className={`bg-white rounded-lg border p-4 ${
-                alert.alertType === "critical"
-                  ? "border-red-300"
-                  : alert.alertType === "exceeded"
-                  ? "border-orange-300"
-                  : "border-yellow-300"
-              }`}
-            >
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  <div className="relative">
+          <div className="divide-y divide-gray-100 max-h-96 overflow-y-auto">
+            {lateStaff.length === 0 ? (
+              <div className="p-6 text-center">
+                <svg
+                  className="w-10 h-10 text-green-300 mx-auto mb-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <p className="text-sm text-gray-500 font-secondary">
+                  No late arrivals!
+                </p>
+              </div>
+            ) : (
+              lateStaff.map((entry) => (
+                <div
+                  key={entry.id}
+                  className="p-4 flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-3">
                     <img
                       src={
-                        alert.staffAvatar ||
+                        entry.staff.avatar ||
                         `https://avatar.iran.liara.run/public?username=${encodeURIComponent(
-                          alert.staffName
+                          entry.staff.name,
                         )}`
                       }
-                      alt={alert.staffName}
-                      className="w-12 h-12 rounded-full"
+                      alt={entry.staff.name}
+                      className="w-10 h-10 rounded-full"
                     />
-                    <div className="absolute -bottom-1 -right-1 p-1 bg-white rounded-full shadow">
-                      {getAlertIcon(alert.alertType)}
+                    <div>
+                      <p className="font-secondary font-medium text-gray-900">
+                        {entry.staff.name}
+                      </p>
+                      <p className="text-xs text-gray-500 font-secondary">
+                        {entry.event.name}
+                      </p>
                     </div>
                   </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h4 className="font-secondary font-semibold text-gray-900">
-                        {alert.staffName}
-                      </h4>
-                      <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-secondary font-medium border ${getAlertBadge(
-                          alert.alertType
-                        )}`}
-                      >
-                        {alert.alertType.charAt(0).toUpperCase() +
-                          alert.alertType.slice(1)}
-                      </span>
-                      {alert.isAcknowledged && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-secondary font-medium bg-gray-100 text-gray-600">
-                          Acknowledged
-                        </span>
-                      )}
+                  <div className="text-right">
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-secondary font-medium bg-yellow-100 text-yellow-700">
+                      {Math.abs(entry.time_difference_minutes || 0)} min late
+                    </span>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {formatTime(entry.scheduled_start)} |{" "}
+                      {formatTime(entry.clock_in_time)}
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg border border-gray-200">
+          <div className="p-4 border-b border-gray-200">
+            <h3 className="font-primary font-semibold text-gray-900 flex items-center gap-2">
+              <svg
+                className="w-5 h-5 text-red-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              No Shows ({noShowStaff.length})
+            </h3>
+          </div>
+          <div className="divide-y divide-gray-100 max-h-96 overflow-y-auto">
+            {noShowStaff.length === 0 ? (
+              <div className="p-6 text-center">
+                <svg
+                  className="w-10 h-10 text-green-300 mx-auto mb-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <p className="text-sm text-gray-500 font-secondary">
+                  No missing staff!
+                </p>
+              </div>
+            ) : (
+              noShowStaff.map((entry) => (
+                <div
+                  key={entry.id}
+                  className="p-4 flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={
+                        entry.staff.avatar ||
+                        `https://avatar.iran.liara.run/public?username=${encodeURIComponent(
+                          entry.staff.name,
+                        )}`
+                      }
+                      alt={entry.staff.name}
+                      className="w-10 h-10 rounded-full"
+                    />
+                    <div>
+                      <p className="font-secondary font-medium text-gray-900">
+                        {entry.staff.name}
+                      </p>
+                      <p className="text-xs text-gray-500 font-secondary">
+                        {entry.event.name}
+                      </p>
                     </div>
-                    <p className="text-sm text-gray-500 font-secondary">
-                      Week of {alert.weekStartDate}
+                  </div>
+                  <div className="text-right">
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-secondary font-medium bg-red-100 text-red-700">
+                      No Show
+                    </span>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {formatTime(entry.scheduled_start)} -{" "}
+                      {formatTime(entry.scheduled_end)}
                     </p>
                   </div>
                 </div>
-
-                <div className="flex items-center gap-6">
-                  <div className="text-center">
-                    <p className="text-lg font-primary font-bold text-gray-900">
-                      {alert.regularHours}h
-                    </p>
-                    <p className="text-xs text-gray-500 font-secondary">
-                      Regular
-                    </p>
-                  </div>
-                  <div className="text-center">
-                    <p
-                      className={`text-lg font-primary font-bold ${
-                        alert.overtimeHours > 0
-                          ? "text-orange-600"
-                          : "text-gray-400"
-                      }`}
-                    >
-                      {alert.overtimeHours}h
-                    </p>
-                    <p className="text-xs text-gray-500 font-secondary">
-                      Overtime
-                    </p>
-                  </div>
-                  <div className="text-center">
-                    <p
-                      className={`text-lg font-primary font-bold ${
-                        alert.alertType === "critical"
-                          ? "text-red-600"
-                          : alert.alertType === "exceeded"
-                          ? "text-orange-600"
-                          : "text-yellow-600"
-                      }`}
-                    >
-                      +{alert.projectedOvertime}h
-                    </p>
-                    <p className="text-xs text-gray-500 font-secondary">
-                      Projected
-                    </p>
-                  </div>
-
-                  {!alert.isAcknowledged && (
-                    <button
-                      onClick={() => onAcknowledge(alert.id)}
-                      className="px-4 py-2 text-sm font-secondary font-medium text-white bg-primary rounded-lg hover:bg-primary/80 transition-colors"
-                    >
-                      Acknowledge
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Progress Bar */}
-              <div className="mt-4">
-                <div className="flex items-center justify-between text-xs text-gray-500 font-secondary mb-1">
-                  <span>Weekly Hours</span>
-                  <span>
-                    {alert.regularHours + alert.overtimeHours}h / 40h limit
-                  </span>
-                </div>
-                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="h-full flex">
-                    <div
-                      className="bg-green-500"
-                      style={{
-                        width: `${Math.min(
-                          (alert.regularHours / 60) * 100,
-                          66.67
-                        )}%`,
-                      }}
-                    ></div>
-                    <div
-                      className={`${
-                        alert.alertType === "critical"
-                          ? "bg-red-500"
-                          : alert.alertType === "exceeded"
-                          ? "bg-orange-500"
-                          : "bg-yellow-500"
-                      }`}
-                      style={{ width: `${(alert.overtimeHours / 60) * 100}%` }}
-                    ></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-
-      {/* Legend */}
-      <div className="bg-gray-50 rounded-lg p-4">
-        <p className="text-xs font-secondary font-medium text-gray-500 mb-2">
-          Alert Types:
-        </p>
-        <div className="flex flex-wrap gap-4">
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-3 bg-yellow-500 rounded-full"></span>
-            <span className="text-xs text-gray-600 font-secondary">
-              Approaching - Close to 40h limit
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-3 bg-orange-500 rounded-full"></span>
-            <span className="text-xs text-gray-600 font-secondary">
-              Exceeded - Over 40h threshold
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-3 bg-red-500 rounded-full"></span>
-            <span className="text-xs text-gray-600 font-secondary">
-              Critical - Significantly over limit
-            </span>
+              ))
+            )}
           </div>
         </div>
       </div>
+
+      <div className="bg-white rounded-lg border border-gray-200">
+        <div className="p-4 border-b border-gray-200">
+          <h3 className="font-primary font-semibold text-gray-900 flex items-center gap-2">
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+            Currently Clocked In ({clockedInStaff.length})
+          </h3>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-secondary font-semibold text-gray-600 uppercase">
+                  Staff
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-secondary font-semibold text-gray-600 uppercase">
+                  Event
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-secondary font-semibold text-gray-600 uppercase">
+                  Clock In
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-secondary font-semibold text-gray-600 uppercase">
+                  Hours
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-secondary font-semibold text-gray-600 uppercase">
+                  Status
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {clockedInStaff.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-4 py-8 text-center">
+                    <p className="text-gray-500 font-secondary text-sm">
+                      No staff currently clocked in
+                    </p>
+                  </td>
+                </tr>
+              ) : (
+                clockedInStaff.map((entry) => (
+                  <tr key={entry.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={
+                            entry.staff.avatar ||
+                            `https://avatar.iran.liara.run/public?username=${encodeURIComponent(
+                              entry.staff.name,
+                            )}`
+                          }
+                          alt={entry.staff.name}
+                          className="w-8 h-8 rounded-full"
+                        />
+                        <span className="font-secondary font-medium text-gray-900">
+                          {entry.staff.name}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-600 font-secondary">
+                      {entry.event.name}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-900 font-secondary">
+                      {formatTime(entry.clock_in_time)}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-900 font-secondary">
+                      {entry.total_hours.toFixed(1)}h
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-secondary font-medium ${
+                          entry.punctuality === "on_time"
+                            ? "bg-green-100 text-green-700"
+                            : entry.punctuality === "late"
+                              ? "bg-yellow-100 text-yellow-700"
+                              : "bg-blue-100 text-blue-700"
+                        }`}
+                      >
+                        {entry.punctuality === "on_time"
+                          ? "On Time"
+                          : entry.punctuality === "late"
+                            ? `${Math.abs(entry.time_difference_minutes || 0)}m Late`
+                            : "Early"}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {staffSummaries.length > 0 && (
+        <div className="bg-white rounded-lg border border-gray-200">
+          <div className="p-4 border-b border-gray-200">
+            <h3 className="font-primary font-semibold text-gray-900">
+              Staff Reliability Scores (Selected Period)
+            </h3>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-secondary font-semibold text-gray-600 uppercase">
+                    Staff
+                  </th>
+                  <th className="px-4 py-3 text-center text-xs font-secondary font-semibold text-gray-600 uppercase">
+                    Shifts
+                  </th>
+                  <th className="px-4 py-3 text-center text-xs font-secondary font-semibold text-gray-600 uppercase">
+                    Attended
+                  </th>
+                  <th className="px-4 py-3 text-center text-xs font-secondary font-semibold text-gray-600 uppercase">
+                    No Shows
+                  </th>
+                  <th className="px-4 py-3 text-center text-xs font-secondary font-semibold text-gray-600 uppercase">
+                    Late
+                  </th>
+                  <th className="px-4 py-3 text-center text-xs font-secondary font-semibold text-gray-600 uppercase">
+                    Hours
+                  </th>
+                  <th className="px-4 py-3 text-center text-xs font-secondary font-semibold text-gray-600 uppercase">
+                    Reliability
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {staffSummaries.slice(0, 20).map((staff) => (
+                  <tr key={staff.staff_id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={
+                            staff.staff_avatar ||
+                            `https://avatar.iran.liara.run/public?username=${encodeURIComponent(
+                              staff.staff_name,
+                            )}`
+                          }
+                          alt={staff.staff_name}
+                          className="w-8 h-8 rounded-full"
+                        />
+                        <span className="font-secondary font-medium text-gray-900">
+                          {staff.staff_name}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-center text-sm text-gray-900 font-secondary">
+                      {staff.total_shifts}
+                    </td>
+                    <td className="px-4 py-3 text-center text-sm text-green-600 font-secondary font-medium">
+                      {staff.attended_shifts}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <span
+                        className={`text-sm font-secondary font-medium ${
+                          staff.no_shows > 0 ? "text-red-600" : "text-gray-400"
+                        }`}
+                      >
+                        {staff.no_shows}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <span
+                        className={`text-sm font-secondary font-medium ${
+                          staff.late_arrivals > 0
+                            ? "text-yellow-600"
+                            : "text-gray-400"
+                        }`}
+                      >
+                        {staff.late_arrivals}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-center text-sm text-gray-900 font-secondary">
+                      {staff.total_hours.toFixed(1)}h
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <span
+                        className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-secondary font-bold ${getReliabilityColor(
+                          staff.reliability_score,
+                        )}`}
+                      >
+                        {staff.reliability_score}%
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
