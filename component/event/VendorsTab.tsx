@@ -294,25 +294,29 @@ export function VendorsTab({
                         {String(vendor.status || "assigned")}
                       </span>
 
-                      <button
-                        onClick={() => openEdit(vendor)}
-                        className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-                        disabled={isBusy}
-                        aria-label="Edit vendor assignment"
-                        title="Edit vendor assignment"
-                      >
-                        <PencilIcon />
-                      </button>
+                      {!isEditing && (
+                        <>
+                          <button
+                            onClick={() => openEdit(vendor)}
+                            className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                            disabled={isBusy}
+                            aria-label="Edit vendor assignment"
+                            title="Edit vendor assignment"
+                          >
+                            <PencilIcon />
+                          </button>
 
-                      <button
-                        onClick={() => removeVendor(vendor.id)}
-                        disabled={isBusy}
-                        className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 bg-white hover:bg-red-50 text-gray-700 hover:text-red-600 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-                        aria-label="Remove vendor assignment"
-                        title="Remove vendor assignment"
-                      >
-                        <XIcon />
-                      </button>
+                          <button
+                            onClick={() => removeVendor(vendor.id)}
+                            disabled={isBusy}
+                            className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 bg-white hover:bg-red-50 text-gray-700 hover:text-red-600 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                            aria-label="Remove vendor assignment"
+                            title="Remove vendor assignment"
+                          >
+                            <XIcon />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
 
