@@ -674,6 +674,9 @@ export default function EventDetailModal({
                 await fetchEvent();
                 onRefresh?.();
               }}
+              roleRequirements={roleRequirements}
+              formatCurrency={formatCurrency}
+              formatTime={formatTime}
             />
           )}
 

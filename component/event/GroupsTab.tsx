@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "@/lib/apiFetch";
 import { toastError, toastSuccess } from "@/lib/toast";
+import { RoleRequirement } from "@/type/events";
+import { PlusIcon, XIcon } from "@/utils";
 
 type AssignedGroup = {
   id: string;
@@ -20,52 +22,22 @@ type GroupListItem = {
   is_active?: boolean;
 };
 
-function PlusIcon() {
-  return (
-    <svg
-      className="w-5 h-5"
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M12 5v14M5 12h14"
-      />
-    </svg>
-  );
-}
-
-function XIcon() {
-  return (
-    <svg
-      className="w-4 h-4"
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M6 18L18 6M6 6l12 12"
-      />
-    </svg>
-  );
-}
-
 type GroupsTabProps = {
   eventId: string;
   assignedGroups: AssignedGroup[];
   onChanged: () => void;
+  roleRequirements: RoleRequirement[];
+  formatCurrency: (amount: string | number) => string;
+  formatTime: (time: string) => string;
 };
 
 export function GroupsTab({
   eventId,
   assignedGroups,
   onChanged,
+  roleRequirements,
+  formatCurrency,
+  formatTime,
 }: GroupsTabProps) {
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [isBusy, setIsBusy] = useState(false);
@@ -73,6 +45,11 @@ export function GroupsTab({
   const [groupSearch, setGroupSearch] = useState("");
   const [groupList, setGroupList] = useState<GroupListItem[]>([]);
   const [groupLoading, setGroupLoading] = useState(false);
+
+  const [selectedGroup, setSelectedGroup] = useState<GroupListItem | null>(
+    null,
+  );
+  const [selectedRoleReq, setSelectedRoleReq] = useState<string>("");
 
   const existingGroupIdSet = useMemo(() => {
     const s = new Set<string>();
@@ -106,9 +83,15 @@ export function GroupsTab({
     return () => window.clearTimeout(t);
   }, [groupSearch, isPickerOpen]);
 
-  const addGroupToEvent = async (group: GroupListItem) => {
+  const addGroupToEvent = async (group: GroupListItem, roleReqId: string) => {
     if (existingGroupIdSet.has(String(group.id))) {
       toastError("This group is already assigned to the event");
+      return;
+    }
+
+    const roleReq = roleRequirements.find((r) => r.id === roleReqId);
+    if (!roleReq) {
+      toastError("Please select a role requirement");
       return;
     }
 
@@ -116,8 +99,12 @@ export function GroupsTab({
     try {
       const body = {
         group_ids: [group.id],
+        role: roleReq.role,
+        role_requirement: roleReq.id,
+        pay_type: roleReq.pay_type,
+        pay_rate: Number(roleReq.event_rate),
         mode: "append",
-        add_staff: true,
+        notes: "",
       };
 
       const res = await apiFetch(`/api/events/${eventId}/groups/assign/`, {
@@ -128,6 +115,8 @@ export function GroupsTab({
       toastSuccess(res?.message || "Group assigned to event");
       await onChanged();
       setIsPickerOpen(false);
+      setSelectedGroup(null);
+      setSelectedRoleReq("");
     } catch (e: any) {
       console.error(e);
       toastError(e?.message || "Failed to assign group to event");
@@ -156,6 +145,23 @@ export function GroupsTab({
       toastError(e?.message || "Failed to remove group from event");
     } finally {
       setIsBusy(false);
+    }
+  };
+
+  const handleGroupClick = (group: GroupListItem) => {
+    const isAssigned = existingGroupIdSet.has(String(group.id));
+
+    if (isAssigned) {
+      toastError("This group is already assigned to the event");
+    } else {
+      setSelectedGroup(group);
+      setSelectedRoleReq("");
+    }
+  };
+
+  const handleRoleSelection = () => {
+    if (selectedGroup && selectedRoleReq) {
+      addGroupToEvent(selectedGroup, selectedRoleReq);
     }
   };
 
@@ -257,7 +263,11 @@ export function GroupsTab({
               </div>
 
               <button
-                onClick={() => setIsPickerOpen(false)}
+                onClick={() => {
+                  setIsPickerOpen(false);
+                  setSelectedGroup(null);
+                  setSelectedRoleReq("");
+                }}
                 className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 cursor-pointer"
                 aria-label="Close"
               >
@@ -290,36 +300,109 @@ export function GroupsTab({
                     return (
                       <li
                         key={g.id}
-                        className="p-4 flex items-center justify-between gap-3"
+                        className="p-4 flex flex-col items-center justify-between gap-3"
                       >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div
-                            className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-primary font-bold shrink-0"
-                            style={{ backgroundColor: g.color || "#6B7280" }}
-                          >
-                            {String(g.name || "G").charAt(0)}
+                        <div className="flex items-center gap-3 w-full justify-between">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div
+                              className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-primary font-bold shrink-0"
+                              style={{ backgroundColor: g.color || "#6B7280" }}
+                            >
+                              {String(g.name || "G").charAt(0)}
+                            </div>
+
+                            <div className="min-w-0">
+                              <p className="text-sm font-secondary font-semibold text-gray-900 truncate">
+                                {g.name}
+                              </p>
+                              <p className="text-xs text-gray-500 truncate">
+                                {g.company_name
+                                  ? `Company: ${g.company_name}`
+                                  : "Group"}
+                              </p>
+                            </div>
                           </div>
 
-                          <div className="min-w-0">
-                            <p className="text-sm font-secondary font-semibold text-gray-900 truncate">
-                              {g.name}
-                            </p>
-                            <p className="text-xs text-gray-500 truncate">
-                              {g.company_name
-                                ? `Company: ${g.company_name}`
-                                : "Group"}
-                            </p>
-                          </div>
+                          {!selectedGroup && (
+                            <button
+                              onClick={() => handleGroupClick(g)}
+                              disabled={isBusy || disabled}
+                              className="px-3 py-2 bg-primary text-white rounded-lg font-secondary font-semibold hover:bg-primary/80 disabled:opacity-60 disabled:cursor-not-allowed"
+                              title={
+                                disabled ? "Already assigned" : "Select group"
+                              }
+                            >
+                              {disabled ? "Added" : "Select"}
+                            </button>
+                          )}
                         </div>
 
-                        <button
-                          onClick={() => addGroupToEvent(g)}
-                          disabled={isBusy || disabled}
-                          className="px-3 py-2 bg-primary text-white rounded-lg font-secondary font-semibold hover:bg-primary/80 disabled:opacity-60 disabled:cursor-not-allowed"
-                          title={disabled ? "Already assigned" : "Assign group"}
-                        >
-                          {disabled ? "Added" : "Add"}
-                        </button>
+                        {selectedGroup?.id === g.id && (
+                          <div className="w-full mt-3 p-4 bg-blue-50 rounded-lg border border-blue-100">
+                            <p className="text-sm font-secondary font-semibold text-gray-900 mb-3">
+                              Select role for group members
+                            </p>
+
+                            <div className="space-y-2">
+                              {roleRequirements.map((roleReq) => (
+                                <button
+                                  key={roleReq.id}
+                                  onClick={() => setSelectedRoleReq(roleReq.id)}
+                                  className={`w-full p-3 text-left rounded-lg border-2 transition-all ${
+                                    selectedRoleReq === roleReq.id
+                                      ? "border-primary bg-white shadow-sm"
+                                      : "border-gray-200 bg-white hover:border-gray-300"
+                                  }`}
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex-1">
+                                      <p className="text-sm font-secondary font-semibold text-gray-900">
+                                        {roleReq.role_name}
+                                      </p>
+                                      <p className="text-xs text-gray-600 mt-1">
+                                        {formatTime(roleReq.start_time)} -{" "}
+                                        {formatTime(roleReq.end_time)}
+                                      </p>
+                                      <p className="text-xs text-gray-500 mt-1">
+                                        {formatCurrency(
+                                          Number(roleReq.event_rate),
+                                        )}
+                                        {roleReq.pay_type === "hourly"
+                                          ? " per hour"
+                                          : " fixed"}
+                                      </p>
+                                    </div>
+                                    <div className="text-right">
+                                      <p className="text-xs text-gray-500">
+                                        {roleReq.filled_count}/
+                                        {roleReq.staff_count} filled
+                                      </p>
+                                    </div>
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+
+                            <div className="flex gap-2 mt-3">
+                              <button
+                                onClick={() => {
+                                  setSelectedGroup(null);
+                                  setSelectedRoleReq("");
+                                }}
+                                className="flex-1 px-3 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-secondary font-medium text-sm"
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                onClick={handleRoleSelection}
+                                disabled={!selectedRoleReq || isBusy}
+                                className="flex-1 px-3 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 font-secondary font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                Assign Group
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </li>
                     );
                   })}
