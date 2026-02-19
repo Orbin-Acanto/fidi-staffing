@@ -6,7 +6,7 @@ export function proxy(request: NextRequest) {
   const refreshToken = request.cookies.get("refresh_token")?.value;
   const { pathname } = request.nextUrl;
 
-  const guestOnlyRoutes = ["/login", "/check-in"];
+  const guestOnlyRoutes = ["/login", "/check-in", "/contracts"];
   const publicRoutes = [
     "/accept-invitation",
     "/accept-invitation-1",

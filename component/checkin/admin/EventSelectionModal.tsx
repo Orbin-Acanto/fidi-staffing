@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import {
   getTodayEventsAttendance,
   startCheckInSessionAttendance,
+  stopCheckInSessionAttendance,
 } from "@/services/attendance-api";
 import LoadingSpinner from "@/component/shared/LoadingSpinner";
 import { EventType } from "@/type";
@@ -14,20 +15,25 @@ import { EventType } from "@/type";
 interface EventSelectionModalProps {
   isOpen: boolean;
   onClose: () => void;
+  sessionId: string;
   adminId: string;
   onSessionStart: (sessionId: string, event: EventType) => void;
+  onSessionEnded: () => void;
 }
 
 export default function EventSelectionModal({
   isOpen,
   onClose,
   adminId,
+  sessionId,
   onSessionStart,
+  onSessionEnded,
 }: EventSelectionModalProps) {
   const [events, setEvents] = useState<EventType[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<EventType | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
+  const [isEnding, setIsEnding] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -90,6 +96,25 @@ export default function EventSelectionModal({
       toastError(err, "Failed to start check-in session. Please try again.");
     } finally {
       setIsStarting(false);
+    }
+  };
+
+  const handleEndSession = async () => {
+    setIsEnding(true);
+
+    try {
+      const response = await stopCheckInSessionAttendance(sessionId, adminId);
+
+      if (response.success) {
+        toastSuccess("Check-in session ended successfully!");
+        onSessionEnded();
+      } else {
+        toastError(response.error, "Failed to end session");
+      }
+    } catch (err) {
+      toastError(err, "Failed to end session");
+    } finally {
+      setIsEnding(false);
     }
   };
 
@@ -236,31 +261,61 @@ export default function EventSelectionModal({
           )}
         </div>
 
-        <div className="p-6 border-t border-gray-200 bg-gray-50">
-          <div className="flex gap-3">
+        <div className="pb-4">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4 border-t border-gray-100">
             <button
               type="button"
               onClick={onClose}
               disabled={isStarting}
               className={cn(
-                "flex-1 py-3 px-4 rounded-lg font-secondary font-medium",
-                "bg-white border border-gray-300 text-gray-700",
-                "hover:bg-gray-50 transition-all duration-200",
-                "disabled:opacity-50 disabled:cursor-not-allowed",
+                "px-5 py-2.5 rounded-xl",
+                "font-secondary font-medium text-sm border border-gray-200",
+                "text-gray-600 hover:text-gray-900",
+                "bg-gray-100 hover:bg-gray-50",
+                "transition-all duration-200",
+                "disabled:opacity-40 disabled:cursor-not-allowed",
               )}
             >
               Cancel
             </button>
+
+            <button
+              type="button"
+              onClick={handleEndSession}
+              disabled={isEnding}
+              className={cn(
+                "px-5 py-2.5 rounded-xl",
+                "font-secondary font-semibold text-sm",
+                "bg-red-50 text-red-600 border border-red-100",
+                "hover:bg-red-100",
+                "transition-all duration-200",
+                "disabled:opacity-40 disabled:cursor-not-allowed",
+                "flex items-center gap-2",
+              )}
+            >
+              {isEnding ? (
+                <>
+                  <LoadingSpinner size="sm" />
+                  Ending...
+                </>
+              ) : (
+                "Start Check Out"
+              )}
+            </button>
+
             <button
               type="button"
               onClick={handleStartCheckIn}
               disabled={!selectedEvent || isStarting}
               className={cn(
-                "flex-1 py-3 px-4 rounded-lg font-secondary font-semibold",
+                "px-6 py-2.5 rounded-xl",
+                "font-secondary font-semibold text-sm",
                 "bg-primary text-white",
-                "hover:bg-[#e0c580] transition-all duration-200",
-                "disabled:opacity-50 disabled:cursor-not-allowed",
-                "flex items-center justify-center gap-2",
+                "hover:opacity-95 active:opacity-90",
+                "shadow-sm hover:shadow-md",
+                "transition-all duration-200",
+                "disabled:opacity-40 disabled:cursor-not-allowed",
+                "flex items-center gap-2",
               )}
             >
               {isStarting ? (
@@ -270,9 +325,10 @@ export default function EventSelectionModal({
                 </>
               ) : (
                 <>
+                  Start Check In
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5"
+                    className="h-4 w-4"
                     viewBox="0 0 20 20"
                     fill="currentColor"
                   >
@@ -282,7 +338,6 @@ export default function EventSelectionModal({
                       clipRule="evenodd"
                     />
                   </svg>
-                  Start Check-In
                 </>
               )}
             </button>

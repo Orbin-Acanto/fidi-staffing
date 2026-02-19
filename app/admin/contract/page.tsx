@@ -13,8 +13,10 @@ import {
 } from "@/type/contracts";
 import { safeStr, splitName, toNumber } from "@/lib/utils";
 import { AppDatePicker } from "@/component/ui/AppDatePicker";
+import { useCompany } from "@/component/context/CompanyContext";
 
 export default function ContractsPage() {
+  const { companyVersion } = useCompany();
   const [contracts, setContracts] = useState<ContractListItem[]>([]);
   const [contractsLoading, setContractsLoading] = useState(false);
 
@@ -228,7 +230,7 @@ export default function ContractsPage() {
 
   useEffect(() => {
     loadContracts();
-  }, []);
+  }, [companyVersion]);
 
   useEffect(() => {
     loadContracts();
@@ -764,7 +766,7 @@ export default function ContractsPage() {
                   </div>
 
                   <div className="p-4 border-t border-gray-200 space-y-2">
-                    <button
+                    {/* <button
                       onClick={handleSendContract}
                       disabled={isSending || !form.contractId}
                       className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-white rounded-lg hover:bg-primary/90 font-secondary font-medium transition-colors disabled:opacity-50"
@@ -784,11 +786,11 @@ export default function ContractsPage() {
                         />
                       </svg>
                       Send
-                    </button>
+                    </button> */}
 
                     <button
                       onClick={handleDownloadContract}
-                      className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 font-secondary font-medium transition-colors"
+                      className="w-full inline-flex cursor-pointer items-center justify-center gap-2 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 font-secondary font-medium transition-colors"
                       type="button"
                     >
                       <svg

@@ -14,7 +14,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="h-full">
-      <body className="h-full overflow-hidden">
+      <body className="h-full overflow-x-hidden">
         <Providers>{children}</Providers>
       </body>
     </html>

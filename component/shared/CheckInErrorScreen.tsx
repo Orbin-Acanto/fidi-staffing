@@ -98,7 +98,7 @@ export default function CheckInErrorScreen({
   onRetakePhoto,
   onGetHelp,
   onAutoReturn,
-  countdownSeconds = 5,
+  countdownSeconds = 30,
 }: CheckInErrorScreenProps) {
   const { playError } = useSound();
   const { flashClass, flashError } = useFlash();

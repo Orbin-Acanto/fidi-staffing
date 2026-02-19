@@ -11,8 +11,8 @@ import PhoneNumberInput, {
 import LoadingSpinner from "@/component/shared/LoadingSpinner";
 import { EventType, StaffType, CheckOutSession, CheckInRecord } from "@/type";
 import {
-  verifyStaffPhoneAttendance,
   staffCheckOutAttendance,
+  verifyStaffPhoneAttendanceCheckout,
 } from "@/services/attendance-api";
 import NetworkOfflineIndicator from "@/component/shared/NetworkOfflineIndicator";
 
@@ -66,7 +66,7 @@ export default function StaffCheckOutPage({
     setIsLoading(true);
 
     try {
-      const verifyResponse = await verifyStaffPhoneAttendance(
+      const verifyResponse = await verifyStaffPhoneAttendanceCheckout(
         phone,
         clockCode,
         event.id,
@@ -82,18 +82,6 @@ export default function StaffCheckOutPage({
       }
 
       const staffData = verifyResponse.data;
-
-      if (staffData.check_out_status === "already_checked_out") {
-        toast.warning("You have already checked out from this event.");
-        resetForm();
-        return;
-      }
-
-      if (staffData.check_in_status !== "already_checked_in") {
-        toast.error("You must check in first before checking out.");
-        resetForm();
-        return;
-      }
 
       const checkOutResponse = await staffCheckOutAttendance(
         staffData.staff_id,

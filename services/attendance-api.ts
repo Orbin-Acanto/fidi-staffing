@@ -169,6 +169,36 @@ export async function verifyStaffPhoneAttendance(
   });
 }
 
+export async function verifyStaffPhoneAttendanceCheckout(
+  phone: string,
+  clockCode: string,
+  eventId: string,
+): Promise<
+  ApiResponse<{
+    staff_id: string;
+    staff_name: string;
+    staff_avatar: string | null;
+    assignment_id: string;
+    role: string;
+    scheduled_start: string;
+    scheduled_end: string;
+    check_in_status: string;
+    check_out_status: string;
+    time_difference_minutes: number | null;
+    punctuality_status: string | null;
+  }>
+> {
+  return clockApiCall("/staff/verify-phone-checkout/", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      phone,
+      clock_code: clockCode,
+      event_id: eventId,
+    }),
+  });
+}
+
 export async function staffCheckInAttendance(
   staffId: string,
   eventId: string,

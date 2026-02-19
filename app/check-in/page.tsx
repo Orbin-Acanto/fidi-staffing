@@ -376,13 +376,6 @@ export default function CheckInApp() {
     }));
   }, []);
 
-  const handleEndSession = useCallback(async () => {
-    setState((prev) => ({
-      ...prev,
-      showEndSessionModal: true,
-    }));
-  }, []);
-
   const handleSessionEnded = useCallback(() => {
     setState((prev) => ({
       ...prev,
@@ -481,7 +474,9 @@ export default function CheckInApp() {
               setState((prev) => ({ ...prev, showEventSelectionModal: false }))
             }
             adminId={state.adminId || ""}
+            sessionId={state.checkInSession?.id || ""}
             onSessionStart={handleSessionStart}
+            onSessionEnded={handleSessionEnded}
           />
         );
 
@@ -508,8 +503,6 @@ export default function CheckInApp() {
               }
               sessionId={state.checkInSession?.id || ""}
               adminId={state.adminId || ""}
-              checkedInCount={state.checkInSession?.totalCheckedIn || 0}
-              expectedCount={state.currentEvent?.expectedStaffCount || 0}
               onSessionEnded={handleSessionEnded}
             />
           </>
@@ -608,15 +601,6 @@ export default function CheckInApp() {
       case "checkInComplete":
         return (
           <CheckInCompleteTransition
-            checkedInCount={state.checkInSession?.totalCheckedIn || 0}
-            expectedCount={state.currentEvent?.expectedStaffCount || 0}
-            onTimeArrivals={state.checkInSession?.totalCheckedIn || 0}
-            lateArrivals={0}
-            noShows={
-              (state.currentEvent?.expectedStaffCount || 0) -
-              (state.checkInSession?.totalCheckedIn || 0)
-            }
-            sessionDuration="1h 0m"
             onStartCheckOut={handleStartCheckOut}
             onReturnToDashboard={() =>
               (window.location.href = "/admin/dashboard")
