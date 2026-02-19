@@ -9,7 +9,7 @@ export const runtime = "nodejs";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { entryId: string } },
+  { params }: { params: Promise<{ entryId: string }> },
 ) {
   const origin = req.headers.get("origin");
   if (origin && !isSafeOrigin(req)) {
@@ -32,7 +32,7 @@ export async function GET(
     );
   }
 
-  const { entryId } = params;
+  const { entryId } = await params;
 
   const upstream = await fetch(
     `${DJANGO_API_URL}/api/attendance/entries/${entryId}/`,

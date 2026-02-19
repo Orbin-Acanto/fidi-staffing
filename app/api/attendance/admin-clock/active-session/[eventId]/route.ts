@@ -9,8 +9,10 @@ export const runtime = "nodejs";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { eventId: string } },
+  { params }: { params: Promise<{ eventId: string }> },
 ) {
+  const { eventId } = await params;
+
   const origin = req.headers.get("origin");
   if (origin && !isSafeOrigin(req)) {
     return NextResponse.json({ message: "Invalid origin." }, { status: 403 });
@@ -31,8 +33,6 @@ export async function GET(
       { status: 401 },
     );
   }
-
-  const { eventId } = params;
 
   const upstream = await fetch(
     `${DJANGO_API_URL}/api/attendance/admin-clock/active-session/${eventId}/`,

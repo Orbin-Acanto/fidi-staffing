@@ -9,7 +9,7 @@ export const runtime = "nodejs";
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { assignmentId: string } },
+  { params }: { params: Promise<{ assignmentId: string }> },
 ) {
   const origin = req.headers.get("origin");
   if (origin && !isSafeOrigin(req)) {
@@ -32,7 +32,7 @@ export async function POST(
     );
   }
 
-  const { assignmentId } = params;
+  const { assignmentId } = await params;
 
   let body: any;
   try {

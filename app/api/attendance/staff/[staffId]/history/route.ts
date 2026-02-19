@@ -9,7 +9,7 @@ export const runtime = "nodejs";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { staffId: string } },
+  { params }: { params: Promise<{ staffId: string }> },
 ) {
   const origin = req.headers.get("origin");
   if (origin && !isSafeOrigin(req)) {
@@ -32,7 +32,7 @@ export async function GET(
     );
   }
 
-  const { staffId } = params;
+  const { staffId } = await params;
   const searchParams = req.nextUrl.searchParams;
   const queryString = searchParams.toString();
 

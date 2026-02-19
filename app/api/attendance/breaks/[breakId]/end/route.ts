@@ -9,7 +9,7 @@ export const runtime = "nodejs";
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { breakId: string } },
+  { params }: { params: Promise<{ breakId: string }> },
 ) {
   const origin = req.headers.get("origin");
   if (origin && !isSafeOrigin(req)) {
@@ -32,7 +32,7 @@ export async function POST(
     );
   }
 
-  const { breakId } = params;
+  const { breakId } = await params;
 
   const upstream = await fetch(
     `${DJANGO_API_URL}/api/attendance/breaks/${breakId}/end/`,
