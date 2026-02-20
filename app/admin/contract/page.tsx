@@ -520,10 +520,6 @@ export default function ContractsPage() {
                       const isSelected =
                         safeStr(c.id) === safeStr(selectedContractId);
 
-                      const person = c.staff
-                        ? `${safeStr(c.staff_name) || "Staff"} (Staff)`
-                        : `${safeStr(c.vendor_name) || "Vendor"} (Vendor)`;
-
                       const pay =
                         safeStr(c.pay_type).toLowerCase() === "hourly"
                           ? `${formatCurrency(toNumber(c.pay_rate))}/hr`
@@ -560,14 +556,14 @@ export default function ContractsPage() {
                           </td>
 
                           <td className="px-4 py-3 font-secondary text-gray-900">
-                            <div className="font-medium">{person}</div>
+                            <div className="font-medium">{c.party_type}</div>
                             <div className="text-xs text-gray-500">
                               {safeStr(c.staff_email || c.vendor_email)}
                             </div>
                           </td>
 
                           <td className="px-4 py-3 font-secondary text-gray-700">
-                            {safeStr(c.role_name) || "—"}
+                            {safeStr(c.role_or_service) || "—"}
                           </td>
 
                           <td className="px-4 py-3 font-secondary text-gray-700">

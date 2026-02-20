@@ -15,6 +15,9 @@ export type ContractListItem = {
   vendor_name?: string | null;
   vendor_email?: string | null;
 
+  party_type?: string;
+  role_or_service?: string;
+
   role_name?: string | null;
 
   pay_type?: "hourly" | "fixed" | string | null;
