@@ -13,6 +13,7 @@ import { AppCheckbox } from "@/component/ui/Checkbox";
 import { apiFetch } from "@/lib/apiFetch";
 import { toastSuccess, toastError } from "@/lib/toast";
 import { StaffFormData } from "@/type/staff";
+import { useCompany } from "@/component/context/CompanyContext";
 
 type PayType = "hourly" | "fixed";
 
@@ -33,6 +34,7 @@ const relationOptions = [
 ];
 
 export default function EditStaffPage() {
+  const { companyVersion } = useCompany();
   const router = useRouter();
   const params = useParams();
   const staffId = params.staff_id as string;
@@ -88,7 +90,7 @@ export default function EditStaffPage() {
   useEffect(() => {
     fetchRolesAndGroups();
     fetchStaffData();
-  }, [staffId]);
+  }, [staffId, companyVersion]);
 
   const fetchRolesAndGroups = async () => {
     setIsLoadingGroups(true);

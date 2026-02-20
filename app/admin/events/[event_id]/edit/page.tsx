@@ -19,6 +19,7 @@ import {
   Location,
 } from "@/type/events";
 import EventStaffingSection from "@/component/event/Eventstaffingsection";
+import { useCompany } from "@/component/context/CompanyContext";
 
 interface StaffGroup {
   id: string;
@@ -26,6 +27,7 @@ interface StaffGroup {
 }
 
 export default function EditEventPage() {
+  const { companyVersion } = useCompany();
   const router = useRouter();
   const params = useParams();
   const eventId = params.event_id as string;
@@ -79,7 +81,7 @@ export default function EditEventPage() {
 
   useEffect(() => {
     fetchInitialData();
-  }, []);
+  }, [companyVersion]);
 
   useEffect(() => {
     if (eventId) {

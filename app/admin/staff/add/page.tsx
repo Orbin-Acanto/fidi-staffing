@@ -12,6 +12,7 @@ import { AppCheckbox } from "@/component/ui/Checkbox";
 import { apiFetch } from "@/lib/apiFetch";
 import { toastSuccess, toastError } from "@/lib/toast";
 import { StaffFormData } from "@/type/staff";
+import { useCompany } from "@/component/context/CompanyContext";
 
 type PayType = "hourly" | "fixed";
 
@@ -32,6 +33,7 @@ const relationOptions = [
 ];
 
 export default function AddStaffPage() {
+  const { companyVersion } = useCompany();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [roles, setRoles] = useState<Array<{ id: string; name: string }>>([]);
@@ -371,7 +373,7 @@ export default function AddStaffPage() {
     }
 
     fetchRolesAndGroups();
-  }, []);
+  }, [companyVersion]);
 
   return (
     <div className="space-y-6">

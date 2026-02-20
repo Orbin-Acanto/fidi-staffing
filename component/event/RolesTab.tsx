@@ -345,26 +345,29 @@ export function RolesTab({
                         {Number(req.filled_count ?? 0)} /{" "}
                         {Number(req.staff_count ?? 0)} filled
                       </span>
+                      {!isEditing && (
+                        <>
+                          <div>
+                            <button
+                              onClick={() => openEdit(req)}
+                              className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                              disabled={isBusy}
+                            >
+                              <PencilIcon />
+                            </button>
+                          </div>
 
-                      <div>
-                        <button
-                          onClick={() => openEdit(req)}
-                          className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-                          disabled={isBusy}
-                        >
-                          <PencilIcon />
-                        </button>
-                      </div>
-
-                      <button
-                        onClick={() => removeRequirement(req.id)}
-                        disabled={isBusy}
-                        className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 bg-white hover:bg-red-50 text-gray-700 hover:text-red-600 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-                        aria-label="Remove role requirement"
-                        title="Remove role requirement"
-                      >
-                        <XIcon />
-                      </button>
+                          <button
+                            onClick={() => removeRequirement(req.id)}
+                            disabled={isBusy}
+                            className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 bg-white hover:bg-red-50 text-gray-700 hover:text-red-600 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                            aria-label="Remove role requirement"
+                            title="Remove role requirement"
+                          >
+                            <XIcon />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
 

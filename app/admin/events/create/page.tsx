@@ -16,6 +16,7 @@ import {
   Role,
   Location,
 } from "@/type/events";
+import { useCompany } from "@/component/context/CompanyContext";
 
 interface StaffGroup {
   id: string;
@@ -23,6 +24,7 @@ interface StaffGroup {
 }
 
 export default function CreateEventPage() {
+  const { companyVersion } = useCompany();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
@@ -71,7 +73,7 @@ export default function CreateEventPage() {
 
   useEffect(() => {
     fetchInitialData();
-  }, []);
+  }, [companyVersion]);
 
   const fetchInitialData = async () => {
     setIsLoadingData(true);
