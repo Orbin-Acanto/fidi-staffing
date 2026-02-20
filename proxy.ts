@@ -6,6 +6,14 @@ export function proxy(request: NextRequest) {
   const refreshToken = request.cookies.get("refresh_token")?.value;
   const { pathname } = request.nextUrl;
 
+  if (pathname === "/") {
+    if (accessToken || refreshToken) {
+      return NextResponse.redirect(new URL("/admin/dashboard", request.url));
+    } else {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+  }
+
   const guestOnlyRoutes = ["/login", "/check-in", "/contracts"];
   const publicRoutes = [
     "/accept-invitation",
